@@ -9,7 +9,14 @@ SerialLineConnector::SerialLineConnector()
     }
     full_frames_counter = 0;
     keep_going = true;
+    enable_sliding_average = true;
+    index_sliding_average = 0;
     slot_frame = (unsigned short*) malloc (NO_GLOVE_ELEMENTS*sizeof (unsigned short));
+    for (int i= 0; i < SLIDING_AVG; i++)
+    {
+        for (int j=0; j < NO_GLOVE_ELEMENTS; j++)
+            full_frame_sensor_data[i][j] = 0;
+    }
 }
 
 bool
@@ -122,14 +129,32 @@ SerialLineConnector::update_field()
         full_frame = false;
     if (full_frame && last_packet_id == (NO_GLOVE_ELEMENTS-1))
     {
+        index_sliding_average++;
+        if (index_sliding_average >= SLIDING_AVG)
+            index_sliding_average = 0;
         full_frame_sensor_data_mutex.lock();
         sensor_data_mutex.lock();
-        memcpy((void*)full_frame_sensor_data,(void*)sensor_data,(size_t) 54*sizeof(unsigned short));
+        memcpy((void*)full_frame_sensor_data[index_sliding_average],(void*)sensor_data,(size_t) 54*sizeof(unsigned short));
         sensor_data_mutex.unlock();
         full_frame_sensor_data_mutex.unlock();
         full_frames_counter++;
         sensor_data_mutex.lock();
-        memcpy((void*)slot_frame,(void*)sensor_data,(size_t) 54*sizeof(unsigned short));
+        if (enable_sliding_average)
+        {
+            for (int i=0; i < NO_GLOVE_ELEMENTS; i++)
+            {
+                slot_frame[i] = 0;
+                for (int j=0; j < SLIDING_AVG; j++)
+                {
+                    slot_frame[i] += full_frame_sensor_data[j][i];
+                }
+                slot_frame[i] /= SLIDING_AVG;
+            }
+        }
+        else
+        {
+          memcpy((void*)slot_frame,(void*)sensor_data,(size_t) 54*sizeof(unsigned short));
+        }
         sensor_data_mutex.unlock();
         emit read_frame(slot_frame);
         switch (full_frames_counter % 8)

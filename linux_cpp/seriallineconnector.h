@@ -16,6 +16,7 @@
 #include "glovesvgpainter.h"
 
 #define BAUDRATE B115200
+#define SLIDING_AVG 10
 #define MODEMDEVICE "/dev/ttyACM0"
 #define PACKET_SIZE_BYTES 5
 
@@ -43,13 +44,15 @@ private:
     bool connected;
     bool keep_going;
     unsigned short sensor_data[NO_GLOVE_ELEMENTS];
-    unsigned short full_frame_sensor_data[NO_GLOVE_ELEMENTS];
+    unsigned short full_frame_sensor_data[SLIDING_AVG][NO_GLOVE_ELEMENTS];
     unsigned short* slot_frame;
     unsigned long int full_frames_counter;
     bool check_packet();
     void update_field();
     unsigned int next_index (unsigned int i);
     bool full_frame;
+    bool enable_sliding_average;
+    unsigned int index_sliding_average;
     QMutex sensor_data_mutex;
     QMutex full_frame_sensor_data_mutex;
 };
