@@ -10,7 +10,7 @@ TARGET = GloveViz
 TEMPLATE = app
 
 INCLUDEPATH+=/usr/include/libxml2 /usr/include/cairo
-LIBS+=-L/usr/lib/kde -lkdeui -lcairo -lsvg-cairo
+LIBS+=-L/usr/lib/kde -lkdeui -lcairo -lsvg-cairo -lsvg
 
 SOURCES += main.cpp\
         glovevizmainwindow.cpp \
