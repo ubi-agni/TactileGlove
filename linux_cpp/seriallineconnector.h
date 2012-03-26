@@ -15,9 +15,7 @@
 
 #include "glovesvgpainter.h"
 
-#define BAUDRATE B115200
 #define SLIDING_AVG 10
-#define MODEMDEVICE "/dev/ttyACM0"
 #define PACKET_SIZE_BYTES 5
 
 class SerialLineConnector : public QThread
@@ -48,6 +46,7 @@ private:
     unsigned short* slot_frame;
     unsigned long int full_frames_counter;
     bool check_packet();
+	 void recover();
     void update_field();
     unsigned int next_index (unsigned int i);
     bool full_frame;

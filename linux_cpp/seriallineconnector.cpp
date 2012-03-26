@@ -67,6 +67,26 @@ SerialLineConnector::check_packet()
     return true;
 }
 
+void
+SerialLineConnector::recover()
+{
+	unsigned int start=0
+	for (; start < PACKET_SIZE_BYTES; ++start) {
+		if (buf[(start+1) % PACKET_SIZE_BYTES] == 0x01 && 
+			 buf[(start+4) % PACKET_SIZE_BYTES] == 0x00 && 
+			 buf[start] >= 0x3d && buf[start] <= 0x73)
+			break;
+	}
+	if (start < PACKET_SIZE_BYTES) {
+		memmove(buf, buf+start, PACKET_SIZE_BYTES-start);
+		read(fd,buf,start);
+		fprintf (stderr, "!\n");
+		if (!check_packet()) fprintf(stderr, "this should not happen!\n")
+	} else {
+		fprintf (stderr, "could not recover");
+	}
+}
+
 unsigned int
 SerialLineConnector::next_index(unsigned int i)
 {
@@ -117,7 +137,7 @@ SerialLineConnector::update_field()
     else
     {
         fields_in_a_row = 0;
-        fprintf (stderr,"index = 0x%x, next_index = 0x%x\n",index,next_index(last_packet_id));
+        fprintf (stderr,"index = 0x%x, expected = 0x%x\n",index,next_index(last_packet_id));
     }
     last_packet_id = index;
 
@@ -217,12 +237,12 @@ SerialLineConnector::run()
             res = read(fd,buf,5);
             if (5 == res)
             {
-                //fprintf (stderr,"~");
                 if (check_packet())
                 {
-                    //fprintf (stderr,"!");
                     update_field();
-                }
+                } else {
+						  recover();
+					 }
             }
         }
     }
