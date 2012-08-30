@@ -58,7 +58,7 @@ SerialLineConnector::disconnect_device()
 bool
 SerialLineConnector::check_packet()
 {
-    if ((buf[0] < 0x3d) || (buf[0] > 0x73))
+    if ((buf[0] < 0x3c) || (buf[0] > 0x73))
         return false;
     if (buf[1] != 0x01)
         return false;
@@ -70,25 +70,25 @@ SerialLineConnector::check_packet()
 void
 SerialLineConnector::recover()
 {
-	unsigned int start=0
-	for (; start < PACKET_SIZE_BYTES; ++start) {
-		if (buf[(start+1) % PACKET_SIZE_BYTES] == 0x01 && 
-			 buf[(start+4) % PACKET_SIZE_BYTES] == 0x00 && 
-			 buf[start] >= 0x3d && buf[start] <= 0x73)
-			break;
-	}
-	if (start < PACKET_SIZE_BYTES) {
-		memmove(buf, buf+start, PACKET_SIZE_BYTES-start);
-		read(fd,buf,start);
-		fprintf (stderr, "!\n");
-		if (!check_packet()) fprintf(stderr, "this should not happen!\n")
-	} else {
-		fprintf (stderr, "could not recover");
-	}
+  unsigned int start=0;
+  printf("recover from %2X %2X %2X %2X %2X\n",buf[0],buf[1],buf[2],buf[3],buf[4]);
+  for (; start < PACKET_SIZE_BYTES; ++start) {
+    if (buf[(start+1) % PACKET_SIZE_BYTES] == 0x01 && 
+	buf[(start+4) % PACKET_SIZE_BYTES] == 0x00 && 
+	buf[start] >= 0x3c && buf[start] <= 0x73)
+      break;
+  }
+  if (start < PACKET_SIZE_BYTES) {
+    memmove(buf, buf+start, PACKET_SIZE_BYTES-start);
+    read(fd,buf+PACKET_SIZE_BYTES-start,start);
+    if (!check_packet()) fprintf(stderr, "this should not happen!\n");
+  } else {
+    fprintf (stderr, "could not recover\n");
+  }
 }
 
-unsigned int
-SerialLineConnector::next_index(unsigned int i)
+ int
+SerialLineConnector::next_index( int i)
 {
     if (i < NO_GLOVE_ELEMENTS)
         return i+1;
@@ -123,12 +123,13 @@ void
 SerialLineConnector::update_field()
 {
     static unsigned int fields_in_a_row=0;
-    static unsigned int last_packet_id = 0;
+    static int last_packet_id = -1;
 
     unsigned int index;
 
-    index = buf[0] - 0x3d;
-
+    index = buf[0] - 0x3c;
+fprintf (stderr,"index = 0x%x %u %u\n",index, fields_in_a_row,NO_GLOVE_ELEMENTS);
+    
     sensor_data_mutex.lock();
     sensor_data[index] = 0x0fff - (((0x0f&buf[2])*0x100) + (buf[3]));
     sensor_data_mutex.unlock();
@@ -147,8 +148,9 @@ SerialLineConnector::update_field()
     }
     else
         full_frame = false;
-    if (full_frame && last_packet_id == (NO_GLOVE_ELEMENTS-1))
+    if (full_frame && (last_packet_id == (NO_GLOVE_ELEMENTS)))
     {
+fprintf (stderr,"Fullframe \n");
         index_sliding_average++;
         if (index_sliding_average >= SLIDING_AVG)
             index_sliding_average = 0;
@@ -222,7 +224,7 @@ SerialLineConnector::run()
             sleep (1);
             continue;
         }
-        //fprintf (stderr,".");
+        fprintf (stderr,".");
         FD_ZERO (&fdset);
         FD_SET (fd,&fdset);
         timeout.tv_sec = 0;
@@ -235,16 +237,18 @@ SerialLineConnector::run()
         if (res > 0)
         {
             res = read(fd,buf,5);
+	    printf("%d: %X %X %X %X %X\n",res, buf[0],buf[1],buf[2],buf[3],buf[4]);
+
             if (5 == res)
             {
                 if (check_packet())
                 {
                     update_field();
                 } else {
-						  recover();
-					 }
+		    recover();
+		}
             }
-        }
+        } else {fprintf (stderr, "!");}
     }
     if (connected)
         disconnect_device();

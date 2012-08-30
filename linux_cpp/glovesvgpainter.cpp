@@ -123,30 +123,31 @@ GloveSvgPainter::update_svg()
         perror ("GloveSvgPainter::update_svg: pthread_mutex_lock");
         exit (EXIT_FAILURE);
     }
-    fprintf (stderr," DEBUG: Frame data: ");
+   // fprintf (stderr," DEBUG: Frame data: ");
     for (i=0; i < NO_GLOVE_ELEMENTS; i++)
     {
       unsigned int temp = gd->data_array[i];
-        _svg_fetch_element_by_id (scr->svg,lookup[i],&se);
-	
-	if (temp <= 1365)
+        se = _svg_fetch_element_by_id (scr->svg,lookup[i]);
+	//temp = 4*temp; //anpassen der werte mit einer Funktion
+	//if (temp > 4095) temp = 4095;
+	//if (temp <= 1365)
 	  {
-	    se->style.fill_paint.p.color.rgb = 0x100*(((1000*temp / 5353) > 255)?255:(1000*temp / 5353));
+	    se->node->style.fill_paint.p.color.rgb = 0x100*(((1000*temp / 5353) > 255)?255:(1000*temp / 5353));
 	  }
 	else
 	  {
 	    if (temp <= 2730)
 	      {
-		se->style.fill_paint.p.color.rgb = (1000*(temp-1365) / 5353)*0x10000 + 0xff00;
+		se->node->style.fill_paint.p.color.rgb = (1000*(temp-1365) / 5353)*0x10000 + 0xff00;
 	      }
 	    else
 	      {
-		se->style.fill_paint.p.color.rgb = 0x100*(0xff - (1000*(temp-2730) / 5353)) + 0xff0000;
+		se->node->style.fill_paint.p.color.rgb = 0x100*(0xff - (1000*(temp-2730) / 5353)) + 0xff0000;
 	      }
 	  }
-	fprintf (stderr,"%d ",temp);
+	//fprintf (stderr,"%d ",temp);
     }
-    fprintf (stderr,"\n");
+    //fprintf (stderr,"\n");
     if (0 != pthread_mutex_unlock (gd->data_mutex))
     {
         perror ("GloveSvgPainter::update_svg: pthread_mutex_unlock");
