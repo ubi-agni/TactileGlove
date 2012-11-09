@@ -1,9 +1,9 @@
 ﻿<Window x:Class="TactileDataglove.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="MainWindow" Height="640" Width="600" Background="#FFF0F0F0" ShowActivated="False" ResizeMode="CanMinimize">
+        Title="MainWindow" Height="660" Width="600" Background="#FFF0F0F0" ShowActivated="False" ResizeMode="CanMinimize">
     <Grid>
-        <Canvas x:Name="Layer_3" Width="515" Height="590" Margin="10,10,40,10">
+        <Canvas x:Name="Layer_3" Width="515" Height="590" Margin="10,30,40,10">
             <Path x:Name="PalmUpLF" Width="56.4849" Height="73.4771" Canvas.Left="325.199" Canvas.Top="274.535" Stretch="Fill" Fill="Black" Data="F1 M 325.199,328.535C 336.668,333.734 349.465,340.136 363.199,347.469C 373.335,350.401 379.335,341.469 381.465,320.802C 383.335,302 373.199,286.535 350.933,274.535L 325.199,328.535 Z " />
             <Path x:Name="PalmUpRF" Width="71.7347" Height="72.6667" Canvas.Left="279.199" Canvas.Top="255.869" Stretch="Fill" Fill="Black" Data="F1 M 350.933,274.535C 348.668,273.202 346.267,272 343.736,270.932C 329.465,264.265 312.668,259.333 293.465,255.869L 279.199,311.202C 291.736,314.401 307.069,320.135 325.199,328.535L 350.933,274.535 Z " />
             <Path x:Name="PalmUpMF" Width="70.2666" Height="60.6667" Canvas.Left="223.199" Canvas.Top="250.535" Stretch="Fill" Fill="#FF000000" Data="F1 M 235.6,250.666C 232.532,250.535 229.465,250.535 226.668,250.535L 223.199,306.135C 236.403,304.666 252.532,305.734 271.335,309.333C 273.865,309.869 276.403,310.401 279.199,311.202L 293.465,255.869C 276.267,252.802 256.933,251.067 235.6,250.666 Z " />
@@ -193,9 +193,9 @@
             <Path x:Name="Path_184" Width="30.672" Height="59.672" Canvas.Left="13.2614" Canvas.Top="278.891" Stretch="Fill" StrokeThickness="1.33333" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Stroke="#FFFFFFFF" Data="F1 M 43.2667,337.896C 42.632,337.124 13.928,279.557 13.928,279.557" />
             <Path x:Name="Path_185" Width="30.5253" Height="40.6667" Canvas.Left="62.4654" Canvas.Top="354.905" Stretch="Fill" StrokeThickness="1.33333" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Stroke="#FFFFFFFF" Data="F1 M 92.324,394.905C 91.684,394.135 63.132,355.572 63.132,355.572" />
             <Path x:Name="Path_186" Width="35.6827" Height="52.8907" Canvas.Left="52.5947" Canvas.Top="256.796" Stretch="Fill" StrokeThickness="1.33333" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Stroke="#FFFFFFFF" Data="F1 M 87.6107,309.02C 86.9707,308.249 53.2614,257.463 53.2614,257.463" />
-            <Slider Canvas.Left="10" Canvas.Top="10" Height="23" Name="slider1" Width="100" ValueChanged="slider1_ValueChanged" Maximum="255" />
+            <Slider Canvas.Left="8" Canvas.Top="190" Height="23" Name="slider1" Width="100" ValueChanged="slider1_ValueChanged" Maximum="255" />
         </Canvas>
-        <Rectangle x:Name="Rectangle" Width="30" Stretch="Fill" Margin="540,10,10,10" >
+        <Rectangle x:Name="Rectangle" Width="30" Stretch="Fill" Margin="540,30,10,10" >
             <Rectangle.Fill>
                 <LinearGradientBrush StartPoint="0.5,0" EndPoint="0.5,1">
                     <LinearGradientBrush.GradientStops>
@@ -207,5 +207,8 @@
                 </LinearGradientBrush>
             </Rectangle.Fill>
         </Rectangle>
+        <Label Content="Port:" Height="28" HorizontalAlignment="Left" Margin="24,2,0,0" Name="lblPort" VerticalAlignment="Top" />
+        <Button Content="_Connect" Height="23" HorizontalAlignment="Right" Name="btConnectDisconnect" VerticalAlignment="Top" Width="75" Margin="0,5,339,0" Click="btConnectDisconnect_Click" />
+        <ComboBox Height="23" HorizontalAlignment="Left" Margin="64,5,0,0" Name="cbSerialPort" VerticalAlignment="Top" Width="100" />
     </Grid>
 </Window>
