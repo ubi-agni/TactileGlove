@@ -1,9 +1,6 @@
-/*
-
-Test program for gereon handschuh
-print all sensor values linear
-
-*/
+// Test program for left tactile dataglove v1
+// Outputs all sensor values on console
+// Linear, unmodified output
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -11,144 +8,126 @@ print all sensor values linear
 #include <stdio.h>
 #include <string.h>
 #include <iostream>
+#include <ncurses.h>  // For text display
+#include <SDL/SDL.h> // For FPS timecounting
 
-
-#include <ncurses.h>  //for text display
-#include <SDL/SDL.h> //for FPS timecounting
-
-//serialport stuff
+// Serialport settings
 #define BAUDRATE B115200
 #define MODEMDEVICE "/dev/ttyACM0"
-#define _POSIX_SOURCE 1 /* POSIX compliant source */
+#define _POSIX_SOURCE 1 // POSIX compliant source
 #define FALSE 0
 #define TRUE 1
-#define MAX_BUFF 1024  //max input buffer size in bytes
+#define MAX_BUFF 1024  // Max input buffer size in bytes
 #define PACKET_SIZE_BYTES 1
 
-volatile int STOP=FALSE;
+void print_SensData(); // Output sensor data
+void initNcurses(); // Setup text terminal display
 
-void print_SensData(); //output sensor data
-void initNcurses(); //setup text terminal display
-
-//store our pressure data
+// Store our pressure data
 unsigned short ldata[54];
-unsigned int frames=0; //framecounter
+unsigned int frames=0; // FPS counter
 unsigned int fps=0;
 unsigned int lastticks=0;
 
 int main(int argc, char **argv)
 {
-   int fd; //device handle
-   int res; //storesamount of received bytes
-   struct termios oldtio,newtio;  //for serial port settings
-   unsigned char buf[255];	//data recevie buffer
+   int fd; // Serial port device handle
+   int res; // Stores amount of received bytes
+   struct termios oldtio,newtio;  // For serial port settings
+   unsigned char buf[255];	// Data receive buffer
   
 
-//try to open serial port
-printf("Please connect Captest\n");
+// Try to open serial port
+printf("Please connect dataglove via USB!\n");
 
-//serial port settings
+// Serial port settings
    if (argc > 1)
       fd = open(argv[1], O_RDWR | O_NOCTTY );
    else
       fd = open(MODEMDEVICE, O_RDWR | O_NOCTTY );
    if (fd <0) {perror(MODEMDEVICE); exit(-1); }
 
-   tcgetattr(fd,&oldtio); /* save current port settings */
+   tcgetattr(fd,&oldtio); // Save current port settings
 
    bzero(&newtio, sizeof(newtio));
  
-   newtio.c_cc[VTIME]    = 0;   /* inter-character timer unused */
-   newtio.c_cc[VMIN]     = PACKET_SIZE_BYTES;   /* blocking read until 56 chars received */
+   newtio.c_cc[VTIME]    = 0;   // Inter-character timer unused
+   newtio.c_cc[VMIN]     = PACKET_SIZE_BYTES;   // Blocking read until PAKET_SIZE_BYTES chars received
 
    tcflush(fd, TCIFLUSH);
    tcsetattr(fd,TCSANOW,&newtio);
-//end serial port settings
+// End serial port settings
 
 
-  initNcurses(); //for output
+  initNcurses(); // For output
 
-//init array
+// Init array
 	for(unsigned char x=0;x<54;x++){
 		 ldata[x]=0;
 	}
 
 unsigned char index;
 
-   while (STOP==FALSE) {       /* loop for input */
-	
-      res = read(fd,buf,5);   // read a maximum of 255 into buf (actual read count is in res)
-//parsing:
-//we go through the res bytes in buf[] and look for
-//character 1 determines sensornumber, after that a byte 1, then follows the sensor value, thenn NULL byte
-//3C 01 0F FF 00
-//sensor number range from 0x3C - 0x7B
+   while (true)		  // Loop for input
+   {
+      res = read(fd,buf,5);   // Eead a maximum of 5 bytes into buf (actual read count is in res)
+// Parsing:
+// we go through the res bytes in buf[] and look for
+// * first byte determines taxel number, allowed range is from 0x3C to 0x7B;
+// * constant byte 0x01
+// * 2 byte sensor value, with first 4 bits as internal AD channel number (ignore)
+// * NULL byte (0x00)
+// Example: 3C 01 0F FF 00
 
 	index=0;
-//printf("%d \n",res );
-//printf("%x %x %X %X %x \n",buf[0] , buf[1] ,buf[2] ,buf[3], buf[4] );
-	if(res==5){  //5 bytes read
-//printf("%x %x %X %X %x \n",buf[0] , buf[1] ,buf[2] ,buf[3], buf[4] );
-		if((buf[0]>=0x3C) && (buf[0]<=0x7B) )
-		
+// printf("%d \n",res );
+// printf("%x %x %X %X %x \n",buf[0] , buf[1] ,buf[2] ,buf[3], buf[4] );
+	if(res==5){  // If read 5 bytes
+// printf("%x %x %X %X %x \n",buf[0] , buf[1] ,buf[2] ,buf[3], buf[4] );
+		if((buf[0]>=0x3C) && (buf[0]<=0x7B))
 		{
-		//we have a full packet
-			unsigned short value = ((0x0F & buf[2])<<8) | buf[3]; //get pressure value
-			index = buf[0] -0x3C;  //get index
+		// We have a full packet
+			unsigned short value = ((0x0F & buf[2])<<8) | buf[3]; // Get pressure value
+			index = buf[0] -0x3C;  // Get taxel number
 			//printf("%X \n",  buf[0]);
 			ldata[index] = 4095-value;
 
 			if(index==53){ 
-				frames++; //framecounter
-
+				frames++; // FPS counter
 			}
 		}
+ 	   }
 
-
- 	   } //end for 
-
-	//packet parsed and data can be printed
+	// Packet parsed and data can be printed
 	print_SensData();
-
    }
-   tcsetattr(fd,TCSANOW,&oldtio);//restore serial settings
+   tcsetattr(fd,TCSANOW,&oldtio); // Restore serial settings
 }
 
-
-
-//Init ncurses terminal display
+// Init ncurses terminal display
 void initNcurses(){
-	initscr();	//Ncurses init function
+	initscr();	// Ncurses init function
 	noecho();
 	cbreak();
 	timeout(0);
-	clear();	//clear terminal
-	atexit( (void(*)())endwin );	//Ncurses cleanup function
+	clear();	// Clear terminal
+	atexit( (void(*)())endwin ); // Ncurses cleanup function
 }
 
-//print the Data good looking
+// Pretty print the data
 void print_SensData(){	
-
-	//clear terminal
+	// Clear terminal
 	move(0, 0);
 	clrtobot();
 
-	//print fps & title
-	mvprintw(0, 0, "---> Handschuh Test <---");
+	// Print FPS & title
+	mvprintw(0, 0, "---> Tactile Dataglove Test <---");
 
-//print data
+// Print data
 	for(unsigned char x=0;x<54;x++){
 		mvprintw(x+2, 0, "%d:", x+1 );
 		mvprintw(x+2, 4, "%d", ldata[x] );
-
 	}
-	
 
 	refresh(); 
-
 }
-
-
-
-
-

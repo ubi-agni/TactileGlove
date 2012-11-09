@@ -13,6 +13,8 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+using System.Windows.Threading;
+using System.IO;
 using System.IO.Ports;
 
 namespace TactileDataglove
@@ -24,13 +26,22 @@ namespace TactileDataglove
     {
         private const string sCONNECT = "_Connect";
         private const string sDISCONNECT = "_Disconnect";
-        
+
         private SerialPort spUSB = new SerialPort();
+
+        List<byte> lRxData = new List<byte>();
+
+        //private const int iRXBUFSIZE = 1024 * 1024;
+        //private LinkedList<byte> llRXBuffer = new LinkedList<byte>(iRXBUFSIZE);
+        //private byte[] byRXBuffer = new byte[iRXBUFSIZE];
 
         public MainWindow()
         {
             InitializeComponent();
             btConnectDisconnect.Content = sCONNECT;
+            spUSB.DataReceived += new SerialDataReceivedEventHandler(spUSB_DataReceived);
+
+
 
             string[] saAvailableSerialPorts = SerialPort.GetPortNames();
             foreach (string sAvailableSerialPort in saAvailableSerialPorts)
@@ -39,19 +50,12 @@ namespace TactileDataglove
             {
                 cbSerialPort.Text = cbSerialPort.Items[0].ToString();
                 for (int i = 0; i < cbSerialPort.Items.Count; i++)
-                    // default to COM1 initially if available
-                    if (cbSerialPort.Items[i].ToString() == "COM1")
+                    // default to COM4 initially if available
+                    if (cbSerialPort.Items[i].ToString() == "COM4")
                         cbSerialPort.SelectedIndex = i;
             }
-        }
 
-        private void slider1_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
-        {
-            // Color goes from RGB (0,50,0) to (0,255,0) to (255,255,0) to (255,0,0)
 
-            SolidColorBrush mySolidColorBrush = new SolidColorBrush();
-            mySolidColorBrush.Color = Color.FromArgb((byte)slider1.Value, 255, 255, 0);
-            PalmUpRF.Fill = mySolidColorBrush;
         }
 
         private void btConnectDisconnect_Click(object sender, RoutedEventArgs e)
@@ -103,5 +107,99 @@ namespace TactileDataglove
             }
         }
 
+        private delegate void UpdateUiByteInDelegate(byte[] byDataIn);
+
+        private void spUSB_DataReceived(object sender, SerialDataReceivedEventArgs e)
+        {
+            // This function runs in a different thread as the frmMain elements
+            byte[] bySerialPortIn = new byte[spUSB.BytesToRead];
+            int iDataLength = bySerialPortIn.Length;
+            if (iDataLength > 0)
+            {
+                spUSB.Read(bySerialPortIn, 0, iDataLength);
+                Dispatcher.Invoke(DispatcherPriority.Send, new UpdateUiByteInDelegate(DataFromGlove), bySerialPortIn);
+            }
+        }
+
+        private SolidColorBrush Gradient(int iTexelValue)
+        {
+
+            // Limit the input between 0 and 4095
+            iTexelValue = Math.Max(0, iTexelValue);
+            iTexelValue = Math.Min(4095, iTexelValue);
+
+            SolidColorBrush mySolidColorBrush = new SolidColorBrush();
+
+            if (iTexelValue < 1366)
+                mySolidColorBrush.Color = Color.FromArgb(255, 0, Math.Min((byte)255, (byte)(50 + ((double)iTexelValue / 6.65))), 0);
+            else
+                if (iTexelValue < 2731)
+                    mySolidColorBrush.Color = Color.FromArgb(255, Math.Min((byte)255, (byte)((double)(iTexelValue - 1365) / 5.35)), 255, 0);
+                else
+                    mySolidColorBrush.Color = Color.FromArgb(255, 255, Math.Min((byte)255, (byte)(255 - ((double)(iTexelValue - 1365) / 5.35))), 0);
+
+            return (mySolidColorBrush);
+        }
+
+
+        private void DataFromGlove(byte[] byDataIn)
+        {
+            const int iBYTESINPACKET = 5;
+            lRxData.AddRange(byDataIn);
+
+            // Continue only if queue has at least the size of a full frame (5 bytes)
+            if (lRxData.Count >= iBYTESINPACKET)
+            {
+                bool bDoneProcessing = false;
+                do
+                {
+
+                    byte[] byOnePacket = new byte[iBYTESINPACKET];
+                    // Start reading from beginning
+
+                    lRxData.CopyTo(0, byOnePacket, 0, iBYTESINPACKET);
+
+                    // Plausibility check
+                    // First byte must be between 0x3C and 0x7B
+                    // Second byte must be 0x01
+                    // Fifth byte must be 0x00
+                    if (((byOnePacket[0] >= 0x3C) && (byOnePacket[0] <= 0x7B)) &&
+                        (byOnePacket[1] == 0x01) &&
+                        (byOnePacket[4] == 0x00))
+                    {
+                        // Process the data
+                        int bChannel = byOnePacket[0] - 0x3C + 1;
+                        int uiCellValue = 4095 - (256 * (0x0F & byOnePacket[2]) + byOnePacket[3]);
+
+                        switch (bChannel)
+                        {
+                            case (1): THDPTIP.Fill = Gradient(uiCellValue); break;
+                            case (2): THDPTH.Fill = Gradient(uiCellValue); break;
+                            case (3): THDPMID.Fill = Gradient(uiCellValue); break;
+                            case (4): THDPFF.Fill = Gradient(uiCellValue); break;
+                            case (5): THMPTH.Fill = Gradient(uiCellValue); break;
+                            case (6): THMPFF.Fill = Gradient(uiCellValue); break;
+                            case (7): FFDPTIP.Fill = Gradient(uiCellValue); break;
+                            case (8): FFDPTH.Fill = Gradient(uiCellValue); break;
+                            case (9): FFDPMID.Fill = Gradient(uiCellValue); break;
+                            case (10): FFDPMF.Fill = Gradient(uiCellValue); break;
+
+                        }
+                        // Remove all processed bytes from queue (one packet);
+                        lRxData.RemoveRange(0, iBYTESINPACKET);
+                    }
+                    else
+                    {
+                        // Failed plausibility check. Remove first byte from queue.
+                        lRxData.RemoveAt(0);
+                    }
+
+                    // If we have less than one packet in queue, quit for now
+                    if (lRxData.Count < iBYTESINPACKET)
+                        bDoneProcessing = true;
+                } while (!bDoneProcessing);
+            }
+
+        }
     }
 }
