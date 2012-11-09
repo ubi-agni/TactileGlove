@@ -29,11 +29,15 @@ namespace TactileDataglove
 
         private SerialPort spUSB = new SerialPort();
 
-        List<byte> lRxData = new List<byte>();
+        // GUI update timer
+        private DispatcherTimer dispatcherTimer = new DispatcherTimer();
 
-        //private const int iRXBUFSIZE = 1024 * 1024;
-        //private LinkedList<byte> llRXBuffer = new LinkedList<byte>(iRXBUFSIZE);
-        //private byte[] byRXBuffer = new byte[iRXBUFSIZE];
+        private List<byte> lRxData = new List<byte>();
+
+        private int[] iaTaxelValues = new int[64];
+
+        // Lock object to regulate access from multiple threads:
+        static private readonly object locker = new object();
 
         public MainWindow()
         {
@@ -41,7 +45,8 @@ namespace TactileDataglove
             btConnectDisconnect.Content = sCONNECT;
             spUSB.DataReceived += new SerialDataReceivedEventHandler(spUSB_DataReceived);
 
-
+            dispatcherTimer.Tick += new EventHandler(dispatcherTimer_Tick);
+            dispatcherTimer.Interval = new TimeSpan(0,0,0,0,20); // 20ms -> 50 Hz Update rate
 
             string[] saAvailableSerialPorts = SerialPort.GetPortNames();
             foreach (string sAvailableSerialPort in saAvailableSerialPorts)
@@ -54,8 +59,6 @@ namespace TactileDataglove
                     if (cbSerialPort.Items[i].ToString() == "COM4")
                         cbSerialPort.SelectedIndex = i;
             }
-
-
         }
 
         private void btConnectDisconnect_Click(object sender, RoutedEventArgs e)
@@ -64,6 +67,9 @@ namespace TactileDataglove
             {
                 try
                 {
+                    for (int i = 0; i < iaTaxelValues.Length; i++)
+                        iaTaxelValues[i] = 0;
+
                     spUSB.BaudRate = 115200;
                     spUSB.DataBits = 8;
                     spUSB.DiscardNull = false;
@@ -85,6 +91,8 @@ namespace TactileDataglove
 
                     btConnectDisconnect.Content = sDISCONNECT;
                     cbSerialPort.IsEnabled = false;
+
+                    dispatcherTimer.Start();
                 }
                 catch (Exception ex)
                 {
@@ -95,10 +103,17 @@ namespace TactileDataglove
             {
                 try
                 {
+                    dispatcherTimer.Stop();
                     if (spUSB.IsOpen)
                         spUSB.Close();
                     cbSerialPort.IsEnabled = true;
                     btConnectDisconnect.Content = sCONNECT;
+
+                    // Reset taxels on GUI to idle state
+                    for (int i = 0; i < iaTaxelValues.Length; i++)
+                        iaTaxelValues[i] = 0;
+
+                    Paint_Taxels();
                 }
                 catch (Exception ex)
                 {
@@ -123,7 +138,6 @@ namespace TactileDataglove
 
         private SolidColorBrush Gradient(int iTexelValue)
         {
-
             // Limit the input between 0 and 4095
             iTexelValue = Math.Max(0, iTexelValue);
             iTexelValue = Math.Min(4095, iTexelValue);
@@ -141,7 +155,6 @@ namespace TactileDataglove
             return (mySolidColorBrush);
         }
 
-
         private void DataFromGlove(byte[] byDataIn)
         {
             const int iBYTESINPACKET = 5;
@@ -153,7 +166,6 @@ namespace TactileDataglove
                 bool bDoneProcessing = false;
                 do
                 {
-
                     byte[] byOnePacket = new byte[iBYTESINPACKET];
                     // Start reading from beginning
 
@@ -167,78 +179,14 @@ namespace TactileDataglove
                         (byOnePacket[1] == 0x01) &&
                         (byOnePacket[4] == 0x00))
                     {
-                        // Process the data
-                        int bChannel = byOnePacket[0] - 0x3C + 1;
-                        int uiCellValue = 4095 - (256 * (0x0F & byOnePacket[2]) + byOnePacket[3]);
+                        // Save the data
+                        int iChannel = byOnePacket[0] - 0x3C;
+                        if ((iChannel < 0) && (iChannel >= 64))
+                            throw new System.ArgumentException("Unvalid Taxel number received");
 
-                        switch (bChannel)
-                        {
-                            case (1): THDPTIP.Fill = Gradient(uiCellValue); break;
-                            case (2): THDPTH.Fill = Gradient(uiCellValue); break;
-                            case (3): THDPMID.Fill = Gradient(uiCellValue); break;
-                            case (4): THDPFF.Fill = Gradient(uiCellValue); break;
-                            case (5): THMPTH.Fill = Gradient(uiCellValue); break;
-                            case (6): THMPFF.Fill = Gradient(uiCellValue); break;
-                            case (7): FFDPTIP.Fill = Gradient(uiCellValue); break;
-                            case (8): FFDPTH.Fill = Gradient(uiCellValue); break;
-                            case (9): FFDPMID.Fill = Gradient(uiCellValue); break;
-                            case (10): FFDPMF.Fill = Gradient(uiCellValue); break;
-                            case (11): FFMPTH.Fill = Gradient(uiCellValue); break;
-                            case (12): FFMPMID.Fill = Gradient(uiCellValue); break;
-                            case (13): FFMPMF.Fill = Gradient(uiCellValue); break;
-                            case (14): FFPPTH.Fill = Gradient(uiCellValue); break;
-                            case (15): FFPPMF.Fill = Gradient(uiCellValue); break;
-                            case (16): MFDPTIP.Fill = Gradient(uiCellValue); break;
-                            case (17): MFDPFF.Fill = Gradient(uiCellValue); break;
-                            case (18): MFDPMID.Fill = Gradient(uiCellValue); break;
-                            case (19): MFDPRF.Fill = Gradient(uiCellValue); break;
-                            case (20): MFMPFF.Fill = Gradient(uiCellValue); break;
-                            case (21): MFMPMID.Fill = Gradient(uiCellValue); break;
-                            case (22): MFMPRF.Fill = Gradient(uiCellValue); break;
-                            case (23): MFPP.Fill = Gradient(uiCellValue); break;
-                            case (24): RFDPTIP.Fill = Gradient(uiCellValue); break;
-                            case (25): RFDPMF.Fill = Gradient(uiCellValue); break;
-                            case (26): RFDPMID.Fill = Gradient(uiCellValue); break;
-                            case (27): RFDPLF.Fill = Gradient(uiCellValue); break;
-                            case (28): RFMPMF.Fill = Gradient(uiCellValue); break;
-                            case (29): RFMPMID.Fill = Gradient(uiCellValue); break;
-                            case (30): RFMPLF.Fill = Gradient(uiCellValue); break;
-                            case (31): RFPP.Fill = Gradient(uiCellValue); break;
-                            case (32): LFDPTIP.Fill = Gradient(uiCellValue); break;
-                            case (33): LFDPRF.Fill = Gradient(uiCellValue); break;
-                            case (34): LFDPMID.Fill = Gradient(uiCellValue); break;
-                            case (35): LFDPLF.Fill = Gradient(uiCellValue); break;
-                            case (36): LFMPRF.Fill = Gradient(uiCellValue); break;
-                            case (37): LFMPMID.Fill = Gradient(uiCellValue); break;
-                            case (38): LFMPLF.Fill = Gradient(uiCellValue); break;
-                            case (39): LFPPRF.Fill = Gradient(uiCellValue); break;
-                            case (40): LFPPLF.Fill = Gradient(uiCellValue); break;
-                            case (41): PalmUpFF.Fill = Gradient(uiCellValue); break;
-                            case (42): PalmUpMF.Fill = Gradient(uiCellValue); break;
-                            case (43): PalmUpRF.Fill = Gradient(uiCellValue); break;
-                            case (44): PalmUpLF.Fill = Gradient(uiCellValue); break;
-                            case (45): PalmTHL.Fill = Gradient(uiCellValue); break;
-                            case (46): PalmTHU.Fill = Gradient(uiCellValue); break;
-                            case (47): PalmTHD.Fill = Gradient(uiCellValue); break;
-                            case (48): PalmTHR.Fill = Gradient(uiCellValue); break;
-                            case (49): PalmMIDU.Fill = Gradient(uiCellValue); break;
-                            case (50): PalmMIDL.Fill = Gradient(uiCellValue); break;
-                            case (51): PalmMIDR.Fill = Gradient(uiCellValue); break;
-                            case (52): PalmMIDBL.Fill = Gradient(uiCellValue); break;
-                            case (53): PalmMIDBR.Fill = Gradient(uiCellValue); break;
-                            case (54): PalmLF.Fill = Gradient(uiCellValue); break;
-                            case (55):
-                            case (56):
-                            case (57):
-                            case (58):
-                            case (59):
-                            case (60):
-                            case (61):
-                            case (62):
-                            case (63):
-                            case (64): break;
-                            default: throw new System.ArgumentException("Unvalid Taxel number received");
-                        }
+                        lock (locker)
+                            iaTaxelValues[iChannel] = 4095 - (256 * (0x0F & byOnePacket[2]) + byOnePacket[3]);
+
                         // Remove all processed bytes from queue (one packet);
                         lRxData.RemoveRange(0, iBYTESINPACKET);
                     }
@@ -254,6 +202,72 @@ namespace TactileDataglove
                 } while (!bDoneProcessing);
             }
 
+        }
+
+        private void dispatcherTimer_Tick(object sender, EventArgs e)
+        {
+            Paint_Taxels();
+        }
+
+        private void Paint_Taxels()
+        {
+            lock (locker)
+            {
+                THDPTIP.Fill = Gradient(iaTaxelValues[0]);
+                THDPTH.Fill = Gradient(iaTaxelValues[1]);
+                THDPMID.Fill = Gradient(iaTaxelValues[2]);
+                THDPFF.Fill = Gradient(iaTaxelValues[3]);
+                THMPTH.Fill = Gradient(iaTaxelValues[4]);
+                THMPFF.Fill = Gradient(iaTaxelValues[5]);
+                FFDPTIP.Fill = Gradient(iaTaxelValues[6]);
+                FFDPTH.Fill = Gradient(iaTaxelValues[7]);
+                FFDPMID.Fill = Gradient(iaTaxelValues[8]);
+                FFDPMF.Fill = Gradient(iaTaxelValues[9]);
+                FFMPTH.Fill = Gradient(iaTaxelValues[10]);
+                FFMPMID.Fill = Gradient(iaTaxelValues[11]);
+                FFMPMF.Fill = Gradient(iaTaxelValues[12]);
+                FFPPTH.Fill = Gradient(iaTaxelValues[13]);
+                FFPPMF.Fill = Gradient(iaTaxelValues[14]);
+                MFDPTIP.Fill = Gradient(iaTaxelValues[15]);
+                MFDPFF.Fill = Gradient(iaTaxelValues[16]);
+                MFDPMID.Fill = Gradient(iaTaxelValues[17]);
+                MFDPRF.Fill = Gradient(iaTaxelValues[18]);
+                MFMPFF.Fill = Gradient(iaTaxelValues[19]);
+                MFMPMID.Fill = Gradient(iaTaxelValues[20]);
+                MFMPRF.Fill = Gradient(iaTaxelValues[21]);
+                MFPP.Fill = Gradient(iaTaxelValues[22]);
+                RFDPTIP.Fill = Gradient(iaTaxelValues[23]);
+                RFDPMF.Fill = Gradient(iaTaxelValues[24]);
+                RFDPMID.Fill = Gradient(iaTaxelValues[25]);
+                RFDPLF.Fill = Gradient(iaTaxelValues[26]);
+                RFMPMF.Fill = Gradient(iaTaxelValues[27]);
+                RFMPMID.Fill = Gradient(iaTaxelValues[28]);
+                RFMPLF.Fill = Gradient(iaTaxelValues[29]);
+                RFPP.Fill = Gradient(iaTaxelValues[30]);
+                LFDPTIP.Fill = Gradient(iaTaxelValues[31]);
+                LFDPRF.Fill = Gradient(iaTaxelValues[32]);
+                LFDPMID.Fill = Gradient(iaTaxelValues[33]);
+                LFDPLF.Fill = Gradient(iaTaxelValues[34]);
+                LFMPRF.Fill = Gradient(iaTaxelValues[35]);
+                LFMPMID.Fill = Gradient(iaTaxelValues[36]);
+                LFMPLF.Fill = Gradient(iaTaxelValues[37]);
+                LFPPRF.Fill = Gradient(iaTaxelValues[38]);
+                LFPPLF.Fill = Gradient(iaTaxelValues[39]);
+                PalmUpFF.Fill = Gradient(iaTaxelValues[40]);
+                PalmUpMF.Fill = Gradient(iaTaxelValues[41]);
+                PalmUpRF.Fill = Gradient(iaTaxelValues[42]);
+                PalmUpLF.Fill = Gradient(iaTaxelValues[43]);
+                PalmTHL.Fill = Gradient(iaTaxelValues[44]);
+                PalmTHU.Fill = Gradient(iaTaxelValues[45]);
+                PalmTHD.Fill = Gradient(iaTaxelValues[46]);
+                PalmTHR.Fill = Gradient(iaTaxelValues[47]);
+                PalmMIDU.Fill = Gradient(iaTaxelValues[48]);
+                PalmMIDL.Fill = Gradient(iaTaxelValues[49]);
+                PalmMIDR.Fill = Gradient(iaTaxelValues[50]);
+                PalmMIDBL.Fill = Gradient(iaTaxelValues[51]);
+                PalmMIDBR.Fill = Gradient(iaTaxelValues[52]);
+                PalmLF.Fill = Gradient(iaTaxelValues[53]);
+            }
         }
     }
 }
