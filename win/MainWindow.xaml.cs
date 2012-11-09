@@ -183,7 +183,61 @@ namespace TactileDataglove
                             case (8): FFDPTH.Fill = Gradient(uiCellValue); break;
                             case (9): FFDPMID.Fill = Gradient(uiCellValue); break;
                             case (10): FFDPMF.Fill = Gradient(uiCellValue); break;
-
+                            case (11): FFMPTH.Fill = Gradient(uiCellValue); break;
+                            case (12): FFMPMID.Fill = Gradient(uiCellValue); break;
+                            case (13): FFMPMF.Fill = Gradient(uiCellValue); break;
+                            case (14): FFPPTH.Fill = Gradient(uiCellValue); break;
+                            case (15): FFPPMF.Fill = Gradient(uiCellValue); break;
+                            case (16): MFDPTIP.Fill = Gradient(uiCellValue); break;
+                            case (17): MFDPFF.Fill = Gradient(uiCellValue); break;
+                            case (18): MFDPMID.Fill = Gradient(uiCellValue); break;
+                            case (19): MFDPRF.Fill = Gradient(uiCellValue); break;
+                            case (20): MFMPFF.Fill = Gradient(uiCellValue); break;
+                            case (21): MFMPMID.Fill = Gradient(uiCellValue); break;
+                            case (22): MFMPRF.Fill = Gradient(uiCellValue); break;
+                            case (23): MFPP.Fill = Gradient(uiCellValue); break;
+                            case (24): RFDPTIP.Fill = Gradient(uiCellValue); break;
+                            case (25): RFDPMF.Fill = Gradient(uiCellValue); break;
+                            case (26): RFDPMID.Fill = Gradient(uiCellValue); break;
+                            case (27): RFDPLF.Fill = Gradient(uiCellValue); break;
+                            case (28): RFMPMF.Fill = Gradient(uiCellValue); break;
+                            case (29): RFMPMID.Fill = Gradient(uiCellValue); break;
+                            case (30): RFMPLF.Fill = Gradient(uiCellValue); break;
+                            case (31): RFPP.Fill = Gradient(uiCellValue); break;
+                            case (32): LFDPTIP.Fill = Gradient(uiCellValue); break;
+                            case (33): LFDPRF.Fill = Gradient(uiCellValue); break;
+                            case (34): LFDPMID.Fill = Gradient(uiCellValue); break;
+                            case (35): LFDPLF.Fill = Gradient(uiCellValue); break;
+                            case (36): LFMPRF.Fill = Gradient(uiCellValue); break;
+                            case (37): LFMPMID.Fill = Gradient(uiCellValue); break;
+                            case (38): LFMPLF.Fill = Gradient(uiCellValue); break;
+                            case (39): LFPPRF.Fill = Gradient(uiCellValue); break;
+                            case (40): LFPPLF.Fill = Gradient(uiCellValue); break;
+                            case (41): PalmUpFF.Fill = Gradient(uiCellValue); break;
+                            case (42): PalmUpMF.Fill = Gradient(uiCellValue); break;
+                            case (43): PalmUpRF.Fill = Gradient(uiCellValue); break;
+                            case (44): PalmUpLF.Fill = Gradient(uiCellValue); break;
+                            case (45): PalmTHL.Fill = Gradient(uiCellValue); break;
+                            case (46): PalmTHU.Fill = Gradient(uiCellValue); break;
+                            case (47): PalmTHD.Fill = Gradient(uiCellValue); break;
+                            case (48): PalmTHR.Fill = Gradient(uiCellValue); break;
+                            case (49): PalmMIDU.Fill = Gradient(uiCellValue); break;
+                            case (50): PalmMIDL.Fill = Gradient(uiCellValue); break;
+                            case (51): PalmMIDR.Fill = Gradient(uiCellValue); break;
+                            case (52): PalmMIDBL.Fill = Gradient(uiCellValue); break;
+                            case (53): PalmMIDBR.Fill = Gradient(uiCellValue); break;
+                            case (54): PalmLF.Fill = Gradient(uiCellValue); break;
+                            case (55):
+                            case (56):
+                            case (57):
+                            case (58):
+                            case (59):
+                            case (60):
+                            case (61):
+                            case (62):
+                            case (63):
+                            case (64): break;
+                            default: throw new System.ArgumentException("Unvalid Taxel number received");
                         }
                         // Remove all processed bytes from queue (one packet);
                         lRxData.RemoveRange(0, iBYTESINPACKET);
