@@ -169,7 +169,7 @@ namespace TactileDataglove
 
         private void DataFromGlove(byte[] byDataIn)
         {
-            twLog.WriteLine("{0:hh:mm:ss.fff} DATA IN: " + BitConverter.ToString(byDataIn), DateTime.Now);
+            twLog.WriteLine("{0:hh:mm:ss.fff} Length: " + byDataIn.Length.ToString() + " Data: " + BitConverter.ToString(byDataIn), DateTime.Now);
             
             const int iBYTESINPACKET = 5;
             lRxData.AddRange(byDataIn);
