@@ -1,4 +1,5 @@
 ﻿// Graphical user interface for left tactile dataglove v1
+#define NEWPROCESSING
 
 using System;
 using System.Collections.Generic;
@@ -32,7 +33,12 @@ namespace TactileDataglove
         // GUI update timer
         private DispatcherTimer dispatcherTimer = new DispatcherTimer();
 
+#if NEWPROCESSING
+        private byte[] baLastRemaining = new byte[4];
+        private int iLastRemaining;
+#else
         private List<byte> lRxData = new List<byte>();
+#endif
 
         private int[] iaTaxelValues = new int[64];
 
@@ -49,7 +55,7 @@ namespace TactileDataglove
             spUSB.DataReceived += new SerialDataReceivedEventHandler(spUSB_DataReceived);
 
             dispatcherTimer.Tick += new EventHandler(dispatcherTimer_Tick);
-            dispatcherTimer.Interval = new TimeSpan(0,0,0,0,20); // 20ms -> 50 Hz Update rate
+            dispatcherTimer.Interval = new TimeSpan(0, 0, 0, 0, 20); // 20ms -> 50 Hz Update rate
 
             string[] saAvailableSerialPorts = SerialPort.GetPortNames();
             foreach (string sAvailableSerialPort in saAvailableSerialPorts)
@@ -71,10 +77,11 @@ namespace TactileDataglove
                 try
                 {
                     twLog = new StreamWriter(sFileName);
-
+#if NEWPROCESSING
+                    iLastRemaining = 0;
+#endif
                     for (int i = 0; i < iaTaxelValues.Length; i++)
                         iaTaxelValues[i] = 0;
-
 
                     spUSB.BaudRate = 115200;
                     spUSB.DataBits = 8;
@@ -86,7 +93,7 @@ namespace TactileDataglove
                     spUSB.PortName = cbSerialPort.SelectedItem.ToString();
                     spUSB.ReadBufferSize = 4096;
                     spUSB.ReadTimeout = -1;
-                    spUSB.ReceivedBytesThreshold = 5*64; // Packet size * Taxel count
+                    spUSB.ReceivedBytesThreshold = 5 * 64; // Packet size * Taxel count
                     spUSB.RtsEnable = true;
                     spUSB.StopBits = StopBits.One;
                     spUSB.WriteBufferSize = 2048;
@@ -134,17 +141,17 @@ namespace TactileDataglove
             }
         }
 
-        private delegate void UpdateUiByteInDelegate(byte[] byDataIn);
+        private delegate void UpdateUiByteInDelegate(byte[] baDataIn);
 
         private void spUSB_DataReceived(object sender, SerialDataReceivedEventArgs e)
         {
             // This function runs in a different thread as the frmMain elements
-            byte[] bySerialPortIn = new byte[spUSB.BytesToRead];
-            int iDataLength = bySerialPortIn.Length;
+            byte[] baSerialPortIn = new byte[spUSB.BytesToRead];
+            int iDataLength = baSerialPortIn.Length;
             if (iDataLength > 0)
             {
-                spUSB.Read(bySerialPortIn, 0, iDataLength);
-                Dispatcher.Invoke(DispatcherPriority.Send, new UpdateUiByteInDelegate(DataFromGlove), bySerialPortIn);
+                spUSB.Read(baSerialPortIn, 0, iDataLength);
+                Dispatcher.Invoke(DispatcherPriority.Send, new UpdateUiByteInDelegate(DataFromGlove), baSerialPortIn);
             }
         }
 
@@ -167,12 +174,82 @@ namespace TactileDataglove
             return (mySolidColorBrush);
         }
 
-        private void DataFromGlove(byte[] byDataIn)
+        private void DataFromGlove(byte[] baDataIn)
         {
-            twLog.WriteLine("{0:hh:mm:ss.fff} Length: " + byDataIn.Length.ToString() + " Data: " + BitConverter.ToString(byDataIn), DateTime.Now);
-            
+            twLog.WriteLine("{0:hh:mm:ss.fff} Length: " + baDataIn.Length.ToString() + " Data: " + BitConverter.ToString(baDataIn), DateTime.Now);
+
             const int iBYTESINPACKET = 5;
-            lRxData.AddRange(byDataIn);
+
+#if NEWPROCESSING
+            // Create new byte array including the previous rest
+            byte[] baWorking = new byte[iLastRemaining + baDataIn.Length];
+            int iPrevWorkPointer = 0;
+            twLog.WriteLine("{0:hh:mm:ss.fff} Starting processing. Lastremaining: " + iLastRemaining.ToString(), DateTime.Now);
+
+            if (iLastRemaining > 0)
+            {
+                for (int i = 0; i < iLastRemaining; i++)
+                {
+                    baWorking[i] = baLastRemaining[i];
+                    iPrevWorkPointer++;
+                }
+            }
+            if (baDataIn.Length > 0)
+            {
+                for (int i = 0; i < baDataIn.Length; i++)
+                {
+                    baWorking[iPrevWorkPointer + i] = baDataIn[i];
+                }
+            }
+
+            int iStartPointer = 0;
+
+            // Continue only if queue has at least the size of a full frame (5 bytes)
+            while ((baWorking.Length - iStartPointer) >= iBYTESINPACKET)
+            {
+                // Plausibility check
+                // First byte must be between 0x3C and 0x7B
+                // Second byte must be 0x01
+                // Fifth byte must be 0x00
+                if (((baWorking[iStartPointer + 0] >= 0x3C) && (baWorking[iStartPointer + 0] <= 0x7B)) &&
+                    (baWorking[iStartPointer + 1] == 0x01) &&
+                    (baWorking[iStartPointer + 4] == 0x00))
+                {
+                    // Valid packet, save the data
+                    int iChannel = baWorking[iStartPointer + 0] - 0x3C;
+                    if ((iChannel < 0) && (iChannel >= 64))
+                        throw new System.ArgumentException("Unvalid Taxel number received");
+
+                    lock (locker)
+                        iaTaxelValues[iChannel] = 4095 - (256 * (0x0F & baWorking[iStartPointer + 2]) + baWorking[iStartPointer + 3]);
+
+                    // Move the pointer further
+                    iStartPointer += 5;
+                }
+                else
+                {
+                    // Failed plausibility check. Remove first byte from queue.
+                    iStartPointer++;
+                }
+            }
+
+            // Save the remaining 0 to 4 bytes for next run
+            if (baWorking.Length - iStartPointer > 0)
+            {
+                iLastRemaining = 0;
+                for (int i = 0; i < baWorking.Length - iStartPointer; i++)
+                {
+                    baLastRemaining[i] = baWorking[iStartPointer + i];
+                    iLastRemaining++;
+                }
+            }
+            else
+            {
+                iLastRemaining = 0;
+            }
+            twLog.WriteLine("{0:hh:mm:ss.fff} Ending processing. Lastremaining: " + iLastRemaining.ToString(), DateTime.Now);
+#else
+            lRxData.AddRange(baDataIn);
 
             // Continue only if queue has at least the size of a full frame (5 bytes)
             if (lRxData.Count >= iBYTESINPACKET)
@@ -180,26 +257,26 @@ namespace TactileDataglove
                 bool bDoneProcessing = false;
                 do
                 {
-                    byte[] byOnePacket = new byte[iBYTESINPACKET];
+                    byte[] baOnePacket = new byte[iBYTESINPACKET];
                     // Start reading from beginning
 
-                    lRxData.CopyTo(0, byOnePacket, 0, iBYTESINPACKET);
+                    lRxData.CopyTo(0, baOnePacket, 0, iBYTESINPACKET);
 
                     // Plausibility check
                     // First byte must be between 0x3C and 0x7B
                     // Second byte must be 0x01
                     // Fifth byte must be 0x00
-                    if (((byOnePacket[0] >= 0x3C) && (byOnePacket[0] <= 0x7B)) &&
-                        (byOnePacket[1] == 0x01) &&
-                        (byOnePacket[4] == 0x00))
+                    if (((baOnePacket[0] >= 0x3C) && (baOnePacket[0] <= 0x7B)) &&
+                        (baOnePacket[1] == 0x01) &&
+                        (baOnePacket[4] == 0x00))
                     {
-                        // Save the data
-                        int iChannel = byOnePacket[0] - 0x3C;
+                        // Valid packet, save the data
+                        int iChannel = baOnePacket[0] - 0x3C;
                         if ((iChannel < 0) && (iChannel >= 64))
                             throw new System.ArgumentException("Unvalid Taxel number received");
 
                         lock (locker)
-                            iaTaxelValues[iChannel] = 4095 - (256 * (0x0F & byOnePacket[2]) + byOnePacket[3]);
+                            iaTaxelValues[iChannel] = 4095 - (256 * (0x0F & baOnePacket[2]) + baOnePacket[3]);
 
                         // Remove all processed bytes from queue (one packet);
                         lRxData.RemoveRange(0, iBYTESINPACKET);
@@ -215,6 +292,7 @@ namespace TactileDataglove
                         bDoneProcessing = true;
                 } while (!bDoneProcessing);
             }
+#endif
 
         }
 
