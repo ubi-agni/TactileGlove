@@ -183,23 +183,27 @@ namespace TactileDataglove
 #if NEWPROCESSING
             // Create new byte array including the previous rest
             byte[] baWorking = new byte[iLastRemaining + baDataIn.Length];
-            int iPrevWorkPointer = 0;
+            //int iPrevWorkPointer = 0;
             twLog.WriteLine("{0:hh:mm:ss.fff} Starting processing. Lastremaining: " + iLastRemaining.ToString(), DateTime.Now);
 
             if (iLastRemaining > 0)
             {
-                for (int i = 0; i < iLastRemaining; i++)
+                baLastRemaining.CopyTo(baWorking, 0);
+
+                /* for (int i = 0; i < iLastRemaining; i++)
                 {
                     baWorking[i] = baLastRemaining[i];
                     iPrevWorkPointer++;
-                }
+                } */
             }
             if (baDataIn.Length > 0)
             {
+                baDataIn.CopyTo(baWorking, iLastRemaining);
+                /*
                 for (int i = 0; i < baDataIn.Length; i++)
                 {
                     baWorking[iPrevWorkPointer + i] = baDataIn[i];
-                }
+                } */
             }
 
             int iStartPointer = 0;
