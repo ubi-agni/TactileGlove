@@ -39,6 +39,9 @@ namespace TactileDataglove
         // Lock object to regulate access from multiple threads:
         static private readonly object locker = new object();
 
+        private string sFileName = "log.txt";
+        private TextWriter twLog;
+
         public MainWindow()
         {
             InitializeComponent();
@@ -67,8 +70,11 @@ namespace TactileDataglove
             {
                 try
                 {
+                    twLog = new StreamWriter(sFileName);
+
                     for (int i = 0; i < iaTaxelValues.Length; i++)
                         iaTaxelValues[i] = 0;
+
 
                     spUSB.BaudRate = 115200;
                     spUSB.DataBits = 8;
@@ -80,7 +86,7 @@ namespace TactileDataglove
                     spUSB.PortName = cbSerialPort.SelectedItem.ToString();
                     spUSB.ReadBufferSize = 4096;
                     spUSB.ReadTimeout = -1;
-                    spUSB.ReceivedBytesThreshold = 1;
+                    spUSB.ReceivedBytesThreshold = 5*64; // Packet size * Taxel count
                     spUSB.RtsEnable = true;
                     spUSB.StopBits = StopBits.One;
                     spUSB.WriteBufferSize = 2048;
@@ -108,6 +114,12 @@ namespace TactileDataglove
                         spUSB.Close();
                     cbSerialPort.IsEnabled = true;
                     btConnectDisconnect.Content = sCONNECT;
+
+                    if (twLog != null)
+                    {
+                        twLog.Close();
+                        twLog = null;
+                    }
 
                     // Reset taxels on GUI to idle state
                     for (int i = 0; i < iaTaxelValues.Length; i++)
@@ -157,6 +169,8 @@ namespace TactileDataglove
 
         private void DataFromGlove(byte[] byDataIn)
         {
+            twLog.WriteLine("{0:hh:mm:ss.fff} DATA IN: " + BitConverter.ToString(byDataIn), DateTime.Now);
+            
             const int iBYTESINPACKET = 5;
             lRxData.AddRange(byDataIn);
 
@@ -211,6 +225,7 @@ namespace TactileDataglove
 
         private void Paint_Taxels()
         {
+            twLog.WriteLine("{0:hh:mm:ss.fff}: GUI UPDATE BEGIN", DateTime.Now);
             lock (locker)
             {
                 THDPTIP.Fill = Gradient(iaTaxelValues[0]);
@@ -268,6 +283,7 @@ namespace TactileDataglove
                 PalmMIDBR.Fill = Gradient(iaTaxelValues[52]);
                 PalmLF.Fill = Gradient(iaTaxelValues[53]);
             }
+            twLog.WriteLine("{0:hh:mm:ss.fff}: GUI UPDATE END", DateTime.Now);
         }
     }
 }
