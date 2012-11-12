@@ -1,5 +1,8 @@
-﻿// Graphical user interface for left tactile dataglove v1
-//#define LOG
+﻿// *** Graphical user interface for left tactile dataglove v1 ***
+//
+// Modified:
+// 2012-11-12 Risto Kõiva, Changed from List<> to Queue<>, added comments
+// 2012-11-09 Risto Kõiva, Initial version
 
 using System;
 using System.Collections.Generic;
@@ -15,7 +18,6 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 using System.Windows.Threading;
-using System.IO;
 using System.IO.Ports;
 
 namespace TactileDataglove
@@ -25,39 +27,33 @@ namespace TactileDataglove
     /// </summary>
     public partial class MainWindow : Window
     {
-        private const string sCONNECT = "_Connect";
-        private const string sDISCONNECT = "_Disconnect";
+        // Constant declarations
+        private const string sCONNECT = "_Connect"; // Button content for unconnected state
+        private const string sDISCONNECT = "_Disconnect"; // Button content for connected state
+        private const int CQUEUESIZE = 1024 * 1024; // Receive buffer size (1 MByte)
 
-        private SerialPort spUSB = new SerialPort();
+        // Variable declarations
+        private SerialPort spUSB = new SerialPort(); // Communication over (virtual) serial port 
+        private Queue<byte> qbReceiveQueue = new Queue<byte>(CQUEUESIZE); // Receive queue (FIFO)
+        static private readonly object locker = new object(); // Queue locker object to regulate access from multiple threads
+        private uint uiLastRemaining; // Saves the count of remaning bytes from last packet parser run (value range is 0 and 4)
+        private byte[] baLastRemaining = new byte[4]; // Remaining byte from last packet parser run
+        private uint[] iaTaxelValues = new uint[64]; // Array holding the parsed taxel values (value range is 0 to 4095)
+        private uint[] iaOldTaxelValues = new uint[64]; // Array for comparison if update is required, holding the last run taxel values
+        private DispatcherTimer dtGUIUpdateTimer = new DispatcherTimer(); // Paces the GUI update framerate
 
-        // GUI update timer
-        private DispatcherTimer dispatcherTimer = new DispatcherTimer();
-
-        const int CQUEUESIZE = 1024 * 1024;
-        private Queue<byte> qbReceiveQueue = new Queue<byte>(CQUEUESIZE);
-        private byte[] baLastRemaining = new byte[4];
-        private int iLastRemaining;
-
-        private int[] iaTaxelValues = new int[64];
-        private int[] iaOldTaxelValues = new int[64];
-
-        // Lock object to regulate access from multiple threads:
-        static private readonly object locker = new object();
-
-#if LOG
-        private string sFileName = "log.txt";
-        private TextWriter twLog;
-#endif
-
+        // MainWindow constructor gets called when the window is created - at the start of the program
         public MainWindow()
         {
             InitializeComponent();
-            btConnectDisconnect.Content = sCONNECT;
-            spUSB.DataReceived += new SerialDataReceivedEventHandler(spUSB_DataReceived);
 
-            dispatcherTimer.Tick += new EventHandler(dispatcherTimer_Tick);
-            dispatcherTimer.Interval = new TimeSpan(0, 0, 0, 0, 20); // 20ms -> 50 Hz Update rate
+            btConnectDisconnect.Content = sCONNECT; // Initialize the button content
+            spUSB.DataReceived += new SerialDataReceivedEventHandler(spUSB_DataReceived); // Register new event for receiving serial data
 
+            dtGUIUpdateTimer.Tick += new EventHandler(dtGUIUpdateTimer_Tick); // Register new event for timer to fire
+            dtGUIUpdateTimer.Interval = new TimeSpan(0, 0, 0, 0, 20); // Set timer interval to 20ms evaluating to 50 Hz frame update rate
+
+            // Populate the combobox with available serial ports of the current system
             string[] saAvailableSerialPorts = SerialPort.GetPortNames();
             foreach (string sAvailableSerialPort in saAvailableSerialPorts)
                 cbSerialPort.Items.Add(sAvailableSerialPort);
@@ -65,152 +61,131 @@ namespace TactileDataglove
             {
                 cbSerialPort.Text = cbSerialPort.Items[0].ToString();
                 for (int i = 0; i < cbSerialPort.Items.Count; i++)
-                    // default to COM4 initially if available
-                    if (cbSerialPort.Items[i].ToString() == "COM4")
+                    if (cbSerialPort.Items[i].ToString() == "COM4") // If available, default to COM4 initially 
                         cbSerialPort.SelectedIndex = i;
             }
         }
 
+        // btConnectDisconnect_Click gets calles each time a button on MainWindow is pressed
         private void btConnectDisconnect_Click(object sender, RoutedEventArgs e)
         {
+            // Check according to button content, if the "Connect" or "Disconnect" was pressed
             if ((string)btConnectDisconnect.Content == sCONNECT)
             {
-                // Trying to connect
+                // Connect was pressed
+
+                // Initialize variables
+                qbReceiveQueue.Clear(); // Clear the receive queue
+                uiLastRemaining = 0; // Set the last packet parses "pointer" to 0
+                for (int i = 0; i < iaTaxelValues.Length; i++) // Initialize taxel arrays
+                {
+                    iaTaxelValues[i] = 0;
+                    iaOldTaxelValues[i] = 4095; // This forces an GUI update on initial round, as the value differs from iaTaxelValue
+                }
+
+                // Set (virtual) serial port parameters
+                spUSB.BaudRate = 115200; // 115.2 kbaud/s
+                spUSB.DataBits = 8;
+                spUSB.DiscardNull = false;
+                spUSB.DtrEnable = false;
+                spUSB.Handshake = Handshake.None;
+                spUSB.Parity = Parity.None;
+                spUSB.ParityReplace = 63;
+                spUSB.PortName = cbSerialPort.SelectedItem.ToString();
+                spUSB.ReadBufferSize = 4096;
+                spUSB.ReadTimeout = -1;
+                spUSB.ReceivedBytesThreshold = 5 * 64; // Fire receive event when a complete data is available = Packet size * Taxel count
+                spUSB.RtsEnable = true;
+                spUSB.StopBits = StopBits.One;
+                spUSB.WriteBufferSize = 2048;
+                spUSB.WriteTimeout = -1;
+
                 try
                 {
-#if LOG
-                    twLog = new StreamWriter(sFileName);
-#endif
-                    qbReceiveQueue.Clear();
-                    iLastRemaining = 0;
-
-                    for (int i = 0; i < iaTaxelValues.Length; i++)
-                    {
-                        iaTaxelValues[i] = 0;
-                        iaOldTaxelValues[i] = 4095; // Force a GUI update
-                    }
-
-                    spUSB.BaudRate = 115200;
-                    spUSB.DataBits = 8;
-                    spUSB.DiscardNull = false;
-                    spUSB.DtrEnable = false;
-                    spUSB.Handshake = Handshake.None;
-                    spUSB.Parity = Parity.None;
-                    spUSB.ParityReplace = 63;
-                    spUSB.PortName = cbSerialPort.SelectedItem.ToString();
-                    spUSB.ReadBufferSize = 4096;
-                    spUSB.ReadTimeout = -1;
-                    spUSB.ReceivedBytesThreshold = 5 * 64; // Packet size * Taxel count
-                    spUSB.RtsEnable = true;
-                    spUSB.StopBits = StopBits.One;
-                    spUSB.WriteBufferSize = 2048;
-                    spUSB.WriteTimeout = -1;
-
                     if (!spUSB.IsOpen)
-                        spUSB.Open();
+                        spUSB.Open(); // Try to connect to the selected serial port
 
-                    btConnectDisconnect.Content = sDISCONNECT;
-                    cbSerialPort.IsEnabled = false;
+                    // If we got here, then the port was successfully opened, continue
+                    btConnectDisconnect.Content = sDISCONNECT; // Change button content to disconnect string
+                    cbSerialPort.IsEnabled = false; // Disable port selection combobox
 
-                    dispatcherTimer.Start();
+                    dtGUIUpdateTimer.Start(); // Start the GUI updating timer
                 }
                 catch (Exception ex)
                 {
+                    // In case of error, show message to user
                     MessageBox.Show("Could not open the communication port!" + "\n" + "Error: " + ex.Message);
                 }
             }
             else
             {
-                // Disconnect
+                // Disconnect was pressed
+
+                dtGUIUpdateTimer.Stop(); // Stop the GUI updating timer
+
                 try
                 {
-                    dispatcherTimer.Stop();
                     if (spUSB.IsOpen)
-                        spUSB.Close();
-                    cbSerialPort.IsEnabled = true;
-                    btConnectDisconnect.Content = sCONNECT;
-#if LOG
-                    if (twLog != null)
-                    {
-                        twLog.Close();
-                        twLog = null;
-                    }
-#endif
+                        spUSB.Close(); // Try to stop serial port communications
 
-                    // Reset taxels on GUI to idle state
-                    for (int i = 0; i < iaTaxelValues.Length; i++)
-                        iaTaxelValues[i] = 0;
-
-                    
-                    Paint_Taxels();
+                    cbSerialPort.IsEnabled = true; // Enable the port selection combobox
+                    btConnectDisconnect.Content = sCONNECT; // Change button content to connect string
                 }
                 catch (Exception ex)
                 {
+                    // In case of error, show message to user
                     MessageBox.Show("Could not close the communication port!" + "\n" + "Error: " + ex.Message);
                 }
+
+                // Reset taxels on GUI to idle state
+                for (int i = 0; i < iaTaxelValues.Length; i++)
+                    iaTaxelValues[i] = 0;
+
+                // Redraw the GUI manually to show this
+                Paint_Taxels();
             }
         }
 
+        // spUSB_DataReceived event procedure that gets called when data from (virtual) serial port is received.
+        // Note! This function runs in a different thread as the MainWindow elements, thus care (for example
+        // locking) needs to be taken in interacting with MainWindow elements.
+        // It collects the data from serial port and sends them to a shared queue (FIFO).
         private void spUSB_DataReceived(object sender, SerialDataReceivedEventArgs e)
         {
-            // This function runs in a different thread as the frmMain elements
-            byte[] baSerialPortIn = new byte[spUSB.BytesToRead];
-            int iDataLength = baSerialPortIn.Length;
-            if (iDataLength > 0)
+            int iDataLength = spUSB.BytesToRead; // The amount of bytes, serial port has received
+            byte[] baSerialPortDataIn = new byte[iDataLength]; // Create an internal array to store the data
+            if (iDataLength > 0) // Makes sense to continue only, if there really is new data available
             {
-                spUSB.Read(baSerialPortIn, 0, iDataLength);
-                lock (locker)
-                    baSerialPortIn.ToList().ForEach(b => qbReceiveQueue.Enqueue(b));
+                spUSB.Read(baSerialPortDataIn, 0, iDataLength); // Copy the data from serial port to internal array
+                
+                lock (locker) // As the next command acts with a variable accessed from multiple threads, lock the access first
+                    baSerialPortDataIn.ToList().ForEach(b => qbReceiveQueue.Enqueue(b)); // Put the bytes into thread-arching queue
             }
         }
 
-        private void dispatcherTimer_Tick(object sender, EventArgs e)
+        // dtGUIUpdateTimer_Tick event procedure gets called when the GUI update timer fires.
+        // It collects the received information from the thread-arching queue, processes the data
+        // and finished by calling the GUI redraw function.
+        private void dtGUIUpdateTimer_Tick(object sender, EventArgs e)
         {
-            ProcessData();
-        }
-
-        private void ProcessData()
-        {
-            byte[] baDataIn;
-            lock (locker)
+            byte[] baDataIn; // Local array to hold the received data
+            lock (locker) // As the commands in curly brackets read or write variable that it accessed also on other threads, a lock is requested
             {
-                //baDataIn = new byte[qbReceiveQueue.Count];
-                baDataIn = qbReceiveQueue.ToArray();
-
-//                foreach (byte by in qbReceiveQueue)
-                    //qbProcessQueue.Enqueue(by);
-                qbReceiveQueue.Clear();
+                baDataIn = qbReceiveQueue.ToArray(); // Copy the whole queue to local array
+                qbReceiveQueue.Clear(); // Clear the queue
             }
-#if LOG
-            twLog.WriteLine("{0:hh:mm:ss.ffff} Length: " + baDataIn.Length.ToString() + " Data: " + BitConverter.ToString(baDataIn), DateTime.Now);
-            twLog.WriteLine("{0:hh:mm:ss.ffff} Starting processing. Lastremaining: " + iLastRemaining.ToString(), DateTime.Now);
-#endif
 
-            const int iBYTESINPACKET = 5;
+            const int iBYTESINPACKET = 5; // A single TactileDataglove packet uses 5 bytes
 
+            // Data can be processed only if the whole packet is available. Thus there might
+            // have been rest data from previous run that need to be preceded.
             // Create new byte array including the previous rest
-            byte[] baWorking = new byte[iLastRemaining + baDataIn.Length];
-            //int iPrevWorkPointer = 0;
+            byte[] baWorking = new byte[uiLastRemaining + baDataIn.Length];
 
-            if (iLastRemaining > 0)
-            {
+            if (uiLastRemaining > 0)
                 baLastRemaining.CopyTo(baWorking, 0);
-
-                /* for (int i = 0; i < iLastRemaining; i++)
-                {
-                    baWorking[i] = baLastRemaining[i];
-                    iPrevWorkPointer++;
-                } */
-            }
             if (baDataIn.Length > 0)
-            {
-                baDataIn.CopyTo(baWorking, iLastRemaining);
-                /*
-                for (int i = 0; i < baDataIn.Length; i++)
-                {
-                    baWorking[iPrevWorkPointer + i] = baDataIn[i];
-                } */
-            }
+                baDataIn.CopyTo(baWorking, uiLastRemaining);
 
             int iStartPointer = 0;
 
@@ -230,7 +205,7 @@ namespace TactileDataglove
                     if ((iChannel < 0) && (iChannel >= 64))
                         throw new System.ArgumentException("Unvalid Taxel number received");
 
-                    iaTaxelValues[iChannel] = 4095 - (256 * (0x0F & baWorking[iStartPointer + 2]) + baWorking[iStartPointer + 3]);
+                    iaTaxelValues[iChannel] = (uint)Math.Max(0, 4095 - (256 * (0x0F & baWorking[iStartPointer + 2]) + baWorking[iStartPointer + 3]));
 
                     // Move the pointer further
                     iStartPointer += 5;
@@ -245,23 +220,20 @@ namespace TactileDataglove
             // Save the remaining 0 to 4 bytes for next run
             if (baWorking.Length - iStartPointer > 0)
             {
-                iLastRemaining = 0;
+                uiLastRemaining = 0;
                 for (int i = 0; i < baWorking.Length - iStartPointer; i++)
                 {
                     baLastRemaining[i] = baWorking[iStartPointer + i];
-                    iLastRemaining++;
+                    uiLastRemaining++;
                 }
             }
             else
-            {
-                iLastRemaining = 0;
-            }
-#if LOG
-            twLog.WriteLine("{0:hh:mm:ss.ffff} Ending processing.", DateTime.Now);
-#endif
+                uiLastRemaining = 0;
+
             Paint_Taxels();
         }
 
+        // Applies the correct taxel states to GUI
         private void Paint_Taxels()
         {
             // ID-Patch Mapping
@@ -320,38 +292,41 @@ namespace TactileDataglove
             Paint_Patch(52, PalmMIDBR);
             Paint_Patch(53, PalmLF);
 
+            // Update the iaOldTaxelValues variable for comparison on next round
             iaTaxelValues.CopyTo(iaOldTaxelValues, 0);
         }
 
-        private void Paint_Patch(int iID, System.Windows.Shapes.Path pPatch)
+        // Update a single taxel patch, but only if it meets the criteria
+        private void Paint_Patch(int iTaxelID, System.Windows.Shapes.Path pPatch)
         {
             const int iTHRESHOLD = 10; // Detection threshold in scale 0-4095 (0-no contact, 4095-full pressure)
 
             // Update patch only if
             // * old value and new value differ
             // AND
-            // * (old OR new values are over the detection threshold (no need to update for signal noise))
+            // * (old OR new values are over the detection threshold (no update for very low noise))
 
-            if ((iaTaxelValues[iID] != iaOldTaxelValues[iID]) &&
-                ((iaOldTaxelValues[iID] > iTHRESHOLD) || (iaTaxelValues[iID] > iTHRESHOLD)))
-                pPatch.Fill = Gradient(iaTaxelValues[iID]);
+            if ((iaTaxelValues[iTaxelID] != iaOldTaxelValues[iTaxelID]) &&
+                ((iaOldTaxelValues[iTaxelID] > iTHRESHOLD) || (iaTaxelValues[iTaxelID] > iTHRESHOLD)))
+                pPatch.Fill = Gradient(iaTaxelValues[iTaxelID]);
         }
 
-        private SolidColorBrush Gradient(int iTexelValue)
+        // Color code the input range of 0 to 4095 into beautiful color gradient
+        private SolidColorBrush Gradient(uint uiTexelValue)
         {
             // Limit the input between 0 and 4095
-            iTexelValue = Math.Max(0, iTexelValue);
-            iTexelValue = Math.Min(4095, iTexelValue);
+            uiTexelValue = Math.Max(0, uiTexelValue);
+            uiTexelValue = Math.Min(4095, uiTexelValue);
 
             SolidColorBrush mySolidColorBrush = new SolidColorBrush();
 
-            if (iTexelValue < 1366) // Dark green to light green (0,50,0 -> 0,255,0)
-                mySolidColorBrush.Color = Color.FromArgb(255, 0, Math.Min((byte)255, (byte)(50 + ((double)iTexelValue / 6.65))), 0);
+            if (uiTexelValue < 1366) // Dark green to light green (0,50,0 -> 0,255,0)
+                mySolidColorBrush.Color = Color.FromArgb(255, 0, Math.Min((byte)255, (byte)(50 + ((double)uiTexelValue / 6.65))), 0);
             else
-                if (iTexelValue < 2731) // Light green to yellow (0,255,0 -> 255,255,0)
-                    mySolidColorBrush.Color = Color.FromArgb(255, Math.Min((byte)255, (byte)((double)(iTexelValue - 1365) / 5.35)), 255, 0);
+                if (uiTexelValue < 2731) // Light green to yellow (0,255,0 -> 255,255,0)
+                    mySolidColorBrush.Color = Color.FromArgb(255, Math.Min((byte)255, (byte)((double)(uiTexelValue - 1365) / 5.35)), 255, 0);
                 else // Yellow to red (255,255,0 -> 255,0,0)
-                    mySolidColorBrush.Color = Color.FromArgb(255, 255, Math.Min((byte)255, (byte)(255 - ((double)(iTexelValue - 1365) / 5.35))), 0);
+                    mySolidColorBrush.Color = Color.FromArgb(255, 255, Math.Min((byte)255, (byte)(255 - ((double)(uiTexelValue - 1365) / 5.35))), 0);
 
             return (mySolidColorBrush);
         }

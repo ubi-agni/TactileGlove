@@ -318,9 +318,9 @@
             </Rectangle.Fill>
         </Rectangle>    
         <Rectangle Height="33" HorizontalAlignment="Left" Name="rectangle1" Stroke="Black" VerticalAlignment="Top" Width="634" Fill="#FFF6881E" />
-        <Label Content="Port:" Height="28" HorizontalAlignment="Left" Margin="410,2,0,0" Name="lblPort" VerticalAlignment="Top" FontStyle="Normal" FontWeight="Bold" Foreground="White" />
+        <Label Content="Port:" Height="28" HorizontalAlignment="Left" Margin="425,2,0,0" Name="lblPort" VerticalAlignment="Top" FontStyle="Normal" FontWeight="Bold" Foreground="White" />
         <Label Content="Tactile dataglove with fabric-based sensors" Height="28" HorizontalAlignment="Left" Margin="17,0,0,0" Name="lblTitle" VerticalAlignment="Top" FontStyle="Normal" FontWeight="Bold" FontSize="14" Foreground="White" />
-        <Button Content="_Connect" Height="23" HorizontalAlignment="Left" Name="btConnectDisconnect" VerticalAlignment="Top" Width="75" Margin="532,5,0,0" Click="btConnectDisconnect_Click" />
-        <ComboBox Height="23" HorizontalAlignment="Right" Margin="0,5,99,0" Name="cbSerialPort" VerticalAlignment="Top" Width="72" />
+        <Button Content="_Connect" Height="23" HorizontalAlignment="Left" Name="btConnectDisconnect" VerticalAlignment="Top" Width="75" Margin="539,5,0,0" Click="btConnectDisconnect_Click" />
+        <ComboBox Height="23" HorizontalAlignment="Left" Margin="461,5,0,0" Name="cbSerialPort" VerticalAlignment="Top" Width="72" />
     </Grid>
 </Window>
