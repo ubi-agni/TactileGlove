@@ -1,5 +1,4 @@
 ﻿// Graphical user interface for left tactile dataglove v1
-#define NEWPROCESSING
 //#define LOG
 
 using System;
@@ -34,12 +33,10 @@ namespace TactileDataglove
         // GUI update timer
         private DispatcherTimer dispatcherTimer = new DispatcherTimer();
 
-#if NEWPROCESSING
+        const int CQUEUESIZE = 1024 * 1024;
+        private Queue<byte> qbReceiveQueue = new Queue<byte>(CQUEUESIZE);
         private byte[] baLastRemaining = new byte[4];
         private int iLastRemaining;
-#else
-        private List<byte> lRxData = new List<byte>();
-#endif
 
         private int[] iaTaxelValues = new int[64];
         private int[] iaOldTaxelValues = new int[64];
@@ -84,9 +81,9 @@ namespace TactileDataglove
 #if LOG
                     twLog = new StreamWriter(sFileName);
 #endif
-#if NEWPROCESSING
+                    qbReceiveQueue.Clear();
                     iLastRemaining = 0;
-#endif
+
                     for (int i = 0; i < iaTaxelValues.Length; i++)
                     {
                         iaTaxelValues[i] = 0;
@@ -144,6 +141,7 @@ namespace TactileDataglove
                     for (int i = 0; i < iaTaxelValues.Length; i++)
                         iaTaxelValues[i] = 0;
 
+                    
                     Paint_Taxels();
                 }
                 catch (Exception ex)
@@ -153,8 +151,6 @@ namespace TactileDataglove
             }
         }
 
-        private delegate void UpdateUiByteInDelegate(byte[] baDataIn);
-
         private void spUSB_DataReceived(object sender, SerialDataReceivedEventArgs e)
         {
             // This function runs in a different thread as the frmMain elements
@@ -163,44 +159,38 @@ namespace TactileDataglove
             if (iDataLength > 0)
             {
                 spUSB.Read(baSerialPortIn, 0, iDataLength);
-                Dispatcher.Invoke(DispatcherPriority.Send, new UpdateUiByteInDelegate(DataFromGlove), baSerialPortIn);
+                lock (locker)
+                    baSerialPortIn.ToList().ForEach(b => qbReceiveQueue.Enqueue(b));
             }
         }
 
-        private SolidColorBrush Gradient(int iTexelValue)
+        private void dispatcherTimer_Tick(object sender, EventArgs e)
         {
-            // Limit the input between 0 and 4095
-            iTexelValue = Math.Max(0, iTexelValue);
-            iTexelValue = Math.Min(4095, iTexelValue);
-
-            SolidColorBrush mySolidColorBrush = new SolidColorBrush();
-
-            if (iTexelValue < 1366) // Dark green to light green (0,50,0 -> 0,255,0)
-                mySolidColorBrush.Color = Color.FromArgb(255, 0, Math.Min((byte)255, (byte)(50 + ((double)iTexelValue / 6.65))), 0);
-            else
-                if (iTexelValue < 2731) // Light green to yellow (0,255,0 -> 255,255,0)
-                    mySolidColorBrush.Color = Color.FromArgb(255, Math.Min((byte)255, (byte)((double)(iTexelValue - 1365) / 5.35)), 255, 0);
-                else // Yellow to red (255,255,0 -> 255,0,0)
-                    mySolidColorBrush.Color = Color.FromArgb(255, 255, Math.Min((byte)255, (byte)(255 - ((double)(iTexelValue - 1365) / 5.35))), 0);
-
-            return (mySolidColorBrush);
+            ProcessData();
         }
 
-        private void DataFromGlove(byte[] baDataIn)
+        private void ProcessData()
         {
+            byte[] baDataIn;
+            lock (locker)
+            {
+                //baDataIn = new byte[qbReceiveQueue.Count];
+                baDataIn = qbReceiveQueue.ToArray();
+
+//                foreach (byte by in qbReceiveQueue)
+                    //qbProcessQueue.Enqueue(by);
+                qbReceiveQueue.Clear();
+            }
 #if LOG
             twLog.WriteLine("{0:hh:mm:ss.ffff} Length: " + baDataIn.Length.ToString() + " Data: " + BitConverter.ToString(baDataIn), DateTime.Now);
+            twLog.WriteLine("{0:hh:mm:ss.ffff} Starting processing. Lastremaining: " + iLastRemaining.ToString(), DateTime.Now);
 #endif
 
             const int iBYTESINPACKET = 5;
 
-#if NEWPROCESSING
             // Create new byte array including the previous rest
             byte[] baWorking = new byte[iLastRemaining + baDataIn.Length];
             //int iPrevWorkPointer = 0;
-#if LOG
-            twLog.WriteLine("{0:hh:mm:ss.ffff} Starting processing. Lastremaining: " + iLastRemaining.ToString(), DateTime.Now);
-#endif
 
             if (iLastRemaining > 0)
             {
@@ -240,8 +230,7 @@ namespace TactileDataglove
                     if ((iChannel < 0) && (iChannel >= 64))
                         throw new System.ArgumentException("Unvalid Taxel number received");
 
-                    lock (locker)
-                        iaTaxelValues[iChannel] = 4095 - (256 * (0x0F & baWorking[iStartPointer + 2]) + baWorking[iStartPointer + 3]);
+                    iaTaxelValues[iChannel] = 4095 - (256 * (0x0F & baWorking[iStartPointer + 2]) + baWorking[iStartPointer + 3]);
 
                     // Move the pointer further
                     iStartPointer += 5;
@@ -268,59 +257,70 @@ namespace TactileDataglove
                 iLastRemaining = 0;
             }
 #if LOG
-            twLog.WriteLine("{0:hh:mm:ss.ffff} Ending processing. Lastremaining: " + iLastRemaining.ToString(), DateTime.Now);
+            twLog.WriteLine("{0:hh:mm:ss.ffff} Ending processing.", DateTime.Now);
 #endif
-#else
-            lRxData.AddRange(baDataIn);
-
-            // Continue only if queue has at least the size of a full frame (5 bytes)
-            if (lRxData.Count >= iBYTESINPACKET)
-            {
-                bool bDoneProcessing = false;
-                do
-                {
-                    byte[] baOnePacket = new byte[iBYTESINPACKET];
-                    // Start reading from beginning
-
-                    lRxData.CopyTo(0, baOnePacket, 0, iBYTESINPACKET);
-
-                    // Plausibility check
-                    // First byte must be between 0x3C and 0x7B
-                    // Second byte must be 0x01
-                    // Fifth byte must be 0x00
-                    if (((baOnePacket[0] >= 0x3C) && (baOnePacket[0] <= 0x7B)) &&
-                        (baOnePacket[1] == 0x01) &&
-                        (baOnePacket[4] == 0x00))
-                    {
-                        // Valid packet, save the data
-                        int iChannel = baOnePacket[0] - 0x3C;
-                        if ((iChannel < 0) && (iChannel >= 64))
-                            throw new System.ArgumentException("Unvalid Taxel number received");
-
-                        lock (locker)
-                            iaTaxelValues[iChannel] = 4095 - (256 * (0x0F & baOnePacket[2]) + baOnePacket[3]);
-
-                        // Remove all processed bytes from queue (one packet);
-                        lRxData.RemoveRange(0, iBYTESINPACKET);
-                    }
-                    else
-                    {
-                        // Failed plausibility check. Remove first byte from queue.
-                        lRxData.RemoveAt(0);
-                    }
-
-                    // If we have less than one packet in queue, quit for now
-                    if (lRxData.Count < iBYTESINPACKET)
-                        bDoneProcessing = true;
-                } while (!bDoneProcessing);
-            }
-#endif
-
+            Paint_Taxels();
         }
 
-        private void dispatcherTimer_Tick(object sender, EventArgs e)
+        private void Paint_Taxels()
         {
-            Paint_Taxels();
+            // ID-Patch Mapping
+            Paint_Patch(0, THDPTIP);
+            Paint_Patch(1, THDPTH);
+            Paint_Patch(2, THDPMID);
+            Paint_Patch(3, THDPFF);
+            Paint_Patch(4, THMPTH);
+            Paint_Patch(5, THMPFF);
+            Paint_Patch(6, FFDPTIP);
+            Paint_Patch(7, FFDPTH);
+            Paint_Patch(8, FFDPMID);
+            Paint_Patch(9, FFDPMF);
+            Paint_Patch(10, FFMPTH);
+            Paint_Patch(11, FFMPMID);
+            Paint_Patch(12, FFMPMF);
+            Paint_Patch(13, FFPPTH);
+            Paint_Patch(14, FFPPMF);
+            Paint_Patch(15, MFDPTIP);
+            Paint_Patch(16, MFDPFF);
+            Paint_Patch(17, MFDPMID);
+            Paint_Patch(18, MFDPRF);
+            Paint_Patch(19, MFMPFF);
+            Paint_Patch(20, MFMPMID);
+            Paint_Patch(21, MFMPRF);
+            Paint_Patch(22, MFPP);
+            Paint_Patch(23, RFDPTIP);
+            Paint_Patch(24, RFDPMF);
+            Paint_Patch(25, RFDPMID);
+            Paint_Patch(26, RFDPLF);
+            Paint_Patch(27, RFMPMF);
+            Paint_Patch(28, RFMPMID);
+            Paint_Patch(29, RFMPLF);
+            Paint_Patch(30, RFPP);
+            Paint_Patch(31, LFDPTIP);
+            Paint_Patch(32, LFDPRF);
+            Paint_Patch(33, LFDPMID);
+            Paint_Patch(34, LFDPLF);
+            Paint_Patch(35, LFMPRF);
+            Paint_Patch(36, LFMPMID);
+            Paint_Patch(37, LFMPLF);
+            Paint_Patch(38, LFPPRF);
+            Paint_Patch(39, LFPPLF);
+            Paint_Patch(40, PalmUpFF);
+            Paint_Patch(41, PalmUpMF);
+            Paint_Patch(42, PalmUpRF);
+            Paint_Patch(43, PalmUpLF);
+            Paint_Patch(44, PalmTHL);
+            Paint_Patch(45, PalmTHU);
+            Paint_Patch(46, PalmTHD);
+            Paint_Patch(47, PalmTHR);
+            Paint_Patch(48, PalmMIDU);
+            Paint_Patch(49, PalmMIDL);
+            Paint_Patch(50, PalmMIDR);
+            Paint_Patch(51, PalmMIDBL);
+            Paint_Patch(52, PalmMIDBR);
+            Paint_Patch(53, PalmLF);
+
+            iaTaxelValues.CopyTo(iaOldTaxelValues, 0);
         }
 
         private void Paint_Patch(int iID, System.Windows.Shapes.Path pPatch)
@@ -337,74 +337,23 @@ namespace TactileDataglove
                 pPatch.Fill = Gradient(iaTaxelValues[iID]);
         }
 
-        private void Paint_Taxels()
+        private SolidColorBrush Gradient(int iTexelValue)
         {
-#if LOG
-            twLog.WriteLine("{0:hh:mm:ss.ffff}: GUI UPDATE BEGIN", DateTime.Now);
-#endif
-            lock (locker)
-            {
-                // ID-Patch Mapping
-                Paint_Patch(0, THDPTIP);
-                Paint_Patch(1, THDPTH);
-                Paint_Patch(2, THDPMID);
-                Paint_Patch(3, THDPFF);
-                Paint_Patch(4, THMPTH);
-                Paint_Patch(5, THMPFF);
-                Paint_Patch(6, FFDPTIP);
-                Paint_Patch(7, FFDPTH);
-                Paint_Patch(8, FFDPMID);
-                Paint_Patch(9, FFDPMF);
-                Paint_Patch(10, FFMPTH);
-                Paint_Patch(11, FFMPMID);
-                Paint_Patch(12, FFMPMF);
-                Paint_Patch(13, FFPPTH);
-                Paint_Patch(14, FFPPMF);
-                Paint_Patch(15, MFDPTIP);
-                Paint_Patch(16, MFDPFF);
-                Paint_Patch(17, MFDPMID);
-                Paint_Patch(18, MFDPRF);
-                Paint_Patch(19, MFMPFF);
-                Paint_Patch(20, MFMPMID);
-                Paint_Patch(21, MFMPRF);
-                Paint_Patch(22, MFPP);
-                Paint_Patch(23, RFDPTIP);
-                Paint_Patch(24, RFDPMF);
-                Paint_Patch(25, RFDPMID);
-                Paint_Patch(26, RFDPLF);
-                Paint_Patch(27, RFMPMF);
-                Paint_Patch(28, RFMPMID);
-                Paint_Patch(29, RFMPLF);
-                Paint_Patch(30, RFPP);
-                Paint_Patch(31, LFDPTIP);
-                Paint_Patch(32, LFDPRF);
-                Paint_Patch(33, LFDPMID);
-                Paint_Patch(34, LFDPLF);
-                Paint_Patch(35, LFMPRF);
-                Paint_Patch(36, LFMPMID);
-                Paint_Patch(37, LFMPLF);
-                Paint_Patch(38, LFPPRF);
-                Paint_Patch(39, LFPPLF);
-                Paint_Patch(40, PalmUpFF);
-                Paint_Patch(41, PalmUpMF);
-                Paint_Patch(42, PalmUpRF);
-                Paint_Patch(43, PalmUpLF);
-                Paint_Patch(44, PalmTHL);
-                Paint_Patch(45, PalmTHU);
-                Paint_Patch(46, PalmTHD);
-                Paint_Patch(47, PalmTHR);
-                Paint_Patch(48, PalmMIDU);
-                Paint_Patch(49, PalmMIDL);
-                Paint_Patch(50, PalmMIDR);
-                Paint_Patch(51, PalmMIDBL);
-                Paint_Patch(52, PalmMIDBR);
-                Paint_Patch(53, PalmLF);
-            }
+            // Limit the input between 0 and 4095
+            iTexelValue = Math.Max(0, iTexelValue);
+            iTexelValue = Math.Min(4095, iTexelValue);
 
-            iaTaxelValues.CopyTo(iaOldTaxelValues, 0);
-#if LOG
-            twLog.WriteLine("{0:hh:mm:ss.ffff}: GUI UPDATE END", DateTime.Now);
-#endif
+            SolidColorBrush mySolidColorBrush = new SolidColorBrush();
+
+            if (iTexelValue < 1366) // Dark green to light green (0,50,0 -> 0,255,0)
+                mySolidColorBrush.Color = Color.FromArgb(255, 0, Math.Min((byte)255, (byte)(50 + ((double)iTexelValue / 6.65))), 0);
+            else
+                if (iTexelValue < 2731) // Light green to yellow (0,255,0 -> 255,255,0)
+                    mySolidColorBrush.Color = Color.FromArgb(255, Math.Min((byte)255, (byte)((double)(iTexelValue - 1365) / 5.35)), 255, 0);
+                else // Yellow to red (255,255,0 -> 255,0,0)
+                    mySolidColorBrush.Color = Color.FromArgb(255, 255, Math.Min((byte)255, (byte)(255 - ((double)(iTexelValue - 1365) / 5.35))), 0);
+
+            return (mySolidColorBrush);
         }
     }
 }
