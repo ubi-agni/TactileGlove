@@ -1,5 +1,6 @@
 ﻿// Graphical user interface for left tactile dataglove v1
 #define NEWPROCESSING
+//#define LOG
 
 using System;
 using System.Collections.Generic;
@@ -41,12 +42,15 @@ namespace TactileDataglove
 #endif
 
         private int[] iaTaxelValues = new int[64];
+        private int[] iaOldTaxelValues = new int[64];
 
         // Lock object to regulate access from multiple threads:
         static private readonly object locker = new object();
 
+#if LOG
         private string sFileName = "log.txt";
         private TextWriter twLog;
+#endif
 
         public MainWindow()
         {
@@ -74,14 +78,20 @@ namespace TactileDataglove
         {
             if ((string)btConnectDisconnect.Content == sCONNECT)
             {
+                // Trying to connect
                 try
                 {
+#if LOG
                     twLog = new StreamWriter(sFileName);
+#endif
 #if NEWPROCESSING
                     iLastRemaining = 0;
 #endif
                     for (int i = 0; i < iaTaxelValues.Length; i++)
+                    {
                         iaTaxelValues[i] = 0;
+                        iaOldTaxelValues[i] = 4095; // Force a GUI update
+                    }
 
                     spUSB.BaudRate = 115200;
                     spUSB.DataBits = 8;
@@ -114,6 +124,7 @@ namespace TactileDataglove
             }
             else
             {
+                // Disconnect
                 try
                 {
                     dispatcherTimer.Stop();
@@ -121,12 +132,13 @@ namespace TactileDataglove
                         spUSB.Close();
                     cbSerialPort.IsEnabled = true;
                     btConnectDisconnect.Content = sCONNECT;
-
+#if LOG
                     if (twLog != null)
                     {
                         twLog.Close();
                         twLog = null;
                     }
+#endif
 
                     // Reset taxels on GUI to idle state
                     for (int i = 0; i < iaTaxelValues.Length; i++)
@@ -163,12 +175,12 @@ namespace TactileDataglove
 
             SolidColorBrush mySolidColorBrush = new SolidColorBrush();
 
-            if (iTexelValue < 1366)
+            if (iTexelValue < 1366) // Dark green to light green (0,50,0 -> 0,255,0)
                 mySolidColorBrush.Color = Color.FromArgb(255, 0, Math.Min((byte)255, (byte)(50 + ((double)iTexelValue / 6.65))), 0);
             else
-                if (iTexelValue < 2731)
+                if (iTexelValue < 2731) // Light green to yellow (0,255,0 -> 255,255,0)
                     mySolidColorBrush.Color = Color.FromArgb(255, Math.Min((byte)255, (byte)((double)(iTexelValue - 1365) / 5.35)), 255, 0);
-                else
+                else // Yellow to red (255,255,0 -> 255,0,0)
                     mySolidColorBrush.Color = Color.FromArgb(255, 255, Math.Min((byte)255, (byte)(255 - ((double)(iTexelValue - 1365) / 5.35))), 0);
 
             return (mySolidColorBrush);
@@ -176,7 +188,9 @@ namespace TactileDataglove
 
         private void DataFromGlove(byte[] baDataIn)
         {
-            twLog.WriteLine("{0:hh:mm:ss.fff} Length: " + baDataIn.Length.ToString() + " Data: " + BitConverter.ToString(baDataIn), DateTime.Now);
+#if LOG
+            twLog.WriteLine("{0:hh:mm:ss.ffff} Length: " + baDataIn.Length.ToString() + " Data: " + BitConverter.ToString(baDataIn), DateTime.Now);
+#endif
 
             const int iBYTESINPACKET = 5;
 
@@ -184,7 +198,9 @@ namespace TactileDataglove
             // Create new byte array including the previous rest
             byte[] baWorking = new byte[iLastRemaining + baDataIn.Length];
             //int iPrevWorkPointer = 0;
-            twLog.WriteLine("{0:hh:mm:ss.fff} Starting processing. Lastremaining: " + iLastRemaining.ToString(), DateTime.Now);
+#if LOG
+            twLog.WriteLine("{0:hh:mm:ss.ffff} Starting processing. Lastremaining: " + iLastRemaining.ToString(), DateTime.Now);
+#endif
 
             if (iLastRemaining > 0)
             {
@@ -251,7 +267,9 @@ namespace TactileDataglove
             {
                 iLastRemaining = 0;
             }
-            twLog.WriteLine("{0:hh:mm:ss.fff} Ending processing. Lastremaining: " + iLastRemaining.ToString(), DateTime.Now);
+#if LOG
+            twLog.WriteLine("{0:hh:mm:ss.ffff} Ending processing. Lastremaining: " + iLastRemaining.ToString(), DateTime.Now);
+#endif
 #else
             lRxData.AddRange(baDataIn);
 
@@ -305,67 +323,88 @@ namespace TactileDataglove
             Paint_Taxels();
         }
 
+        private void Paint_Patch(int iID, System.Windows.Shapes.Path pPatch)
+        {
+            const int iTHRESHOLD = 10; // Detection threshold in scale 0-4095 (0-no contact, 4095-full pressure)
+
+            // Update patch only if
+            // * old value and new value differ
+            // AND
+            // * (old OR new values are over the detection threshold (no need to update for signal noise))
+
+            if ((iaTaxelValues[iID] != iaOldTaxelValues[iID]) &&
+                ((iaOldTaxelValues[iID] > iTHRESHOLD) || (iaTaxelValues[iID] > iTHRESHOLD)))
+                pPatch.Fill = Gradient(iaTaxelValues[iID]);
+        }
+
         private void Paint_Taxels()
         {
-            twLog.WriteLine("{0:hh:mm:ss.fff}: GUI UPDATE BEGIN", DateTime.Now);
+#if LOG
+            twLog.WriteLine("{0:hh:mm:ss.ffff}: GUI UPDATE BEGIN", DateTime.Now);
+#endif
             lock (locker)
             {
-                THDPTIP.Fill = Gradient(iaTaxelValues[0]);
-                THDPTH.Fill = Gradient(iaTaxelValues[1]);
-                THDPMID.Fill = Gradient(iaTaxelValues[2]);
-                THDPFF.Fill = Gradient(iaTaxelValues[3]);
-                THMPTH.Fill = Gradient(iaTaxelValues[4]);
-                THMPFF.Fill = Gradient(iaTaxelValues[5]);
-                FFDPTIP.Fill = Gradient(iaTaxelValues[6]);
-                FFDPTH.Fill = Gradient(iaTaxelValues[7]);
-                FFDPMID.Fill = Gradient(iaTaxelValues[8]);
-                FFDPMF.Fill = Gradient(iaTaxelValues[9]);
-                FFMPTH.Fill = Gradient(iaTaxelValues[10]);
-                FFMPMID.Fill = Gradient(iaTaxelValues[11]);
-                FFMPMF.Fill = Gradient(iaTaxelValues[12]);
-                FFPPTH.Fill = Gradient(iaTaxelValues[13]);
-                FFPPMF.Fill = Gradient(iaTaxelValues[14]);
-                MFDPTIP.Fill = Gradient(iaTaxelValues[15]);
-                MFDPFF.Fill = Gradient(iaTaxelValues[16]);
-                MFDPMID.Fill = Gradient(iaTaxelValues[17]);
-                MFDPRF.Fill = Gradient(iaTaxelValues[18]);
-                MFMPFF.Fill = Gradient(iaTaxelValues[19]);
-                MFMPMID.Fill = Gradient(iaTaxelValues[20]);
-                MFMPRF.Fill = Gradient(iaTaxelValues[21]);
-                MFPP.Fill = Gradient(iaTaxelValues[22]);
-                RFDPTIP.Fill = Gradient(iaTaxelValues[23]);
-                RFDPMF.Fill = Gradient(iaTaxelValues[24]);
-                RFDPMID.Fill = Gradient(iaTaxelValues[25]);
-                RFDPLF.Fill = Gradient(iaTaxelValues[26]);
-                RFMPMF.Fill = Gradient(iaTaxelValues[27]);
-                RFMPMID.Fill = Gradient(iaTaxelValues[28]);
-                RFMPLF.Fill = Gradient(iaTaxelValues[29]);
-                RFPP.Fill = Gradient(iaTaxelValues[30]);
-                LFDPTIP.Fill = Gradient(iaTaxelValues[31]);
-                LFDPRF.Fill = Gradient(iaTaxelValues[32]);
-                LFDPMID.Fill = Gradient(iaTaxelValues[33]);
-                LFDPLF.Fill = Gradient(iaTaxelValues[34]);
-                LFMPRF.Fill = Gradient(iaTaxelValues[35]);
-                LFMPMID.Fill = Gradient(iaTaxelValues[36]);
-                LFMPLF.Fill = Gradient(iaTaxelValues[37]);
-                LFPPRF.Fill = Gradient(iaTaxelValues[38]);
-                LFPPLF.Fill = Gradient(iaTaxelValues[39]);
-                PalmUpFF.Fill = Gradient(iaTaxelValues[40]);
-                PalmUpMF.Fill = Gradient(iaTaxelValues[41]);
-                PalmUpRF.Fill = Gradient(iaTaxelValues[42]);
-                PalmUpLF.Fill = Gradient(iaTaxelValues[43]);
-                PalmTHL.Fill = Gradient(iaTaxelValues[44]);
-                PalmTHU.Fill = Gradient(iaTaxelValues[45]);
-                PalmTHD.Fill = Gradient(iaTaxelValues[46]);
-                PalmTHR.Fill = Gradient(iaTaxelValues[47]);
-                PalmMIDU.Fill = Gradient(iaTaxelValues[48]);
-                PalmMIDL.Fill = Gradient(iaTaxelValues[49]);
-                PalmMIDR.Fill = Gradient(iaTaxelValues[50]);
-                PalmMIDBL.Fill = Gradient(iaTaxelValues[51]);
-                PalmMIDBR.Fill = Gradient(iaTaxelValues[52]);
-                PalmLF.Fill = Gradient(iaTaxelValues[53]);
+                // ID-Patch Mapping
+                Paint_Patch(0, THDPTIP);
+                Paint_Patch(1, THDPTH);
+                Paint_Patch(2, THDPMID);
+                Paint_Patch(3, THDPFF);
+                Paint_Patch(4, THMPTH);
+                Paint_Patch(5, THMPFF);
+                Paint_Patch(6, FFDPTIP);
+                Paint_Patch(7, FFDPTH);
+                Paint_Patch(8, FFDPMID);
+                Paint_Patch(9, FFDPMF);
+                Paint_Patch(10, FFMPTH);
+                Paint_Patch(11, FFMPMID);
+                Paint_Patch(12, FFMPMF);
+                Paint_Patch(13, FFPPTH);
+                Paint_Patch(14, FFPPMF);
+                Paint_Patch(15, MFDPTIP);
+                Paint_Patch(16, MFDPFF);
+                Paint_Patch(17, MFDPMID);
+                Paint_Patch(18, MFDPRF);
+                Paint_Patch(19, MFMPFF);
+                Paint_Patch(20, MFMPMID);
+                Paint_Patch(21, MFMPRF);
+                Paint_Patch(22, MFPP);
+                Paint_Patch(23, RFDPTIP);
+                Paint_Patch(24, RFDPMF);
+                Paint_Patch(25, RFDPMID);
+                Paint_Patch(26, RFDPLF);
+                Paint_Patch(27, RFMPMF);
+                Paint_Patch(28, RFMPMID);
+                Paint_Patch(29, RFMPLF);
+                Paint_Patch(30, RFPP);
+                Paint_Patch(31, LFDPTIP);
+                Paint_Patch(32, LFDPRF);
+                Paint_Patch(33, LFDPMID);
+                Paint_Patch(34, LFDPLF);
+                Paint_Patch(35, LFMPRF);
+                Paint_Patch(36, LFMPMID);
+                Paint_Patch(37, LFMPLF);
+                Paint_Patch(38, LFPPRF);
+                Paint_Patch(39, LFPPLF);
+                Paint_Patch(40, PalmUpFF);
+                Paint_Patch(41, PalmUpMF);
+                Paint_Patch(42, PalmUpRF);
+                Paint_Patch(43, PalmUpLF);
+                Paint_Patch(44, PalmTHL);
+                Paint_Patch(45, PalmTHU);
+                Paint_Patch(46, PalmTHD);
+                Paint_Patch(47, PalmTHR);
+                Paint_Patch(48, PalmMIDU);
+                Paint_Patch(49, PalmMIDL);
+                Paint_Patch(50, PalmMIDR);
+                Paint_Patch(51, PalmMIDBL);
+                Paint_Patch(52, PalmMIDBR);
+                Paint_Patch(53, PalmLF);
             }
-            twLog.WriteLine("{0:hh:mm:ss.fff}: GUI UPDATE END", DateTime.Now);
+
+            iaTaxelValues.CopyTo(iaOldTaxelValues, 0);
+#if LOG
+            twLog.WriteLine("{0:hh:mm:ss.ffff}: GUI UPDATE END", DateTime.Now);
+#endif
         }
     }
 }
