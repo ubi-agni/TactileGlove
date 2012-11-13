@@ -1,7 +1,7 @@
 ﻿// *** Graphical user interface for left tactile dataglove v1 ***
 //
 // Modified:
-// 2012-11-13 Risto Kõiva, Changed GUI layout to resize the contents
+// 2012-11-13 Risto Kõiva, Changed GUI layout to resize the contents, added left/right glove choice
 // 2012-11-12 Risto Kõiva, Changed from List<> to Queue<>, added comments
 // 2012-11-09 Risto Kõiva, Initial version
 
@@ -158,7 +158,7 @@ namespace TactileDataglove
             if (iDataLength > 0) // Makes sense to continue only, if there really is new data available
             {
                 spUSB.Read(baSerialPortDataIn, 0, iDataLength); // Copy the data from serial port to internal array
-                
+
                 lock (locker) // As the next command acts with a variable accessed from multiple threads, lock the access first
                     baSerialPortDataIn.ToList().ForEach(b => qbReceiveQueue.Enqueue(b)); // Put the bytes into thread-arching queue
             }
@@ -238,60 +238,120 @@ namespace TactileDataglove
         private void Paint_Taxels()
         {
             // ID-Patch Mapping
-            Paint_Patch(0, THDPTIP);
-            Paint_Patch(1, THDPTH);
-            Paint_Patch(2, THDPMID);
-            Paint_Patch(3, THDPFF);
-            Paint_Patch(4, THMPTH);
-            Paint_Patch(5, THMPFF);
-            Paint_Patch(6, FFDPTIP);
-            Paint_Patch(7, FFDPTH);
-            Paint_Patch(8, FFDPMID);
-            Paint_Patch(9, FFDPMF);
-            Paint_Patch(10, FFMPTH);
-            Paint_Patch(11, FFMPMID);
-            Paint_Patch(12, FFMPMF);
-            Paint_Patch(13, FFPPTH);
-            Paint_Patch(14, FFPPMF);
-            Paint_Patch(15, MFDPTIP);
-            Paint_Patch(16, MFDPFF);
-            Paint_Patch(17, MFDPMID);
-            Paint_Patch(18, MFDPRF);
-            Paint_Patch(19, MFMPFF);
-            Paint_Patch(20, MFMPMID);
-            Paint_Patch(21, MFMPRF);
-            Paint_Patch(22, MFPP);
-            Paint_Patch(23, RFDPTIP);
-            Paint_Patch(24, RFDPMF);
-            Paint_Patch(25, RFDPMID);
-            Paint_Patch(26, RFDPLF);
-            Paint_Patch(27, RFMPMF);
-            Paint_Patch(28, RFMPMID);
-            Paint_Patch(29, RFMPLF);
-            Paint_Patch(30, RFPP);
-            Paint_Patch(31, LFDPTIP);
-            Paint_Patch(32, LFDPRF);
-            Paint_Patch(33, LFDPMID);
-            Paint_Patch(34, LFDPLF);
-            Paint_Patch(35, LFMPRF);
-            Paint_Patch(36, LFMPMID);
-            Paint_Patch(37, LFMPLF);
-            Paint_Patch(38, LFPPRF);
-            Paint_Patch(39, LFPPLF);
-            Paint_Patch(40, PalmUpFF);
-            Paint_Patch(41, PalmUpMF);
-            Paint_Patch(42, PalmUpRF);
-            Paint_Patch(43, PalmUpLF);
-            Paint_Patch(44, PalmTHL);
-            Paint_Patch(45, PalmTHU);
-            Paint_Patch(46, PalmTHD);
-            Paint_Patch(47, PalmTHR);
-            Paint_Patch(48, PalmMIDU);
-            Paint_Patch(49, PalmMIDL);
-            Paint_Patch(50, PalmMIDR);
-            Paint_Patch(51, PalmMIDBL);
-            Paint_Patch(52, PalmMIDBR);
-            Paint_Patch(53, PalmLF);
+            if (cbLeftOrRight.SelectedIndex == 0)
+            {
+                Paint_Patch(0, LeftTHDPTIP);
+                Paint_Patch(1, LeftTHDPTH);
+                Paint_Patch(2, LeftTHDPMID);
+                Paint_Patch(3, LeftTHDPFF);
+                Paint_Patch(4, LeftTHMPTH);
+                Paint_Patch(5, LeftTHMPFF);
+                Paint_Patch(6, LeftFFDPTIP);
+                Paint_Patch(7, LeftFFDPTH);
+                Paint_Patch(8, LeftFFDPMID);
+                Paint_Patch(9, LeftFFDPMF);
+                Paint_Patch(10, LeftFFMPTH);
+                Paint_Patch(11, LeftFFMPMID);
+                Paint_Patch(12, LeftFFMPMF);
+                Paint_Patch(13, LeftFFPPTH);
+                Paint_Patch(14, LeftFFPPMF);
+                Paint_Patch(15, LeftMFDPTIP);
+                Paint_Patch(16, LeftMFDPFF);
+                Paint_Patch(17, LeftMFDPMID);
+                Paint_Patch(18, LeftMFDPRF);
+                Paint_Patch(19, LeftMFMPFF);
+                Paint_Patch(20, LeftMFMPMID);
+                Paint_Patch(21, LeftMFMPRF);
+                Paint_Patch(22, LeftMFPP);
+                Paint_Patch(23, LeftRFDPTIP);
+                Paint_Patch(24, LeftRFDPMF);
+                Paint_Patch(25, LeftRFDPMID);
+                Paint_Patch(26, LeftRFDPLF);
+                Paint_Patch(27, LeftRFMPMF);
+                Paint_Patch(28, LeftRFMPMID);
+                Paint_Patch(29, LeftRFMPLF);
+                Paint_Patch(30, LeftRFPP);
+                Paint_Patch(31, LeftLFDPTIP);
+                Paint_Patch(32, LeftLFDPRF);
+                Paint_Patch(33, LeftLFDPMID);
+                Paint_Patch(34, LeftLFDPLF);
+                Paint_Patch(35, LeftLFMPRF);
+                Paint_Patch(36, LeftLFMPMID);
+                Paint_Patch(37, LeftLFMPLF);
+                Paint_Patch(38, LeftLFPPRF);
+                Paint_Patch(39, LeftLFPPLF);
+                Paint_Patch(40, LeftPalmUpFF);
+                Paint_Patch(41, LeftPalmUpMF);
+                Paint_Patch(42, LeftPalmUpRF);
+                Paint_Patch(43, LeftPalmUpLF);
+                Paint_Patch(44, LeftPalmTHL);
+                Paint_Patch(45, LeftPalmTHU);
+                Paint_Patch(46, LeftPalmTHD);
+                Paint_Patch(47, LeftPalmTHR);
+                Paint_Patch(48, LeftPalmMIDU);
+                Paint_Patch(49, LeftPalmMIDL);
+                Paint_Patch(50, LeftPalmMIDR);
+                Paint_Patch(51, LeftPalmMIDBL);
+                Paint_Patch(52, LeftPalmMIDBR);
+                Paint_Patch(53, LeftPalmLF);
+            }
+            else
+            {
+                Paint_Patch(0, RightTHDPTIP);
+                Paint_Patch(1, RightTHDPTH);
+                Paint_Patch(2, RightTHDPMID);
+                Paint_Patch(3, RightTHDPFF);
+                Paint_Patch(4, RightTHMPTH);
+                Paint_Patch(5, RightTHMPFF);
+                Paint_Patch(6, RightFFDPTIP);
+                Paint_Patch(7, RightFFDPTH);
+                Paint_Patch(8, RightFFDPMID);
+                Paint_Patch(9, RightFFDPMF);
+                Paint_Patch(10, RightFFMPTH);
+                Paint_Patch(11, RightFFMPMID);
+                Paint_Patch(12, RightFFMPMF);
+                Paint_Patch(13, RightFFPPTH);
+                Paint_Patch(14, RightFFPPMF);
+                Paint_Patch(15, RightMFDPTIP);
+                Paint_Patch(16, RightMFDPFF);
+                Paint_Patch(17, RightMFDPMID);
+                Paint_Patch(18, RightMFDPRF);
+                Paint_Patch(19, RightMFMPFF);
+                Paint_Patch(20, RightMFMPMID);
+                Paint_Patch(21, RightMFMPRF);
+                Paint_Patch(22, RightMFPP);
+                Paint_Patch(23, RightRFDPTIP);
+                Paint_Patch(24, RightRFDPMF);
+                Paint_Patch(25, RightRFDPMID);
+                Paint_Patch(26, RightRFDPLF);
+                Paint_Patch(27, RightRFMPMF);
+                Paint_Patch(28, RightRFMPMID);
+                Paint_Patch(29, RightRFMPLF);
+                Paint_Patch(30, RightRFPP);
+                Paint_Patch(31, RightLFDPTIP);
+                Paint_Patch(32, RightLFDPRF);
+                Paint_Patch(33, RightLFDPMID);
+                Paint_Patch(34, RightLFDPLF);
+                Paint_Patch(35, RightLFMPRF);
+                Paint_Patch(36, RightLFMPMID);
+                Paint_Patch(37, RightLFMPLF);
+                Paint_Patch(38, RightLFPPRF);
+                Paint_Patch(39, RightLFPPLF);
+                Paint_Patch(40, RightPalmUpFF);
+                Paint_Patch(41, RightPalmUpMF);
+                Paint_Patch(42, RightPalmUpRF);
+                Paint_Patch(43, RightPalmUpLF);
+                Paint_Patch(44, RightPalmTHL);
+                Paint_Patch(45, RightPalmTHU);
+                Paint_Patch(46, RightPalmTHD);
+                Paint_Patch(47, RightPalmTHR);
+                Paint_Patch(48, RightPalmMIDU);
+                Paint_Patch(49, RightPalmMIDL);
+                Paint_Patch(50, RightPalmMIDR);
+                Paint_Patch(51, RightPalmMIDBL);
+                Paint_Patch(52, RightPalmMIDBR);
+                Paint_Patch(53, RightPalmLF);
+            }
 
             // Update the iaOldTaxelValues variable for comparison on next round
             iaTaxelValues.CopyTo(iaOldTaxelValues, 0);
@@ -388,5 +448,24 @@ namespace TactileDataglove
             set { SetValue(ScaleValueProperty, value); }
         }
         #endregion
+
+        private void cbLeftOrRight_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (LeftCanvasGlove != null)
+            {
+                if (cbLeftOrRight.SelectedIndex == 0)
+                    LeftCanvasGlove.Visibility = Visibility.Visible;
+                else
+                    LeftCanvasGlove.Visibility = Visibility.Hidden;
+
+                if (RightCanvasGlove != null)
+                {
+                    if (cbLeftOrRight.SelectedIndex == 0)
+                        RightCanvasGlove.Visibility = Visibility.Hidden;
+                    else
+                        RightCanvasGlove.Visibility = Visibility.Visible;
+                }
+            }
+        }
     }
 }
