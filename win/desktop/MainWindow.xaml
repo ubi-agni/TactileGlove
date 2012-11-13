@@ -35,11 +35,17 @@
                 <Grid.RowDefinitions>
                     <RowDefinition Height="100" />
                     <RowDefinition Height="*" />
-                    <RowDefinition Height="100" />
                 </Grid.RowDefinitions>
+                <Grid.LayoutTransform>
+                    <ScaleTransform x:Name="ApplicationScaleTransform2"
+                        CenterX="0"
+                        CenterY="0"
+                        ScaleX="{Binding ElementName=wMainWindow, Path=ScaleValue}"
+                        ScaleY="{Binding ElementName=wMainWindow, Path=ScaleValue}" />
+                </Grid.LayoutTransform>
                 <Canvas Grid.Row="0" x:Name="UniBiLogo" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="10,10,0,0">
                     <Canvas.LayoutTransform>
-                        <ScaleTransform ScaleX="0.22" ScaleY="0.22" />
+                        <ScaleTransform ScaleX="0.27" ScaleY="0.27" />
                     </Canvas.LayoutTransform>
                     <Path x:Name="Path" Width="680.315" Height="264.565" Canvas.Left="0" Canvas.Top="0" Stretch="Fill" Fill="#FF007B5E" Data="F1 M 0,0.000274658L 0,226.77L 113.385,226.77L 113.385,264.566L 680.315,264.566L 680.315,75.5896L 226.771,75.5896L 226.771,0.000274658L 0,0.000274658 Z " />
                     <Path x:Name="UniBiLogo_0" Width="24.2907" Height="43.552" Canvas.Left="151.12" Canvas.Top="183.831" Stretch="Fill" Fill="#FFFEFEFE" Data="F1 M 175.411,215.728C 175.411,224.132 171.3,227.383 163.265,227.383C 155.045,227.383 151.12,224.377 151.12,215.728L 151.12,183.831L 159.095,183.831L 159.095,216.28C 159.095,219.287 159.708,221.127 163.265,221.127C 166.332,221.127 167.436,219.287 167.436,216.28L 167.436,183.831L 175.411,183.831L 175.411,215.728 Z " />
@@ -63,9 +69,9 @@
                     <Rectangle x:Name="UniBiLogo_Rectangle_17" Width="7.97333" Height="44.1653" Canvas.Left="603.317" Canvas.Top="182.604" Stretch="Fill" Fill="#FFFEFEFE" />
                     <Path x:Name="UniBiLogo_18" Width="25.1494" Height="44.7786" Canvas.Left="617.644" Canvas.Top="182.604" Stretch="Fill" Fill="#FFFEFEFE" Data="F1 M 634.819,201.068C 633.778,200.393 632.427,199.903 631.016,199.903C 628.134,199.903 625.619,200.639 625.619,210.515C 625.619,220.575 627.827,221.188 630.403,221.188C 631.875,221.188 633.839,220.207 634.819,219.409M 636.475,226.769L 635.495,224.317C 634.206,225.788 632.06,227.383 628.686,227.383C 624.76,227.383 617.644,226.279 617.644,210.515C 617.644,194.689 626.232,193.647 629.912,193.647C 632.612,193.647 634.144,194.812 634.819,195.485L 634.819,182.604L 642.794,182.604L 642.794,226.769L 636.475,226.769 Z " />
                 </Canvas>
-                <Canvas Grid.Row="2" x:Name="CitecLogo" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="10,0,0,0">
+                <Canvas Grid.Row="1" x:Name="CitecLogo" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="10,0,0,120">
                     <Canvas.LayoutTransform>
-                        <ScaleTransform ScaleX="0.4" ScaleY="0.4" />
+                        <ScaleTransform ScaleX="0.5" ScaleY="0.5" />
                     </Canvas.LayoutTransform>
                     <Path x:Name="CitecLogo_Path" Width="55.6827" Height="66.1866" Canvas.Left="302.812" Canvas.Top="67.8387" Stretch="Fill" Fill="#FF2C7A5D" Data="F1 M 345.307,109.292L 358.495,112.224C 355.385,125.063 347.803,134.025 331.771,134.025C 315.145,134.025 302.812,123.344 302.812,100.855C 302.812,78.7027 315.651,67.8387 331.771,67.8387C 347.896,67.8387 354.864,76.464 357.625,87.916L 344.36,91.7973C 342.292,84.4787 339.188,79.4787 331.693,79.4787C 322.041,79.4787 316.864,87.6667 316.864,100.855C 316.864,114.292 322.213,122.744 331.864,122.744C 339.36,122.744 343.068,118 345.307,109.292 Z "/>
                     <Rectangle x:Name="CitecLogo_Rectangle" Width="43.3227" Height="12.052" Canvas.Left="247.812" Canvas.Top="120.744" Stretch="Fill" Fill="#FF2C7A5D"/>
