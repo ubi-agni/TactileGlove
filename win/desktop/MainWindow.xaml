@@ -29,7 +29,7 @@
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="180" />
                 <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="50" />
+                <ColumnDefinition Width="40" />
             </Grid.ColumnDefinitions>
             <Grid x:Name="MainLogoGrid" Grid.Row="0">
                 <Grid.RowDefinitions>
