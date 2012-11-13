@@ -1,6 +1,7 @@
 ﻿// *** Graphical user interface for left tactile dataglove v1 ***
 //
 // Modified:
+// 2012-11-13 Risto Kõiva, Changed GUI layout to resize the contents
 // 2012-11-12 Risto Kõiva, Changed from List<> to Queue<>, added comments
 // 2012-11-09 Risto Kõiva, Initial version
 
@@ -146,7 +147,7 @@ namespace TactileDataglove
             }
         }
 
-        // spUSB_DataReceived event procedure that gets called when data from (virtual) serial port is received.
+        // spUSB_DataReceived event gets called when data from (virtual) serial port is received.
         // Note! This function runs in a different thread as the MainWindow elements, thus care (for example
         // locking) needs to be taken in interacting with MainWindow elements.
         // It collects the data from serial port and sends them to a shared queue (FIFO).
@@ -163,7 +164,7 @@ namespace TactileDataglove
             }
         }
 
-        // dtGUIUpdateTimer_Tick event procedure gets called when the GUI update timer fires.
+        // dtGUIUpdateTimer_Tick event gets called when the GUI update timer fires.
         // It collects the received information from the thread-arching queue, processes the data
         // and finished by calling the GUI redraw function.
         private void dtGUIUpdateTimer_Tick(object sender, EventArgs e)
@@ -331,20 +332,22 @@ namespace TactileDataglove
             return (mySolidColorBrush);
         }
 
-        private void Grid_SizeChanged(object sender, SizeChangedEventArgs e)
+        // GloveGrid_SizeChanged event gets called, when the User GUI resize triggers GloveGrid size change.
+        // It recalculates the scaling factor for the glove inside the grid.
+        private void GloveGrid_SizeChanged(object sender, SizeChangedEventArgs e)
         {
-            CalculateScale();
-        }
-
-        private void CalculateScale()
-        {
-            double yScale = ActualHeight / 670f;
-            double xScale = ActualWidth / 640f;
+            // Calculate the scale relative to default window size (700H x 680W)
+            double yScale = ActualHeight / 700f;
+            double xScale = ActualWidth / 680f;
+            // Use proportional scaling, as this does not distort the image.
+            // Thus use the smalles value of both axis to avoid image clipping.
             double value = Math.Min(xScale, yScale);
-            ScaleValue = (double)OnCoerceScaleValue(Grid, value);
+            // The scale needs to be available on custom property to be able to access from XAML
+            ScaleValue = (double)OnCoerceScaleValue(wMainWindow, value);
         }
 
         #region ScaleValue Depdency Property
+        // Register Custom Property to change the scaling value from XAML
         public static readonly DependencyProperty ScaleValueProperty = DependencyProperty.Register("ScaleValue", typeof(double), typeof(MainWindow), new UIPropertyMetadata(1.0, new PropertyChangedCallback(OnScaleValueChanged), new CoerceValueCallback(OnCoerceScaleValue)));
 
         private static object OnCoerceScaleValue(DependencyObject o, object value)
@@ -365,10 +368,12 @@ namespace TactileDataglove
 
         protected virtual double OnCoerceScaleValue(double value)
         {
+            // In case the parameter value is not a number, return to default scale 1:1
             if (double.IsNaN(value))
                 return 1.0f;
 
-            value = Math.Max(0.1, value);
+            // Do not go under 50% of original resolution
+            value = Math.Max(0.5, value);
             return value;
         }
 
@@ -379,14 +384,8 @@ namespace TactileDataglove
 
         public double ScaleValue
         {
-            get
-            {
-                return (double)GetValue(ScaleValueProperty);
-            }
-            set
-            {
-                SetValue(ScaleValueProperty, value);
-            }
+            get { return (double)GetValue(ScaleValueProperty); }
+            set { SetValue(ScaleValueProperty, value); }
         }
         #endregion
     }
