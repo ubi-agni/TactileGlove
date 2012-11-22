@@ -451,20 +451,20 @@ namespace TactileDataglove
 
         private void cbLeftOrRight_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (LeftCanvasGlove != null)
+            if (RightCanvasGlove != null)
             {
                 if (cbLeftOrRight.SelectedIndex == 0)
+                    RightCanvasGlove.Visibility = Visibility.Visible;
+                else
+                    RightCanvasGlove.Visibility = Visibility.Hidden;
+            }
+
+            if (LeftCanvasGlove != null)
+            {
+                if (cbLeftOrRight.SelectedIndex == 1)
                     LeftCanvasGlove.Visibility = Visibility.Visible;
                 else
                     LeftCanvasGlove.Visibility = Visibility.Hidden;
-
-                if (RightCanvasGlove != null)
-                {
-                    if (cbLeftOrRight.SelectedIndex == 0)
-                        RightCanvasGlove.Visibility = Visibility.Hidden;
-                    else
-                        RightCanvasGlove.Visibility = Visibility.Visible;
-                }
             }
         }
     }
