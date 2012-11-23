@@ -469,21 +469,5 @@ namespace TactileDataglove
                 }
             }
         }
-
-        private void btDo_Click(object sender, RoutedEventArgs e)
-        {
-            // find max value
-            uint uiMaxValue = 0;
-            int iIndex = -1;
-            for (int i = 0; i < 64; i++)
-            {
-                if (iaTaxelValues[i] > uiMaxValue)
-                {
-                    uiMaxValue = iaTaxelValues[i];
-                    iIndex = i;
-                }
-            }
-            MessageBox.Show("Highest value: " + uiMaxValue.ToString() + " Index: " + iIndex.ToString());
-        }
     }
 }
