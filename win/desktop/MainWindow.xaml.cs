@@ -393,7 +393,9 @@ namespace TactileDataglove
                     if (baInitialTaxelValueAvailable[iTaxelID])
                     {
                         // Stretch range according to initial value
-                        pPatch.Fill = Gradient((int)((float)(4095-iaInitialTaxelValues[iTaxelID])/4095.0 * (float)iaTaxelValues[iTaxelID]));
+                        int iRestOfTheRange = 4095-iaInitialTaxelValues[iTaxelID];
+                        double dAmplifyCoefficient = 4095.0 / (double)(iRestOfTheRange);
+                        pPatch.Fill = Gradient((int)(dAmplifyCoefficient * (double)iaTaxelValues[iTaxelID]));
                     }
                     else
                     {
