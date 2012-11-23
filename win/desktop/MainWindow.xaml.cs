@@ -32,6 +32,7 @@ namespace TactileDataglove
         private const string sCONNECT = "_Connect"; // Button content for unconnected state
         private const string sDISCONNECT = "_Disconnect"; // Button content for connected state
         private const int CQUEUESIZE = 1024 * 1024; // Receive buffer size (1 MByte)
+        private const int MAXCHANNELS = 64;
 
         // Variable declarations
         private SerialPort spUSB = new SerialPort(); // Communication over (virtual) serial port 
@@ -39,8 +40,12 @@ namespace TactileDataglove
         static private readonly object locker = new object(); // Queue locker object to regulate access from multiple threads
         private uint uiLastRemaining; // Saves the count of remaning bytes from last packet parser run (value range is 0 and 4)
         private byte[] baLastRemaining = new byte[4]; // Remaining byte from last packet parser run
-        private uint[] iaTaxelValues = new uint[64]; // Array holding the parsed taxel values (value range is 0 to 4095)
-        private uint[] iaOldTaxelValues = new uint[64]; // Array for comparison if update is required, holding the last run taxel values
+
+        private bool[] baInitialTaxelValueAvailable = new bool[MAXCHANNELS];
+        private int[] iaInitialTaxelValues = new int[MAXCHANNELS];
+
+        private int[] iaTaxelValues = new int[MAXCHANNELS]; // Array holding the parsed taxel values (value range is 0 to 4095)
+        private int[] iaOldTaxelValues = new int[MAXCHANNELS]; // Array for comparison if update is required, holding the last run taxel values
         private DispatcherTimer dtGUIUpdateTimer = new DispatcherTimer(); // Paces the GUI update framerate
 
         // MainWindow constructor gets called when the window is created - at the start of the program
@@ -78,10 +83,12 @@ namespace TactileDataglove
                 // Initialize variables
                 qbReceiveQueue.Clear(); // Clear the receive queue
                 uiLastRemaining = 0; // Set the last packet parses "pointer" to 0
-                for (int i = 0; i < iaTaxelValues.Length; i++) // Initialize taxel arrays
+                for (int i = 0; i < MAXCHANNELS; i++) // Initialize taxel arrays
                 {
                     iaTaxelValues[i] = 0;
                     iaOldTaxelValues[i] = 4095; // This forces an GUI update on initial round, as the value differs from iaTaxelValue
+                    baInitialTaxelValueAvailable[i] = false;
+                    iaInitialTaxelValues[i] = 0;
                 }
 
                 // Set (virtual) serial port parameters
@@ -139,8 +146,11 @@ namespace TactileDataglove
                 }
 
                 // Reset taxels on GUI to idle state
-                for (int i = 0; i < iaTaxelValues.Length; i++)
+                for (int i = 0; i < MAXCHANNELS; i++)
+                {
                     iaTaxelValues[i] = 0;
+                    baInitialTaxelValueAvailable[i] = false;
+                }
 
                 // Redraw the GUI manually to show this
                 Paint_Taxels();
@@ -206,7 +216,15 @@ namespace TactileDataglove
                     if ((iChannel < 0) && (iChannel >= 64))
                         throw new System.ArgumentException("Unvalid Taxel number received");
 
-                    iaTaxelValues[iChannel] = (uint)Math.Max(0, 4095 - (256 * (0x0F & baWorking[iStartPointer + 2]) + baWorking[iStartPointer + 3]));
+                    int iReceivedValue = Math.Max(0, 4095 - (256 * (0x0F & baWorking[iStartPointer + 2]) + baWorking[iStartPointer + 3]));
+
+                    if (!baInitialTaxelValueAvailable[iChannel])
+                    {
+                        baInitialTaxelValueAvailable[iChannel] = true;
+                        iaInitialTaxelValues[iChannel] = iReceivedValue;
+                    }
+
+                    iaTaxelValues[iChannel] = Math.Max(0, iReceivedValue - iaInitialTaxelValues[iChannel]);
 
                     // Move the pointer further
                     iStartPointer += 5;
@@ -372,7 +390,16 @@ namespace TactileDataglove
             if (iaTaxelValues[iTaxelID] != iaOldTaxelValues[iTaxelID])
                 if (((iaOldTaxelValues[iTaxelID] > iTHRESHOLD) || (iaTaxelValues[iTaxelID] > iTHRESHOLD)))
                 {
-                    pPatch.Fill = Gradient(iaTaxelValues[iTaxelID]);
+                    if (baInitialTaxelValueAvailable[iTaxelID])
+                    {
+                        // Stretch range according to initial value
+                        pPatch.Fill = Gradient((int)((float)(4095-iaInitialTaxelValues[iTaxelID])/4095.0 * (float)iaTaxelValues[iTaxelID]));
+                    }
+                    else
+                    {
+                        // Unadjusted range
+                        pPatch.Fill = Gradient(iaTaxelValues[iTaxelID]);
+                    }
                 }
                 else
                 {
@@ -383,21 +410,21 @@ namespace TactileDataglove
         }
 
         // Color code the input range of 0 to 4095 into beautiful color gradient
-        private SolidColorBrush Gradient(uint uiTexelValue)
+        private SolidColorBrush Gradient(int iTexelValue)
         {
             // Limit the input between 0 and 4095
-            uiTexelValue = Math.Max(0, uiTexelValue);
-            uiTexelValue = Math.Min(4095, uiTexelValue);
+            iTexelValue = Math.Max(0, iTexelValue);
+            iTexelValue = Math.Min(4095, iTexelValue);
 
             SolidColorBrush mySolidColorBrush = new SolidColorBrush();
 
-            if (uiTexelValue < 1366) // Dark green to light green (0,50,0 -> 0,255,0)
-                mySolidColorBrush.Color = Color.FromArgb(255, 0, Math.Min((byte)255, (byte)(50 + ((double)uiTexelValue / 6.65))), 0);
+            if (iTexelValue < 1366) // Dark green to light green (0,50,0 -> 0,255,0)
+                mySolidColorBrush.Color = Color.FromArgb(255, 0, Math.Min((byte)255, (byte)(50 + ((double)iTexelValue / 6.65))), 0);
             else
-                if (uiTexelValue < 2731) // Light green to yellow (0,255,0 -> 255,255,0)
-                    mySolidColorBrush.Color = Color.FromArgb(255, Math.Min((byte)255, (byte)((double)(uiTexelValue - 1365) / 5.35)), 255, 0);
+                if (iTexelValue < 2731) // Light green to yellow (0,255,0 -> 255,255,0)
+                    mySolidColorBrush.Color = Color.FromArgb(255, Math.Min((byte)255, (byte)((double)(iTexelValue - 1365) / 5.35)), 255, 0);
                 else // Yellow to red (255,255,0 -> 255,0,0)
-                    mySolidColorBrush.Color = Color.FromArgb(255, 255, Math.Min((byte)255, (byte)(255 - ((double)(uiTexelValue - 1365) / 5.35))), 0);
+                    mySolidColorBrush.Color = Color.FromArgb(255, 255, Math.Min((byte)255, (byte)(255 - ((double)(iTexelValue - 1365) / 5.35))), 0);
 
             return (mySolidColorBrush);
         }
@@ -406,9 +433,9 @@ namespace TactileDataglove
         // It recalculates the scaling factor for the glove inside the grid.
         private void GloveGrid_SizeChanged(object sender, SizeChangedEventArgs e)
         {
-            // Calculate the scale relative to default window size (700H x 680W)
+            // Calculate the scale relative to default window size (700H x 780W)
             double yScale = ActualHeight / 700f;
-            double xScale = ActualWidth / 680f;
+            double xScale = ActualWidth / 780f;
             // Use proportional scaling, as this does not distort the image.
             // Thus use the smalles value of both axis to avoid image clipping.
             double value = Math.Min(xScale, yScale);
@@ -467,14 +494,23 @@ namespace TactileDataglove
                     LeftCanvasGlove.Visibility = Visibility.Hidden;
                 else
                     LeftCanvasGlove.Visibility = Visibility.Visible;
+            }
 
-                if (RightCanvasGlove != null)
-                {
-                    if (cbLeftOrRight.SelectedIndex == 0)
-                        RightCanvasGlove.Visibility = Visibility.Visible;
-                    else
-                        RightCanvasGlove.Visibility = Visibility.Hidden;
-                }
+            if (RightCanvasGlove != null)
+            {
+                if (cbLeftOrRight.SelectedIndex == 0)
+                    RightCanvasGlove.Visibility = Visibility.Visible;
+                else
+                    RightCanvasGlove.Visibility = Visibility.Hidden;
+            }
+        }
+
+        private void btBias_Click(object sender, RoutedEventArgs e)
+        {
+            for (int i = 0; i < MAXCHANNELS; i++)
+            {
+                baInitialTaxelValueAvailable[i] = false;
+                iaInitialTaxelValues[i] = 0;
             }
         }
     }
