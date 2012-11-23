@@ -62,7 +62,7 @@ namespace TactileDataglove
             {
                 cbSerialPort.Text = cbSerialPort.Items[0].ToString();
                 for (int i = 0; i < cbSerialPort.Items.Count; i++)
-                    if (cbSerialPort.Items[i].ToString() == "COM4") // If available, default to COM4 initially 
+                    if (cbSerialPort.Items[i].ToString() == "COM5") // If available, default to COM4 initially 
                         cbSerialPort.SelectedIndex = i;
             }
         }
@@ -240,6 +240,65 @@ namespace TactileDataglove
             // ID-Patch Mapping
             if (cbLeftOrRight.SelectedIndex == 0)
             {
+                // Right
+                Paint_Patch(0, RightPalmLF);
+                Paint_Patch(2, RightPalmMIDL);
+                Paint_Patch(10, RightPalmTHL);
+                Paint_Patch(6, RightPalmTHU);
+                Paint_Patch(11, RightPalmTHD);
+                Paint_Patch(5, RightPalmTHR);
+                Paint_Patch(8, RightPalmMIDBR);
+                Paint_Patch(12, RightPalmMIDBL);
+                Paint_Patch(13, RightPalmMIDU);
+                Paint_Patch(14, RightPalmMIDR);
+                Paint_Patch(16, RightRFPP);
+                Paint_Patch(17, RightRFMPLF);
+                Paint_Patch(18, RightRFDPMID);
+                Paint_Patch(19, RightRFDPLF);
+                Paint_Patch(20, RightRFDPTIP);
+                Paint_Patch(21, RightMFDPFF);
+                Paint_Patch(22, RightMFDPRF);
+                Paint_Patch(23, RightRFDPMF);
+                Paint_Patch(24, RightMFPP);
+                Paint_Patch(25, RightMFMPFF);
+                Paint_Patch(26, RightMFMPRF);
+                Paint_Patch(27, RightMFDPTIP);
+                Paint_Patch(28, RightMFMPMID);
+                Paint_Patch(29, RightMFDPMID);
+                Paint_Patch(30, RightRFMPMF);
+                Paint_Patch(31, RightRFMPMID);
+                Paint_Patch(32, RightTHDPTIP);
+                Paint_Patch(33, RightTHDPMID);
+                Paint_Patch(34, RightTHMPFF);
+                Paint_Patch(35, RightTHMPTH);
+                Paint_Patch(36, RightTHDPTH);
+                Paint_Patch(37, RightLFMPMID);
+                Paint_Patch(38, RightLFDPTIP);
+                Paint_Patch(39, RightLFDPMID);
+                Paint_Patch(40, RightLFDPLF);
+                Paint_Patch(41, RightLFMPRF);
+                Paint_Patch(42, RightLFMPLF);
+                Paint_Patch(43, RightLFPPLF);
+                Paint_Patch(44, RightLFPPRF);
+                Paint_Patch(45, RightLFDPRF);
+                Paint_Patch(47, RightTHDPFF);
+                Paint_Patch(48, RightPalmUpMF);
+                Paint_Patch(49, RightPalmUpRF);
+                Paint_Patch(51, RightPalmUpFF);
+                Paint_Patch(52, RightPalmUpLF);
+                Paint_Patch(53, RightFFMPTH);
+                Paint_Patch(54, RightFFDPTIP);
+                Paint_Patch(56, RightFFMPMID);
+                Paint_Patch(57, RightFFMPMF);
+                Paint_Patch(58, RightFFDPMF);
+                Paint_Patch(59, RightFFDPTH);
+                Paint_Patch(60, RightFFPPMF);
+                Paint_Patch(61, RightFFPPTH);
+                Paint_Patch(62, RightFFDPMID);
+            }
+            else
+            {
+                // Left
                 Paint_Patch(0, LeftTHDPTIP);
                 Paint_Patch(1, LeftTHDPTH);
                 Paint_Patch(2, LeftTHDPMID);
@@ -295,63 +354,6 @@ namespace TactileDataglove
                 Paint_Patch(52, LeftPalmMIDBR);
                 Paint_Patch(53, LeftPalmLF);
             }
-            else
-            {
-                Paint_Patch(0, RightTHDPTIP);
-                Paint_Patch(1, RightTHDPTH);
-                Paint_Patch(2, RightTHDPMID);
-                Paint_Patch(3, RightTHDPFF);
-                Paint_Patch(4, RightTHMPTH);
-                Paint_Patch(5, RightTHMPFF);
-                Paint_Patch(6, RightFFDPTIP);
-                Paint_Patch(7, RightFFDPTH);
-                Paint_Patch(8, RightFFDPMID);
-                Paint_Patch(9, RightFFDPMF);
-                Paint_Patch(10, RightFFMPTH);
-                Paint_Patch(11, RightFFMPMID);
-                Paint_Patch(12, RightFFMPMF);
-                Paint_Patch(13, RightFFPPTH);
-                Paint_Patch(14, RightFFPPMF);
-                Paint_Patch(15, RightMFDPTIP);
-                Paint_Patch(16, RightMFDPFF);
-                Paint_Patch(17, RightMFDPMID);
-                Paint_Patch(18, RightMFDPRF);
-                Paint_Patch(19, RightMFMPFF);
-                Paint_Patch(20, RightMFMPMID);
-                Paint_Patch(21, RightMFMPRF);
-                Paint_Patch(22, RightMFPP);
-                Paint_Patch(23, RightRFDPTIP);
-                Paint_Patch(24, RightRFDPMF);
-                Paint_Patch(25, RightRFDPMID);
-                Paint_Patch(26, RightRFDPLF);
-                Paint_Patch(27, RightRFMPMF);
-                Paint_Patch(28, RightRFMPMID);
-                Paint_Patch(29, RightRFMPLF);
-                Paint_Patch(30, RightRFPP);
-                Paint_Patch(31, RightLFDPTIP);
-                Paint_Patch(32, RightLFDPRF);
-                Paint_Patch(33, RightLFDPMID);
-                Paint_Patch(34, RightLFDPLF);
-                Paint_Patch(35, RightLFMPRF);
-                Paint_Patch(36, RightLFMPMID);
-                Paint_Patch(37, RightLFMPLF);
-                Paint_Patch(38, RightLFPPRF);
-                Paint_Patch(39, RightLFPPLF);
-                Paint_Patch(40, RightPalmUpFF);
-                Paint_Patch(41, RightPalmUpMF);
-                Paint_Patch(42, RightPalmUpRF);
-                Paint_Patch(43, RightPalmUpLF);
-                Paint_Patch(44, RightPalmTHL);
-                Paint_Patch(45, RightPalmTHU);
-                Paint_Patch(46, RightPalmTHD);
-                Paint_Patch(47, RightPalmTHR);
-                Paint_Patch(48, RightPalmMIDU);
-                Paint_Patch(49, RightPalmMIDL);
-                Paint_Patch(50, RightPalmMIDR);
-                Paint_Patch(51, RightPalmMIDBL);
-                Paint_Patch(52, RightPalmMIDBR);
-                Paint_Patch(53, RightPalmLF);
-            }
 
             // Update the iaOldTaxelValues variable for comparison on next round
             iaTaxelValues.CopyTo(iaOldTaxelValues, 0);
@@ -360,7 +362,7 @@ namespace TactileDataglove
         // Update a single taxel patch, but only if it meets the criteria
         private void Paint_Patch(int iTaxelID, System.Windows.Shapes.Path pPatch)
         {
-            const int iTHRESHOLD = 10; // Detection threshold in scale 0-4095 (0-no contact, 4095-full pressure)
+            const int iTHRESHOLD = 100; // Detection threshold in scale 0-4095 (0-no contact, 4095-full pressure)
 
             // Update patch only if
             // * old value and new value differ
@@ -451,21 +453,37 @@ namespace TactileDataglove
 
         private void cbLeftOrRight_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (RightCanvasGlove != null)
-            {
-                if (cbLeftOrRight.SelectedIndex == 0)
-                    RightCanvasGlove.Visibility = Visibility.Visible;
-                else
-                    RightCanvasGlove.Visibility = Visibility.Hidden;
-            }
-
             if (LeftCanvasGlove != null)
             {
-                if (cbLeftOrRight.SelectedIndex == 1)
-                    LeftCanvasGlove.Visibility = Visibility.Visible;
-                else
+                if (cbLeftOrRight.SelectedIndex == 0)
                     LeftCanvasGlove.Visibility = Visibility.Hidden;
+                else
+                    LeftCanvasGlove.Visibility = Visibility.Visible;
+
+                if (RightCanvasGlove != null)
+                {
+                    if (cbLeftOrRight.SelectedIndex == 0)
+                        RightCanvasGlove.Visibility = Visibility.Visible;
+                    else
+                        RightCanvasGlove.Visibility = Visibility.Hidden;
+                }
             }
+        }
+
+        private void btDo_Click(object sender, RoutedEventArgs e)
+        {
+            // find max value
+            uint uiMaxValue = 0;
+            int iIndex = -1;
+            for (int i = 0; i < 64; i++)
+            {
+                if (iaTaxelValues[i] > uiMaxValue)
+                {
+                    uiMaxValue = iaTaxelValues[i];
+                    iIndex = i;
+                }
+            }
+            MessageBox.Show("Highest value: " + uiMaxValue.ToString() + " Index: " + iIndex.ToString());
         }
     }
 }
