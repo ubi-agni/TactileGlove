@@ -369,9 +369,17 @@ namespace TactileDataglove
             // AND
             // * (old OR new values are over the detection threshold (no update for very low noise))
 
-            if ((iaTaxelValues[iTaxelID] != iaOldTaxelValues[iTaxelID]) &&
-                ((iaOldTaxelValues[iTaxelID] > iTHRESHOLD) || (iaTaxelValues[iTaxelID] > iTHRESHOLD)))
-                pPatch.Fill = Gradient(iaTaxelValues[iTaxelID]);
+            if (iaTaxelValues[iTaxelID] != iaOldTaxelValues[iTaxelID])
+                if (((iaOldTaxelValues[iTaxelID] > iTHRESHOLD) || (iaTaxelValues[iTaxelID] > iTHRESHOLD)))
+                {
+                    pPatch.Fill = Gradient(iaTaxelValues[iTaxelID]);
+                }
+                else
+                {
+                    SolidColorBrush mySolidColorBrush = new SolidColorBrush();
+                    mySolidColorBrush.Color = Color.FromArgb(255, 0, 50, 0);
+                    pPatch.Fill = mySolidColorBrush;
+                }
         }
 
         // Color code the input range of 0 to 4095 into beautiful color gradient
