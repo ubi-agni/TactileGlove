@@ -67,7 +67,7 @@ namespace TactileDataglove
             {
                 cbSerialPort.Text = cbSerialPort.Items[0].ToString();
                 for (int i = 0; i < cbSerialPort.Items.Count; i++)
-                    if (cbSerialPort.Items[i].ToString() == "COM5") // If available, default to COM4 initially 
+                    if (cbSerialPort.Items[i].ToString() == "COM11") // If available, default to COM11 initially 
                         cbSerialPort.SelectedIndex = i;
             }
         }
@@ -259,60 +259,60 @@ namespace TactileDataglove
             if (cbLeftOrRight.SelectedIndex == 0)
             {
                 // Right
-                Paint_Patch(0, RightPalmLF);
-                Paint_Patch(2, RightPalmMIDL);
-                Paint_Patch(10, RightPalmTHL);
-                Paint_Patch(6, RightPalmTHU);
-                Paint_Patch(11, RightPalmTHD);
-                Paint_Patch(5, RightPalmTHR);
-                Paint_Patch(8, RightPalmMIDBR);
-                Paint_Patch(12, RightPalmMIDBL);
-                Paint_Patch(13, RightPalmMIDU);
-                Paint_Patch(14, RightPalmMIDR);
-                Paint_Patch(16, RightRFPP);
-                Paint_Patch(17, RightRFMPLF);
-                Paint_Patch(18, RightRFDPMID);
-                Paint_Patch(19, RightRFDPLF);
-                Paint_Patch(20, RightRFDPTIP);
-                Paint_Patch(21, RightMFDPFF);
-                Paint_Patch(22, RightMFDPRF);
-                Paint_Patch(23, RightRFDPMF);
-                Paint_Patch(24, RightMFPP);
-                Paint_Patch(25, RightMFMPFF);
-                Paint_Patch(26, RightMFMPRF);
-                Paint_Patch(27, RightMFDPTIP);
-                Paint_Patch(28, RightMFMPMID);
-                Paint_Patch(29, RightMFDPMID);
-                Paint_Patch(30, RightRFMPMF);
-                Paint_Patch(31, RightRFMPMID);
-                Paint_Patch(32, RightTHDPTIP);
-                Paint_Patch(33, RightTHDPMID);
-                Paint_Patch(34, RightTHMPFF);
-                Paint_Patch(35, RightTHMPTH);
-                Paint_Patch(36, RightTHDPTH);
-                Paint_Patch(37, RightLFMPMID);
-                Paint_Patch(38, RightLFDPTIP);
-                Paint_Patch(39, RightLFDPMID);
-                Paint_Patch(40, RightLFDPLF);
-                Paint_Patch(41, RightLFMPRF);
-                Paint_Patch(42, RightLFMPLF);
-                Paint_Patch(43, RightLFPPLF);
-                Paint_Patch(44, RightLFPPRF);
-                Paint_Patch(45, RightLFDPRF);
-                Paint_Patch(47, RightTHDPFF);
-                Paint_Patch(48, RightPalmUpMF);
-                Paint_Patch(49, RightPalmUpRF);
-                Paint_Patch(51, RightPalmUpFF);
-                Paint_Patch(52, RightPalmUpLF);
-                Paint_Patch(53, RightFFMPTH);
-                Paint_Patch(54, RightFFDPTIP);
-                Paint_Patch(56, RightFFMPMID);
-                Paint_Patch(57, RightFFMPMF);
-                Paint_Patch(58, RightFFDPMF);
-                Paint_Patch(59, RightFFDPTH);
-                Paint_Patch(60, RightFFPPMF);
-                Paint_Patch(61, RightFFPPTH);
-                Paint_Patch(62, RightFFDPMID);
+                Paint_Patch(5, RightLFDPLF);
+                Paint_Patch(6, RightLFDPTIP);
+                Paint_Patch(7, RightLFDPMID);
+                Paint_Patch(8, RightLFMPRF);
+                Paint_Patch(9, RightLFDPRF);
+                Paint_Patch(10, RightLFMPLF);
+                Paint_Patch(11, RightLFMPMID);
+                Paint_Patch(12, RightLFPPRF);
+                Paint_Patch(13, RightLFPPLF);
+                Paint_Patch(16, RightFFDPMF);
+                Paint_Patch(17, RightFFDPTIP);
+                Paint_Patch(18, RightFFDPTH);
+                Paint_Patch(19, RightFFMPTH);
+                Paint_Patch(20, RightFFMPMF);
+                Paint_Patch(21, RightTHDPMID);
+                Paint_Patch(22, RightTHDPTIP);
+                Paint_Patch(23, RightTHDPFF);
+                Paint_Patch(24, RightFFPPMF);
+                Paint_Patch(25, RightTHDPTH);
+                Paint_Patch(26, RightTHMPTH);
+                Paint_Patch(27, RightTHMPFF);
+                Paint_Patch(28, RightFFMPMID);
+                Paint_Patch(29, RightFFDPMID);
+                Paint_Patch(30, RightFFPPTH);
+                Paint_Patch(31, RightRFMPMF);
+                Paint_Patch(32, RightRFDPMID);
+                Paint_Patch(33, RightRFDPLF);
+                Paint_Patch(34, RightRFDPTIP);
+                Paint_Patch(35, RightRFMPMID);
+                Paint_Patch(36, RightRFMPLF);
+                Paint_Patch(37, RightMFMPFF);
+                Paint_Patch(38, RightMFMPRF);
+                Paint_Patch(39, RightMFDPTIP);
+                Paint_Patch(40, RightMFDPRF);
+                Paint_Patch(41, RightMFPP);
+                Paint_Patch(42, RightMFDPFF);
+                Paint_Patch(43, RightMFMPMID);
+                Paint_Patch(44, RightMFDPMID);
+                Paint_Patch(46, RightRFDPMF);
+                Paint_Patch(47, RightRFPP);
+                Paint_Patch(48, RightPalmMIDL);
+                Paint_Patch(49, RightPalmMIDR);
+                Paint_Patch(50, RightPalmMIDBR);
+                Paint_Patch(51, RightPalmLF);
+                Paint_Patch(53, RightPalmUpFF);
+                Paint_Patch(54, RightPalmUpLF);
+                Paint_Patch(55, RightPalmUpMF);
+                Paint_Patch(56, RightPalmTHL);
+                Paint_Patch(57, RightPalmTHD);
+                Paint_Patch(58, RightPalmTHU);
+                Paint_Patch(59, RightPalmUpRF);
+                Paint_Patch(60, RightPalmTHR);
+                Paint_Patch(61, RightPalmMIDU);
+                Paint_Patch(62, RightPalmMIDBL);
             }
             else
             {
@@ -393,7 +393,7 @@ namespace TactileDataglove
                     if (baInitialTaxelValueAvailable[iTaxelID])
                     {
                         // Stretch range according to initial value
-                        int iRestOfTheRange = 4095-iaInitialTaxelValues[iTaxelID];
+                        int iRestOfTheRange = 4095 - iaInitialTaxelValues[iTaxelID];
                         double dAmplifyCoefficient = 4095.0 / (double)(iRestOfTheRange);
                         pPatch.Fill = Gradient((int)(dAmplifyCoefficient * (double)iaTaxelValues[iTaxelID]));
                     }
