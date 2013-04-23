@@ -1,4 +1,4 @@
-﻿// *** Graphical user interface for left tactile dataglove v1 ***
+﻿// *** Graphical user interface for tactile dataglove ***
 //
 // Modified:
 // 2012-11-13 Risto Kõiva, Changed GUI layout to resize the contents, added left/right glove choice
@@ -38,7 +38,7 @@ namespace TactileDataglove
         private SerialPort spUSB = new SerialPort(); // Communication over (virtual) serial port 
         private Queue<byte> qbReceiveQueue = new Queue<byte>(CQUEUESIZE); // Receive queue (FIFO)
         static private readonly object locker = new object(); // Queue locker object to regulate access from multiple threads
-        private uint uiLastRemaining; // Saves the count of remaning bytes from last packet parser run (value range is 0 and 4)
+        private uint uiLastRemaining; // Saves the count of remaning bytes from last packet parser run (value range is 0 to 4)
         private byte[] baLastRemaining = new byte[4]; // Remaining byte from last packet parser run
 
         private bool[] baInitialTaxelValueAvailable = new bool[MAXCHANNELS];
