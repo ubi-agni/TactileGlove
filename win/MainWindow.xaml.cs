@@ -1,6 +1,7 @@
 ﻿// *** Graphical user interface for tactile dataglove ***
 //
 // Modified:
+// 2013-04-30 Risto Kõiva, Added data dump
 // 2012-11-13 Risto Kõiva, Changed GUI layout to resize the contents, added left/right glove choice
 // 2012-11-12 Risto Kõiva, Changed from List<> to Queue<>, added comments
 // 2012-11-09 Risto Kõiva, Initial version
@@ -19,6 +20,7 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 using System.Windows.Threading;
+using System.IO;
 using System.IO.Ports;
 
 namespace TactileDataglove
@@ -33,6 +35,9 @@ namespace TactileDataglove
         private const string sDISCONNECT = "_Disconnect"; // Button content for connected state
         private const int CQUEUESIZE = 1024 * 1024; // Receive buffer size (1 MByte)
         private const int MAXCHANNELS = 64;
+
+        private TextWriter tw;
+        private string[] saNameMapping = new string[64];
 
         // Variable declarations
         private SerialPort spUSB = new SerialPort(); // Communication over (virtual) serial port 
@@ -70,6 +75,61 @@ namespace TactileDataglove
                     if (cbSerialPort.Items[i].ToString() == "COM11") // If available, default to COM11 initially 
                         cbSerialPort.SelectedIndex = i;
             }
+
+            saNameMapping[5] = "RightLFDPLF";
+            saNameMapping[6] = "RightLFDPTIP";
+            saNameMapping[7] = "RightLFDPMID";
+            saNameMapping[8] = "RightLFMPRF";
+            saNameMapping[9] = "RightLFDPRF";
+            saNameMapping[10] = "RightLFMPLF";
+            saNameMapping[11] = "RightLFMPMID";
+            saNameMapping[12] = "RightLFPPRF";
+            saNameMapping[13] = "RightLFPPLF";
+            saNameMapping[16] = "RightFFDPMF";
+            saNameMapping[17] = "RightFFDPTIP";
+            saNameMapping[18] = "RightFFDPTH";
+            saNameMapping[19] = "RightFFMPTH";
+            saNameMapping[20] = "RightFFMPMF";
+            saNameMapping[21] = "RightTHDPMID";
+            saNameMapping[22] = "RightTHDPTIP";
+            saNameMapping[23] = "RightTHDPFF";
+            saNameMapping[24] = "RightFFPPMF";
+            saNameMapping[25] = "RightTHDPTH";
+            saNameMapping[26] = "RightTHMPTH";
+            saNameMapping[27] = "RightTHMPFF";
+            saNameMapping[28] = "RightFFMPMID";
+            saNameMapping[29] = "RightFFDPMID";
+            saNameMapping[30] = "RightFFPPTH";
+            saNameMapping[31] = "RightRFMPMF";
+            saNameMapping[32] = "RightRFDPMID";
+            saNameMapping[33] = "RightRFDPLF";
+            saNameMapping[34] = "RightRFDPTIP";
+            saNameMapping[35] = "RightRFMPMID";
+            saNameMapping[36] = "RightRFMPLF";
+            saNameMapping[37] = "RightMFMPFF";
+            saNameMapping[38] = "RightMFMPRF";
+            saNameMapping[39] = "RightMFDPTIP";
+            saNameMapping[40] = "RightMFDPRF";
+            saNameMapping[41] = "RightMFPP";
+            saNameMapping[42] = "RightMFDPFF";
+            saNameMapping[43] = "RightMFMPMID";
+            saNameMapping[44] = "RightMFDPMID";
+            saNameMapping[46] = "RightRFDPMF";
+            saNameMapping[47] = "RightRFPP";
+            saNameMapping[48] = "RightPalmMIDL";
+            saNameMapping[49] = "RightPalmMIDR";
+            saNameMapping[50] = "RightPalmMIDBR";
+            saNameMapping[51] = "RightPalmLF";
+            saNameMapping[53] = "RightPalmUpFF";
+            saNameMapping[54] = "RightPalmUpLF";
+            saNameMapping[55] = "RightPalmUpMF";
+            saNameMapping[56] = "RightPalmTHL";
+            saNameMapping[57] = "RightPalmTHD";
+            saNameMapping[58] = "RightPalmTHU";
+            saNameMapping[59] = "RightPalmUpRF";
+            saNameMapping[60] = "RightPalmTHR";
+            saNameMapping[61] = "RightPalmMIDU";
+            saNameMapping[62] = "RightPalmMIDBL";
         }
 
         // btConnectDisconnect_Click gets calles each time a button on MainWindow is pressed
@@ -79,6 +139,9 @@ namespace TactileDataglove
             if ((string)btConnectDisconnect.Content == sCONNECT)
             {
                 // Connect was pressed
+
+                tw = new StreamWriter(String.Format("{0:yyyy.MM.dd_HH.mm.ss}.txt", DateTime.Now));
+                tw.WriteLine("New Log from: " + DateTime.Now);
 
                 // Initialize variables
                 qbReceiveQueue.Clear(); // Clear the receive queue
@@ -130,6 +193,13 @@ namespace TactileDataglove
                 // Disconnect was pressed
 
                 dtGUIUpdateTimer.Stop(); // Stop the GUI updating timer
+
+                if (tw != null)
+                {
+                    tw.Close();
+                    tw = null;
+
+                }
 
                 try
                 {
@@ -225,6 +295,7 @@ namespace TactileDataglove
                     }
 
                     iaTaxelValues[iChannel] = Math.Max(0, iReceivedValue - iaInitialTaxelValues[iChannel]);
+                    tw.WriteLine(saNameMapping[iChannel] + ";" + iaTaxelValues[iChannel]);
 
                     // Move the pointer further
                     iStartPointer += 5;
