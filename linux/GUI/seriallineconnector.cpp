@@ -58,7 +58,7 @@ SerialLineConnector::disconnect_device()
 bool
 SerialLineConnector::check_packet()
 {
-    if ((buf[0] < 0x3c) || (buf[0] > 0x73))
+    if ((buf[0] < 0x3c) || (buf[0] > 0x7B))
         return false;
     if (buf[1] != 0x01)
         return false;
@@ -71,7 +71,7 @@ void
 SerialLineConnector::recover()
 {
   unsigned int start=0;
-  printf("recover from %2X %2X %2X %2X %2X\n",buf[0],buf[1],buf[2],buf[3],buf[4]);
+  fprintf(stderr,"recover from %2X %2X %2X %2X %2X\n",buf[0],buf[1],buf[2],buf[3],buf[4]);
   for (; start < PACKET_SIZE_BYTES; ++start) {
     if (buf[(start+1) % PACKET_SIZE_BYTES] == 0x01 && 
 	buf[(start+4) % PACKET_SIZE_BYTES] == 0x00 && 
@@ -87,11 +87,11 @@ SerialLineConnector::recover()
   }
 }
 
- int
+unsigned int
 SerialLineConnector::next_index( int i)
 {
-    if (i < NO_GLOVE_ELEMENTS)
-        return i+1;
+    if (++i < NO_GLOVE_ELEMENTS)
+        return i;
     else
         return (0);
 }
@@ -102,7 +102,7 @@ SerialLineConnector::get_full_frame(unsigned short *full_frame)
     if (full_frame)
     {
         full_frame_sensor_data_mutex.lock();
-        memcpy((void*)full_frame,(void*)full_frame_sensor_data,(size_t)54*sizeof (unsigned short));
+        memcpy((void*)full_frame,(void*)full_frame_sensor_data,(size_t)NO_GLOVE_ELEMENTS*sizeof (unsigned short));
         full_frame_sensor_data_mutex.unlock();
         return true;
     }
@@ -113,7 +113,7 @@ void
 SerialLineConnector::get_sensor_data(unsigned short *sensor_frame)
 {
     sensor_data_mutex.lock();
-    memcpy((void*)sensor_frame,(void*) sensor_data,(size_t) 54*sizeof (unsigned short));
+    memcpy((void*)sensor_frame,(void*) sensor_data,(size_t) NO_GLOVE_ELEMENTS*sizeof (unsigned short));
     sensor_data_mutex.unlock();
 }
 
@@ -128,8 +128,9 @@ SerialLineConnector::update_field()
     unsigned int index;
 
     index = buf[0] - 0x3c;
-fprintf (stderr,"index = 0x%x %u %u\n",index, fields_in_a_row,NO_GLOVE_ELEMENTS);
-    
+    //fprintf (stderr,"index = 0x%x %u %u\n",index, fields_in_a_row,NO_GLOVE_ELEMENTS);
+    if (index + 1 > NO_GLOVE_ELEMENTS) // We skip elements 74-7B
+        return;
     sensor_data_mutex.lock();
     sensor_data[index] = 0x0fff - (((0x0f&buf[2])*0x100) + (buf[3]));
     sensor_data_mutex.unlock();
@@ -142,15 +143,15 @@ fprintf (stderr,"index = 0x%x %u %u\n",index, fields_in_a_row,NO_GLOVE_ELEMENTS)
     }
     last_packet_id = index;
 
-    if (fields_in_a_row > 54)
+    if (fields_in_a_row+1 >= NO_GLOVE_ELEMENTS)
     {
         full_frame = true;
     }
     else
         full_frame = false;
-    if (full_frame && (last_packet_id == (NO_GLOVE_ELEMENTS)))
+    if (full_frame && (last_packet_id == (NO_GLOVE_ELEMENTS-1)))
     {
-fprintf (stderr,"Fullframe \n");
+        fprintf (stderr,"Fullframe \n");
         index_sliding_average++;
         if (index_sliding_average >= SLIDING_AVG)
             index_sliding_average = 0;
@@ -224,11 +225,11 @@ SerialLineConnector::run()
             sleep (1);
             continue;
         }
-        fprintf (stderr,".");
+        //fprintf (stderr,".");
         FD_ZERO (&fdset);
         FD_SET (fd,&fdset);
         timeout.tv_sec = 0;
-        timeout.tv_usec = 100;
+        timeout.tv_usec = 1000;
         if (-1 == (res = select (fd+1,&fdset,NULL,NULL,&timeout)))
         {
             perror ("select");
@@ -237,7 +238,7 @@ SerialLineConnector::run()
         if (res > 0)
         {
             res = read(fd,buf,5);
-	    printf("%d: %X %X %X %X %X\n",res, buf[0],buf[1],buf[2],buf[3],buf[4]);
+            //printf("%d: %X %X %X %X %X\n",res, buf[0],buf[1],buf[2],buf[3],buf[4]);
 
             if (5 == res)
             {
@@ -245,10 +246,11 @@ SerialLineConnector::run()
                 {
                     update_field();
                 } else {
-		    recover();
-		}
+                    recover();
+                }
             }
-        } else {fprintf (stderr, "!");}
+        }
+        else {fprintf (stderr, "!");}
     }
     if (connected)
         disconnect_device();

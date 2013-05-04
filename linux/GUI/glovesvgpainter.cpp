@@ -53,6 +53,7 @@ GloveSvgPainter::new_glove_data_available(unsigned short* glove_update)
         perror ("GloveSvgPainter::new_glove_data_available: pthread_mutex_unlock");
         exit (EXIT_FAILURE);
     }
+    std::cerr << "Calling repaint" << std::endl;
     repaint();
 }
 
@@ -91,69 +92,105 @@ GloveSvgPainter::GloveSvgPainter(QWidget *parent) :
         perror ("main(): malloc");
         exit (EXIT_FAILURE);
     }
-    svg_cairo_create(&scr);
-    svg_cairo_parse (scr, "Sensorlayout04.svg");
+    qDomDocPtr = new QDomDocument ("Sensorlayout");
+    QFile file("Sensorlayout04.svg");
+    if (!file.open(QIODevice::ReadOnly))
+        throw std::exception();
+    if (!qDomDocPtr->setContent(&file)) {
+       file.close();
+       throw std::exception();
+    }
+    file.close();
     init_glovedata ();
+    qSvgRendererPtr = new QSvgRenderer (this);
+    //qSvgRendererPtr->load(qDomDocPtr->toByteArray());
+    qSvgRendererPtr->load(QString ("Sensorlayout04.svg"));
 }
 
 void GloveSvgPainter::paintEvent(QPaintEvent *event)
 {
-    cairo_surface_t* cairo_surface;
-    cairo_t* cr;
     QPainter painter(this);
     painter.setRenderHint(QPainter::HighQualityAntialiasing,true);
+    std::cerr << "Updating SVG" << std::endl;
     update_svg();
-    cairo_surface = cairo_qt_surface_create (&painter);
-    cr = cairo_create(cairo_surface);
-    svg_cairo_render (scr, cr);
-    cairo_destroy (cr);
-    painter.restore();
+    qSvgRendererPtr->load(qDomDocPtr->toByteArray());
+    qSvgRendererPtr->render(&painter);
 }
 
 void
 GloveSvgPainter::update_svg()
 {
-    unsigned int height, width;
     int i;
-    svg_element_t* se;
-    svg_cairo_get_size (scr, &width, &height);
 
     if (0 != pthread_mutex_lock(gd->data_mutex))
     {
         perror ("GloveSvgPainter::update_svg: pthread_mutex_lock");
         exit (EXIT_FAILURE);
     }
-   // fprintf (stderr," DEBUG: Frame data: ");
-    for (i=0; i < NO_GLOVE_ELEMENTS; i++)
+    QDomElement docElem = qDomDocPtr->documentElement();
+
+    QDomNode groot = docElem.firstChildElement(QString ("g"));
+    if (groot.isNull())
     {
-      unsigned int temp = gd->data_array[i];
-      _svg_fetch_element_by_id (scr->svg,lookup[i],&se);
-	//temp = 4*temp; //anpassen der werte mit einer Funktion
-	if (temp > 4095) temp = 4095;
-	if (temp <= 1365)
-	  {
-	    se->style.fill_paint.p.color.rgb = 0x100*(((1000*temp / 5353) > 255)?255:(1000*temp / 5353));
-	  }
-	else
-	  {
-	    if (temp <= 2730)
-	      {
-		se->style.fill_paint.p.color.rgb = (1000*(temp-1365) / 5353)*0x10000 + 0xff00;
-	      }
-	    else
-	      {
-		se->style.fill_paint.p.color.rgb = 0x100*(0xff - (1000*(temp-2730) / 5353)) + 0xff0000;
-	      }
-	  }
-	//fprintf (stderr,"%d ",temp);
+        std::cerr << "Unexpectedly encountered no g node" << std::endl;
+        return;
     }
-    //fprintf (stderr,"\n");
+    QDomNode glevel1 = groot.firstChildElement(QString("g"));
+    if (glevel1.isNull())
+    {
+        std::cerr << "Could not find Node g level 1" << std::endl;
+        return;
+    }
+    QDomNode pathlevel = glevel1.firstChildElement(QString("path"));
+    if (pathlevel.isNull())
+    {
+        std::cerr << "Could not find path level " << std::endl;
+        return;
+    }
+    for (; !pathlevel.isNull(); pathlevel = pathlevel.nextSiblingElement("path")) {
+         QDomNamedNodeMap qmap = pathlevel.attributes();
+         QDomNode nid = qmap.namedItem(QString("id"));
+         if (nid.isNull())
+             continue;
+         //std::cerr << "-";
+         //std::cout << nid.nodeValue().toStdString().c_str() << std::endl;
+         QDomNode nstyle = qmap.namedItem(QString("style"));
+         for (i = 0; i < NO_GLOVE_ELEMENTS; i++)
+         {
+             //std::cerr << "Trying to match " << lookup[i] << "with " << nid.nodeValue().toStdString().c_str() << std::endl;
+             if (QString(lookup[i]).compare(nid.nodeValue())==0)
+             {
+
+                 char value[256];
+                 unsigned int temp = gd->data_array[i];
+                 unsigned int color;
+                 if (temp > 4095) temp = 4095;
+                 if (temp <= 1365)
+                   {
+                     color = 0x100*(((1000*temp / 5353) > 255)?255:(1000*temp / 5353));
+                   }
+                 else
+                   {
+                     if (temp <= 2730)
+                       {
+                        color = (1000*(temp-1365) / 5353)*0x10000 + 0xff00;
+                       }
+                     else
+                       {
+                        color = 0x100*(0xff - (1000*(temp-2730) / 5353)) + 0xff0000;
+                       }
+                   }
+                 snprintf (value,256,"fill:#%06x;stroke=none",color);
+                 //std::cout << "Replacing with" << value << "Color = " << color << "temp = " << temp << std::endl;
+                 nstyle.setNodeValue(QString(value));
+             }
+         }
+     }
+
     if (0 != pthread_mutex_unlock (gd->data_mutex))
     {
         perror ("GloveSvgPainter::update_svg: pthread_mutex_unlock");
         exit (EXIT_FAILURE);
     }
-
-    //cairo_scale (cr,(double) screen->w/width,(double)screen->h/height);
 
 }

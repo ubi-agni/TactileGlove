@@ -4,16 +4,9 @@
 #include <QWidget>
 #include <QtSvg>
 #include <QPainter>
+#include <QDomDocument>
 #include <iostream>
-extern "C" {
-#include "svgint.h"
-#include "svg-cairo-internal.h"
-#include <cairo/cairo-svg.h>
-#include <pthread.h>
-#include <cairo/cairo-features.h>
-#include <cairo/cairo.h>
-#include <cairo/cairo-qt.h>
-}
+
 
 #define NO_GLOVE_ELEMENTS 54
 
@@ -53,9 +46,10 @@ signals:
 public slots:
     void new_glove_data_available(unsigned short* glove_update);
 private:
+    QDomDocument* qDomDocPtr;
+    QSvgRenderer* qSvgRendererPtr;
     glovedata_t* gd;
     void update_svg ();
-    svg_cairo_t* scr;
     void init_glovedata();
 
 };

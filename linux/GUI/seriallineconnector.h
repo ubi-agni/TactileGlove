@@ -48,7 +48,7 @@ private:
     bool check_packet();
 	 void recover();
     void update_field();
-     int next_index ( int i);
+    unsigned int next_index ( int i);
     bool full_frame;
     bool enable_sliding_average;
     unsigned int index_sliding_average;

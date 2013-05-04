@@ -4,7 +4,7 @@
 #
 #-------------------------------------------------
 
-QT       += core gui svg opengl
+QT       += core gui svg opengl xml
 
 TARGET = GloveViz
 TEMPLATE = app
@@ -23,8 +23,6 @@ HEADERS  += glovevizmainwindow.h \
     svgglview.h \
     svgwindow.h \
     glovesvgpainter.h \
-    svg-cairo-internal.h \
-    svgint.h \
     seriallineconnector.h
 
 FORMS    += glovevizmainwindow.ui
