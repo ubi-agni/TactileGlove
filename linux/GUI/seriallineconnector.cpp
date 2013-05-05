@@ -10,6 +10,7 @@ SerialLineConnector::SerialLineConnector()
     full_frames_counter = 0;
     keep_going = true;
     enable_sliding_average = true;
+    send_update = false;
     index_sliding_average = 0;
     slot_frame = (unsigned short*) malloc (NO_GLOVE_ELEMENTS*sizeof (unsigned short));
     for (int i= 0; i < SLIDING_AVG; i++)
@@ -38,6 +39,7 @@ SerialLineConnector::connect_device(const char *device)
     tcflush(fd, TCIFLUSH);
     tcsetattr(fd,TCSANOW,&newtio);
     connected = true;
+    send_update = true;
     return (true);
 }
 
@@ -179,7 +181,11 @@ SerialLineConnector::update_field()
           memcpy((void*)slot_frame,(void*)sensor_data,(size_t) 54*sizeof(unsigned short));
         }
         sensor_data_mutex.unlock();
-        emit read_frame(slot_frame);
+        if (send_update)
+        {
+            emit read_frame(slot_frame);
+            send_update = false;
+        }
         switch (full_frames_counter % 8)
         {
         case 0: emit full_frame_update_message((QString ("Receiving ...")));
@@ -203,6 +209,12 @@ SerialLineConnector::update_field()
         }
     }
 
+}
+
+void
+SerialLineConnector::enable_send()
+{
+    send_update = true;
 }
 
 void

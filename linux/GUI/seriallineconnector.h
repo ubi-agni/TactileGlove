@@ -32,7 +32,7 @@ signals:
     void read_frame(unsigned short*);
     void full_frame_update_message (QString q);
 public slots:
-
+    void enable_send ();
 protected:
     void run();
 private:
@@ -40,6 +40,7 @@ private:
     unsigned char buf[PACKET_SIZE_BYTES];
     int fd;
     bool connected;
+    bool send_update;
     bool keep_going;
     unsigned short sensor_data[NO_GLOVE_ELEMENTS];
     unsigned short full_frame_sensor_data[SLIDING_AVG][NO_GLOVE_ELEMENTS];

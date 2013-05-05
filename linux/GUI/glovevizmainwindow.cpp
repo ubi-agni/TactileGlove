@@ -18,6 +18,8 @@ GloveVizMainWindow::GloveVizMainWindow(QWidget *parent) :
                      (QObject*)gsp, SLOT ( new_glove_data_available(unsigned short*) ));
     QObject::connect ((QObject*)seriallineconnector, SIGNAL ( full_frame_update_message (QString)),
                       (QObject*)ui->statusBar, SLOT (showMessage (QString)));
+    QObject::connect ((QObject*)gsp, SIGNAL (ready_for_more() ),
+                      (QObject*)seriallineconnector, SLOT (enable_send ()));
     seriallineconnector->start();
 }
 

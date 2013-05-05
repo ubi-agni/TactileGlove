@@ -42,12 +42,13 @@ public:
 protected:
     virtual void paintEvent(QPaintEvent *event);
 signals:
-
+    void ready_for_more ();
 public slots:
     void new_glove_data_available(unsigned short* glove_update);
 private:
     QDomDocument* qDomDocPtr;
     QSvgRenderer* qSvgRendererPtr;
+    QDomNode qDomNodeArray[NO_GLOVE_ELEMENTS];
     glovedata_t* gd;
     void update_svg ();
     void init_glovedata();

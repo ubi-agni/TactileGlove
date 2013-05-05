@@ -53,7 +53,7 @@ GloveSvgPainter::new_glove_data_available(unsigned short* glove_update)
         perror ("GloveSvgPainter::new_glove_data_available: pthread_mutex_unlock");
         exit (EXIT_FAILURE);
     }
-    std::cerr << "Calling repaint" << std::endl;
+    //std::cerr << "Calling repaint" << std::endl;
     repaint();
 }
 
@@ -105,30 +105,9 @@ GloveSvgPainter::GloveSvgPainter(QWidget *parent) :
     qSvgRendererPtr = new QSvgRenderer (this);
     //qSvgRendererPtr->load(qDomDocPtr->toByteArray());
     qSvgRendererPtr->load(QString ("Sensorlayout04.svg"));
-}
-
-void GloveSvgPainter::paintEvent(QPaintEvent *event)
-{
-    QPainter painter(this);
-    painter.setRenderHint(QPainter::HighQualityAntialiasing,true);
-    std::cerr << "Updating SVG" << std::endl;
-    update_svg();
-    qSvgRendererPtr->load(qDomDocPtr->toByteArray());
-    qSvgRendererPtr->render(&painter);
-}
-
-void
-GloveSvgPainter::update_svg()
-{
-    int i;
-
-    if (0 != pthread_mutex_lock(gd->data_mutex))
-    {
-        perror ("GloveSvgPainter::update_svg: pthread_mutex_lock");
-        exit (EXIT_FAILURE);
-    }
     QDomElement docElem = qDomDocPtr->documentElement();
 
+    /* Finding nodes for the elements */
     QDomNode groot = docElem.firstChildElement(QString ("g"));
     if (groot.isNull())
     {
@@ -155,37 +134,63 @@ GloveSvgPainter::update_svg()
          //std::cerr << "-";
          //std::cout << nid.nodeValue().toStdString().c_str() << std::endl;
          QDomNode nstyle = qmap.namedItem(QString("style"));
-         for (i = 0; i < NO_GLOVE_ELEMENTS; i++)
+         for (int i = 0; i < NO_GLOVE_ELEMENTS; i++)
          {
              //std::cerr << "Trying to match " << lookup[i] << "with " << nid.nodeValue().toStdString().c_str() << std::endl;
              if (QString(lookup[i]).compare(nid.nodeValue())==0)
-             {
-
-                 char value[256];
-                 unsigned int temp = gd->data_array[i];
-                 unsigned int color;
-                 if (temp > 4095) temp = 4095;
-                 if (temp <= 1365)
-                   {
-                     color = 0x100*(((1000*temp / 5353) > 255)?255:(1000*temp / 5353));
-                   }
-                 else
-                   {
-                     if (temp <= 2730)
-                       {
-                        color = (1000*(temp-1365) / 5353)*0x10000 + 0xff00;
-                       }
-                     else
-                       {
-                        color = 0x100*(0xff - (1000*(temp-2730) / 5353)) + 0xff0000;
-                       }
-                   }
-                 snprintf (value,256,"fill:#%06x;stroke=none",color);
-                 //std::cout << "Replacing with" << value << "Color = " << color << "temp = " << temp << std::endl;
-                 nstyle.setNodeValue(QString(value));
-             }
+                 qDomNodeArray[i] = nstyle;
          }
-     }
+    }
+
+}
+
+void GloveSvgPainter::paintEvent(QPaintEvent *event)
+{
+    QPainter painter(this);
+    painter.setRenderHint(QPainter::HighQualityAntialiasing,false);
+    //std::cerr << "Updating SVG" << std::endl;
+    update_svg();
+    qSvgRendererPtr->load(qDomDocPtr->toByteArray());
+    //qSvgRendererPtr->render(&painter,QString("path3449"));
+    qSvgRendererPtr->render(&painter);
+    emit ready_for_more();
+}
+
+void
+GloveSvgPainter::update_svg()
+{
+    int i;
+
+    if (0 != pthread_mutex_lock(gd->data_mutex))
+    {
+        perror ("GloveSvgPainter::update_svg: pthread_mutex_lock");
+        exit (EXIT_FAILURE);
+    }
+    for (i=0; i < NO_GLOVE_ELEMENTS; i++)
+    {
+        char value[256];
+        unsigned int temp = gd->data_array[i];
+        unsigned int color;
+        if (temp > 4095) temp = 4095;
+        if (temp <= 1365)
+        {
+            color = 0x100*(((1000*temp / 5353) > 255)?255:(1000*temp / 5353));
+        }
+        else
+        {
+            if (temp <= 2730)
+            {
+                color = (1000*(temp-1365) / 5353)*0x10000 + 0xff00;
+            }
+            else
+            {
+                color = 0x100*(0xff - (1000*(temp-2730) / 5353)) + 0xff0000;
+            }
+        }
+        snprintf (value,256,"fill:#%06x;stroke=none",color);
+        //std::cout << "Replacing with" << value << "Color = " << color << "temp = " << temp << std::endl;
+        qDomNodeArray[i].setNodeValue(QString(value));
+    }
 
     if (0 != pthread_mutex_unlock (gd->data_mutex))
     {
