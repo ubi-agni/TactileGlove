@@ -15,7 +15,7 @@
 
 #include "glovesvgpainter.h"
 
-#define SLIDING_AVG 10
+#define SLIDING_AVG 2
 #define PACKET_SIZE_BYTES 5
 
 class SerialLineConnector : public QThread

@@ -153,7 +153,7 @@ SerialLineConnector::update_field()
         full_frame = false;
     if (full_frame && (last_packet_id == (NO_GLOVE_ELEMENTS-1)))
     {
-        fprintf (stderr,"Fullframe \n");
+      //fprintf (stderr,"Fullframe \n");
         index_sliding_average++;
         if (index_sliding_average >= SLIDING_AVG)
             index_sliding_average = 0;

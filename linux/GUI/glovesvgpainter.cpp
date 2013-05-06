@@ -56,14 +56,14 @@ GloveSvgPainter::new_glove_data_available(unsigned short* glove_update)
         }
         //std::cerr << i << " " << glove_update[i] << std::endl;
     }
-    std::cerr << "Max element is " << id<< std::endl;
+    //std::cerr << "Max element is " << id<< std::endl;
     if (0 != pthread_mutex_unlock (gd->data_mutex))
     {
         perror ("GloveSvgPainter::new_glove_data_available: pthread_mutex_unlock");
         exit (EXIT_FAILURE);
     }
     //std::cerr << "Calling repaint" << std::endl;
-    repaint();
+    update();
 }
 
 void
