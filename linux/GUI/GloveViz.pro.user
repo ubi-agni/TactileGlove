@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE QtCreatorProject>
-<!-- Written by Qt Creator 2.6.2, 2013-05-05T16:09:10. -->
+<!-- Written by Qt Creator 2.6.2, 2013-05-06T14:28:37. -->
 <qtcreator>
  <data>
   <variable>ProjectExplorer.Project.ActiveTarget</variable>
@@ -53,7 +53,7 @@
   <valuemap type="QVariantMap">
    <value type="QString" key="ProjectExplorer.ProjectConfiguration.DefaultDisplayName">Desktop</value>
    <value type="QString" key="ProjectExplorer.ProjectConfiguration.DisplayName">Desktop</value>
-   <value type="QByteArray" key="ProjectExplorer.ProjectConfiguration.Id">{eab78a1f-44b9-49e5-b68b-5142ac49e1e7}</value>
+   <value type="QByteArray" key="ProjectExplorer.ProjectConfiguration.Id">{cb551b1d-b94e-42ca-bce5-603657fe24b6}</value>
    <value type="int" key="ProjectExplorer.Target.ActiveBuildConfiguration">1</value>
    <value type="int" key="ProjectExplorer.Target.ActiveDeployConfiguration">0</value>
    <value type="int" key="ProjectExplorer.Target.ActiveRunConfiguration">0</value>
@@ -177,7 +177,7 @@
     <value type="bool" key="Analyzer.Project.UseGlobal">true</value>
     <value type="QString" key="ProjectExplorer.ProjectConfiguration.DefaultDisplayName">GloveViz</value>
     <value type="QString" key="ProjectExplorer.ProjectConfiguration.DisplayName"></value>
-    <value type="QByteArray" key="ProjectExplorer.ProjectConfiguration.Id">Qt4ProjectManager.Qt4RunConfiguration:/homes/mschoepf/svn/glove/linux/GUI/GloveViz.pro</value>
+    <value type="QByteArray" key="ProjectExplorer.ProjectConfiguration.Id">Qt4ProjectManager.Qt4RunConfiguration:/home/mschoepf/svn/PC/linux/GUI/GloveViz.pro</value>
     <value type="int" key="Qt4ProjectManager.Qt4RunConfiguration.BaseEnvironmentBase">2</value>
     <value type="QString" key="Qt4ProjectManager.Qt4RunConfiguration.CommandLineArguments"></value>
     <value type="QString" key="Qt4ProjectManager.Qt4RunConfiguration.ProFile">GloveViz.pro</value>
@@ -200,7 +200,7 @@
  </data>
  <data>
   <variable>ProjectExplorer.Project.Updater.EnvironmentId</variable>
-  <value type="QString">{c1634c85-7463-40c4-b756-ebf747dfee5e}</value>
+  <value type="QString">{7b31955f-8372-4601-bd80-d9ce914a459f}</value>
  </data>
  <data>
   <variable>ProjectExplorer.Project.Updater.FileVersion</variable>

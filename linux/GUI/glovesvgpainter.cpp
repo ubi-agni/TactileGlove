@@ -44,10 +44,19 @@ GloveSvgPainter::new_glove_data_available(unsigned short* glove_update)
         perror ("GloveSvgPainter::new_glove_data_available: pthread_mutex_lock");
         exit (EXIT_FAILURE);
     }
+    unsigned short max=0;
+    int id=0;
     for (i=0; i < NO_GLOVE_ELEMENTS; i++)
     {
         gd->data_array[i] = glove_update[i];
+        if (glove_update[i] > max)
+        {
+            max = glove_update[i];
+            id = i;
+        }
+        //std::cerr << i << " " << glove_update[i] << std::endl;
     }
+    std::cerr << "Max element is " << id<< std::endl;
     if (0 != pthread_mutex_unlock (gd->data_mutex))
     {
         perror ("GloveSvgPainter::new_glove_data_available: pthread_mutex_unlock");

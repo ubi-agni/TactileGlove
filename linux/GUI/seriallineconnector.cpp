@@ -77,13 +77,13 @@ SerialLineConnector::recover()
   for (; start < PACKET_SIZE_BYTES; ++start) {
     if (buf[(start+1) % PACKET_SIZE_BYTES] == 0x01 && 
 	buf[(start+4) % PACKET_SIZE_BYTES] == 0x00 && 
-	buf[start] >= 0x3c && buf[start] <= 0x73)
+    buf[start] >= 0x3c && buf[start] <= 0x7B)
       break;
   }
   if (start < PACKET_SIZE_BYTES) {
     memmove(buf, buf+start, PACKET_SIZE_BYTES-start);
-    read(fd,buf+PACKET_SIZE_BYTES-start,start);
-    if (!check_packet()) fprintf(stderr, "this should not happen!\n");
+    ssize_t unused = read(fd,buf+PACKET_SIZE_BYTES-start,start);
+    if (!check_packet() || (unused < 0)) fprintf(stderr, "this should not happen!\n");
   } else {
     fprintf (stderr, "could not recover\n");
   }
@@ -159,7 +159,7 @@ SerialLineConnector::update_field()
             index_sliding_average = 0;
         full_frame_sensor_data_mutex.lock();
         sensor_data_mutex.lock();
-        memcpy((void*)full_frame_sensor_data[index_sliding_average],(void*)sensor_data,(size_t) 54*sizeof(unsigned short));
+        memcpy((void*)full_frame_sensor_data[index_sliding_average],(void*)sensor_data,(size_t) NO_GLOVE_ELEMENTS*sizeof(unsigned short));
         sensor_data_mutex.unlock();
         full_frame_sensor_data_mutex.unlock();
         full_frames_counter++;
@@ -178,7 +178,7 @@ SerialLineConnector::update_field()
         }
         else
         {
-          memcpy((void*)slot_frame,(void*)sensor_data,(size_t) 54*sizeof(unsigned short));
+          memcpy((void*)slot_frame,(void*)sensor_data,(size_t) NO_GLOVE_ELEMENTS*sizeof(unsigned short));
         }
         sensor_data_mutex.unlock();
         if (send_update)
@@ -186,7 +186,7 @@ SerialLineConnector::update_field()
             emit read_frame(slot_frame);
             send_update = false;
         }
-        switch (full_frames_counter % 8)
+        switch ((full_frames_counter/2) % 8)
         {
         case 0: emit full_frame_update_message((QString ("Receiving ...")));
             break;
