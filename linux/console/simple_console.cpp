@@ -24,10 +24,13 @@ void print_SensData(); // Output sensor data
 void initNcurses(); // Setup text terminal display
 
 // Store our pressure data
-unsigned short ldata[54];
-unsigned int frames=0; // FPS counter
-unsigned int fps=0;
-unsigned int lastticks=0;
+unsigned short ldata[154];
+
+	unsigned int fps=0;
+	static unsigned int frames=0;
+	static unsigned long int lastticks=0;
+	static unsigned long int lastticks_frame=0;
+
 
 int main(int argc, char **argv)
 {
@@ -59,7 +62,7 @@ printf("Please connect dataglove via USB!\n");
 // End serial port settings
 
 
-  initNcurses(); // For output
+ // initNcurses(); // For output
 
 // Init array
 	for(unsigned char x=0;x<54;x++){
@@ -93,13 +96,14 @@ unsigned char index;
 			ldata[index] = 4095-value;
 
 			if(index==53){ 
-				frames++; // FPS counter
+			//	frames++; // FPS counter
 			}
 		}
+			print_SensData();
  	   }
 
 	// Packet parsed and data can be printed
-	print_SensData();
+
    }
    tcsetattr(fd,TCSANOW,&oldtio); // Restore serial settings
 }
@@ -116,18 +120,37 @@ void initNcurses(){
 
 // Pretty print the data
 void print_SensData(){	
+
+
+
+		frames++;
+		if ( (SDL_GetTicks() - lastticks) > 1000 ){		//1 Tick equals 1 ms
+			fps = frames/64;
+			frames = 0;
+			lastticks = SDL_GetTicks();
+			printf(" %d \n",fps);
+//mvprintw(4, 0, "Receive Time Difference: (ms)");
+		}
+
+
+
 	// Clear terminal
-	move(0, 0);
-	clrtobot();
+	//move(0, 0);
+	//clrtobot();
 
 	// Print FPS & title
-	mvprintw(0, 0, "---> Tactile Dataglove Test <---");
+	//mvprintw(0, 0, "---> Tactile Dataglove Test <---");
+	//mvprintw(1, 0, "FPS: %u", fps);
+//mvprintw(2, 0, "Time: %d", SDL_GetTicks()); 
 
 // Print data
 	for(unsigned char x=0;x<54;x++){
-		mvprintw(x+2, 0, "%d:", x+1 );
-		mvprintw(x+2, 4, "%d", ldata[x] );
+	//	mvprintw(x+2, 0, "%d:", x+1 );
+	//	mvprintw(x+2, 4, "%d", ldata[x] );
 	}
 
+//mvprintw(2, 0, "Receive Time Difference: %d (ms)",SDL_GetTicks() -lastticks_frame );
+
+	lastticks_frame=SDL_GetTicks();
 	refresh(); 
 }
