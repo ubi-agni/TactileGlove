@@ -9,15 +9,14 @@ QT       += core gui svg opengl xml
 TARGET = GloveViz
 TEMPLATE = app
 
-INCLUDEPATH+=/usr/include/libxml2 /usr/include/cairo
-LIBS+=-L/usr/lib/kde -lkdeui -lcairo -lsvg-cairo -lsvg
+INCLUDEPATH+=/usr/include/libxml2
 
 SOURCES += main.cpp\
         glovevizmainwindow.cpp \
-    svgglview.cpp \
-    svgwindow.cpp \
-    glovesvgpainter.cpp \
-    seriallineconnector.cpp
+        svgglview.cpp \
+        svgwindow.cpp \
+        glovesvgpainter.cpp \
+        seriallineconnector.cpp
 
 HEADERS  += glovevizmainwindow.h \
     svgglview.h \

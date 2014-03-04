@@ -21,17 +21,9 @@ class GloveVizMainWindow : public QMainWindow
 public:
     explicit GloveVizMainWindow(QWidget *parent = 0);
     ~GloveVizMainWindow();
-protected:
-    virtual void paintEvent(QPaintEvent *event);
-//public slots:
-     //void openFile(const QString &path = QString());
-     //void setRenderer(QAction *action);
-     //void setHighQualityAntialiasing(bool hq);
 
 private slots:
-
     void on_pushButtonConnect_clicked();
-
     void on_pushButtonDisconnect_clicked();
 
 private:

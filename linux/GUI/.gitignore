@@ -1,1 +1,6 @@
 .svn
+moc_*
+*.o
+ui_*.h
+Makefile
+GloveViz
