@@ -13,14 +13,10 @@ INCLUDEPATH+=/usr/include/libxml2
 
 SOURCES += main.cpp\
         glovevizmainwindow.cpp \
-        svgglview.cpp \
-        svgwindow.cpp \
         glovesvgpainter.cpp \
         seriallineconnector.cpp
 
 HEADERS  += glovevizmainwindow.h \
-    svgglview.h \
-    svgwindow.h \
     glovesvgpainter.h \
     seriallineconnector.h
 

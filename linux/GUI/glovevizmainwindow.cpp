@@ -7,11 +7,8 @@ GloveVizMainWindow::GloveVizMainWindow(QWidget *parent) :
     ui(new Ui::GloveVizMainWindow)
 {
     ui->setupUi(this);
-    vbl = new QVBoxLayout (ui->tab);
-    gsp = new GloveSvgPainter;
+    ui->verticalLayout->addWidget(gsp = new GloveSvgPainter);
     seriallineconnector = new SerialLineConnector;
-    vbl->addWidget(gsp);
-    gsp->show();
     ui->pushButtonDisconnect->setEnabled(false);
     QObject::connect((QObject*)seriallineconnector, SIGNAL ( read_frame(unsigned short*) ),
                      (QObject*)gsp, SLOT ( new_glove_data_available(unsigned short*) ));

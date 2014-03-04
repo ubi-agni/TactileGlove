@@ -4,11 +4,9 @@
 #include <QMainWindow>
 #include <QPainter>
 #include <QtSvg>
-#include "svgwindow.h"
 #include "glovesvgpainter.h"
 #include "seriallineconnector.h"
 #include "ui_glovevizmainwindow.h"
-#include "svgglview.h"
 
 namespace Ui {
     class GloveVizMainWindow;
@@ -28,13 +26,7 @@ private slots:
 
 private:
     Ui::GloveVizMainWindow *ui;
-    QAction *nativeAction;
-    QAction *glAction;
-    QAction *imageAction;
-    QAction *highQualityAntialiasingAction;
-    SvgWindow *area;
     GloveSvgPainter *gsp;
-    QVBoxLayout* vbl;
     SerialLineConnector* seriallineconnector;
 };
 

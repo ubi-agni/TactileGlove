@@ -102,8 +102,7 @@ GloveSvgPainter::GloveSvgPainter(QWidget *parent) :
     file.close();
     init_glovedata ();
     qSvgRendererPtr = new QSvgRenderer (this);
-    //qSvgRendererPtr->load(qDomDocPtr->toByteArray());
-    qSvgRendererPtr->load(QString ("Sensorlayout04.svg"));
+
     QDomElement docElem = qDomDocPtr->documentElement();
 
     /* Finding nodes for the elements */
