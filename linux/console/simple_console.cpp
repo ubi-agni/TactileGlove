@@ -10,6 +10,7 @@
 #include <iostream>
 #include <ncurses.h>  // For text display
 #include <SDL/SDL.h> // For FPS timecounting
+#include <unistd.h>
 
 // Serialport settings
 #define BAUDRATE B115200
@@ -19,7 +20,7 @@
 #define TRUE 1
 #define MAX_BUFF 1024  // Max input buffer size in bytes
 #define PACKET_SIZE_BYTES 1
-
+#define TAXELNB	64
 void print_SensData(); // Output sensor data
 void initNcurses(); // Setup text terminal display
 
@@ -62,10 +63,10 @@ printf("Please connect dataglove via USB!\n");
 // End serial port settings
 
 
- // initNcurses(); // For output
+  initNcurses(); // For output
 
 // Init array
-	for(unsigned char x=0;x<54;x++){
+	for(unsigned char x=0;x<TAXELNB;x++){
 		 ldata[x]=0;
 	}
 
@@ -95,7 +96,7 @@ unsigned char index;
 			//printf("%X \n",  buf[0]);
 			ldata[index] = 4095-value;
 
-			if(index==53){ 
+			if(index==TAXELNB-1){ 
 			//	frames++; // FPS counter
 			}
 		}
@@ -128,25 +129,25 @@ void print_SensData(){
 			fps = frames/64;
 			frames = 0;
 			lastticks = SDL_GetTicks();
-			printf(" %d \n",fps);
+			//printf(" %d \n",fps);
 //mvprintw(4, 0, "Receive Time Difference: (ms)");
 		}
 
 
 
 	// Clear terminal
-	//move(0, 0);
-	//clrtobot();
+	move(0, 0);
+	clrtobot();
 
 	// Print FPS & title
-	//mvprintw(0, 0, "---> Tactile Dataglove Test <---");
-	//mvprintw(1, 0, "FPS: %u", fps);
+	mvprintw(0, 0, "---> Tactile Dataglove Test <---");
+	mvprintw(1, 0, "FPS: %u", fps);
 //mvprintw(2, 0, "Time: %d", SDL_GetTicks()); 
 
 // Print data
-	for(unsigned char x=0;x<54;x++){
-	//	mvprintw(x+2, 0, "%d:", x+1 );
-	//	mvprintw(x+2, 4, "%d", ldata[x] );
+	for(unsigned char x=0;x<TAXELNB;x++){
+		mvprintw(x+2, 0, "%d:", x+1 );
+		mvprintw(x+2, 4, "%d", ldata[x] );
 	}
 
 //mvprintw(2, 0, "Receive Time Difference: %d (ms)",SDL_GetTicks() -lastticks_frame );
