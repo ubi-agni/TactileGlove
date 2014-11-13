@@ -31,7 +31,7 @@ void GloveVizMainWindow::on_pushButtonConnect_clicked()
 {
 
     ui->statusBar->showMessage (QString ("Connecting..."), 2000);
-    if (seriallineconnector->connect_device(ui->lineEdit->text().toAscii().data()))
+    if (seriallineconnector->connect_device(ui->lineEdit->text().toLatin1().data()))
     {
         ui->statusBar->showMessage("Successfully connected!",2000);
         ui->pushButtonConnect->setEnabled(false);

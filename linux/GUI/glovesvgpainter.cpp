@@ -1,5 +1,18 @@
 #include "glovesvgpainter.h"
 
+static const char lookup[NO_GLOVE_ELEMENTS][9] =
+//	A(tip)	    B(left)	C(middle)  D(right)  E		F	   G	      H		 I
+    {"","path3443","path3419","path3427","path3431","path3393",//1 Thumb
+     "path3389","path3395","path3397","path3391","path3403","path3401","path3409","path3407","path3433",//2 Pointer
+     "path3423","path3471","path3467","path3465","path3359","path3459","path3411","path3449",		//3 Middle finger
+     "path3447","path3363","path3451","path3415","path3413","path3461","path3469","path3361",		//4 Ring finger
+     "path3383","path3479","path3477","path3475","path3385","path3387","path3381","path3375","path3365",//5 Little finger
+     "path3371","path3357","path3369","path3377",		//6 Heel of the Hand (line under the fingers) pad
+     "path3367","path3429","path3481","path3457",		//7 Ball of the thumb pad
+     "path3439","path3435","path3441","path3445","path3437",	//8 Ball of the Hand (middle) pad
+     "path3419","path3425","path3421","path3431","path3433","path3429","path3423","path3427","path3437"};						//9 Side of the hand pad
+
+
 void
 GloveSvgPainter::init_glovedata ()
 {
@@ -129,12 +142,10 @@ GloveSvgPainter::GloveSvgPainter(QWidget *parent) :
          QDomNode nid = qmap.namedItem(QString("id"));
          if (nid.isNull())
              continue;
-         //std::cerr << "-";
-         //std::cout << nid.nodeValue().toStdString().c_str() << std::endl;
+
          QDomNode nstyle = qmap.namedItem(QString("style"));
          for (int i = 0; i < NO_GLOVE_ELEMENTS; i++)
          {
-             //std::cerr << "Trying to match " << lookup[i] << "with " << nid.nodeValue().toStdString().c_str() << std::endl;
              if (QString(lookup[i]).compare(nid.nodeValue())==0)
                  qDomNodeArray[i] = nstyle;
          }
