@@ -84,6 +84,19 @@
       </item>
      </layout>
     </item>
+    <item>
+     <widget class="QProgressBar" name="jointBar">
+      <property name="maximum">
+       <number>100</number>
+      </property>
+      <property name="value">
+       <number>0</number>
+      </property>
+      <property name="textVisible">
+       <bool>false</bool>
+      </property>
+     </widget>
+    </item>
    </layout>
   </widget>
   <widget class="QMenuBar" name="menuBar">
