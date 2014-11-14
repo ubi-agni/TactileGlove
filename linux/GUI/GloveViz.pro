@@ -6,10 +6,8 @@
 
 QT       += core gui svg opengl xml
 
-TARGET = GloveViz
+TARGET   = GloveViz
 TEMPLATE = app
-
-INCLUDEPATH+=/usr/include/libxml2
 
 SOURCES += main.cpp\
         glovevizmainwindow.cpp \

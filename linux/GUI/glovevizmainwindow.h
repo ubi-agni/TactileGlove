@@ -1,16 +1,13 @@
-#ifndef GLOVEVIZMAINWINDOW_H
-#define GLOVEVIZMAINWINDOW_H
+#pragma once
 
 #include <QMainWindow>
-#include <QPainter>
-#include <QtSvg>
-#include "glovesvgpainter.h"
 #include "seriallineconnector.h"
-#include "ui_glovevizmainwindow.h"
 
 namespace Ui {
     class GloveVizMainWindow;
 }
+class GloveSvgPainter;
+class SerialLineConnector;
 
 class GloveVizMainWindow : public QMainWindow
 {
@@ -29,5 +26,3 @@ private:
     GloveSvgPainter *gsp;
     SerialLineConnector* seriallineconnector;
 };
-
-#endif // GLOVEVIZMAINWINDOW_H

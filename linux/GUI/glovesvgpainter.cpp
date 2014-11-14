@@ -153,7 +153,7 @@ GloveSvgPainter::GloveSvgPainter(QWidget *parent) :
 
 }
 
-void GloveSvgPainter::paintEvent(QPaintEvent *event)
+void GloveSvgPainter::paintEvent(QPaintEvent * /*event*/)
 {
     QPainter painter(this);
     painter.setRenderHint(QPainter::HighQualityAntialiasing,false);
