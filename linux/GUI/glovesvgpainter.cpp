@@ -44,25 +44,15 @@ GloveSvgPainter::new_glove_data_available(unsigned short* glove_update)
         perror ("GloveSvgPainter::new_glove_data_available: pthread_mutex_lock");
         exit (EXIT_FAILURE);
     }
-    unsigned short max=0;
-    int id=0;
     for (i=0; i < NO_GLOVE_ELEMENTS; i++)
     {
         gd->data_array[i] = glove_update[i];
-        if (glove_update[i] > max)
-        {
-            max = glove_update[i];
-            id = i;
-        }
-        //std::cerr << i << " " << glove_update[i] << std::endl;
     }
-    //std::cerr << "Max element is " << id<< std::endl;
     if (0 != pthread_mutex_unlock (gd->data_mutex))
     {
         perror ("GloveSvgPainter::new_glove_data_available: pthread_mutex_unlock");
         exit (EXIT_FAILURE);
     }
-    //std::cerr << "Calling repaint" << std::endl;
     update();
 }
 
@@ -157,10 +147,8 @@ void GloveSvgPainter::paintEvent(QPaintEvent *event)
 {
     QPainter painter(this);
     painter.setRenderHint(QPainter::HighQualityAntialiasing,false);
-    //std::cerr << "Updating SVG" << std::endl;
     update_svg();
     qSvgRendererPtr->load(qDomDocPtr->toByteArray());
-    //qSvgRendererPtr->render(&painter,QString("path3449"));
     qSvgRendererPtr->render(&painter);
     emit ready_for_more();
 }
