@@ -1,25 +1,23 @@
 #include "glovevizmainwindow.h"
-
-
+#include "ui_glovevizmainwindow.h"
+#include "glovesvgpainter.h"
 
 GloveVizMainWindow::GloveVizMainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::GloveVizMainWindow)
 {
     ui->setupUi(this);
-    ui->kled->off();
-    vbl = new QVBoxLayout (ui->tab);
-    gsp = new GloveSvgPainter;
+    ui->verticalLayout->insertWidget(1, gsp = new GloveSvgPainter);
     seriallineconnector = new SerialLineConnector;
-    vbl->addWidget(gsp);
-    gsp->show();
     ui->pushButtonDisconnect->setEnabled(false);
-    QObject::connect((QObject*)seriallineconnector, SIGNAL ( read_frame(unsigned short*) ),
-                     (QObject*)gsp, SLOT ( new_glove_data_available(unsigned short*) ));
-    QObject::connect ((QObject*)seriallineconnector, SIGNAL ( full_frame_update_message (QString)),
-                      (QObject*)ui->statusBar, SLOT (showMessage (QString)));
-    QObject::connect ((QObject*)gsp, SIGNAL (ready_for_more() ),
-                      (QObject*)seriallineconnector, SLOT (enable_send ()));
+    connect(seriallineconnector, SIGNAL ( read_frame(unsigned short*) ),
+            gsp, SLOT ( new_glove_data_available(unsigned short*) ));
+    connect(seriallineconnector, SIGNAL ( read_frame(unsigned short*) ),
+            this, SLOT ( updateJointBar (unsigned short*) ));
+    connect (seriallineconnector, SIGNAL ( full_frame_update_message (QString)),
+             ui->statusBar, SLOT (showMessage (QString)));
+    connect (gsp, SIGNAL (ready_for_more() ),
+             seriallineconnector, SLOT (enable_send ()));
     seriallineconnector->start();
 }
 
@@ -31,25 +29,18 @@ GloveVizMainWindow::~GloveVizMainWindow()
     delete ui;
 }
 
-void GloveVizMainWindow::paintEvent(QPaintEvent *)
- {
-
- }
-
 void GloveVizMainWindow::on_pushButtonConnect_clicked()
 {
 
     ui->statusBar->showMessage (QString ("Connecting..."), 2000);
-    if (seriallineconnector->connect_device(ui->lineEdit->text().toAscii().data()))
+    if (seriallineconnector->connect_device(ui->lineEdit->text().toLatin1().data()))
     {
-        ui->kled->on();
         ui->statusBar->showMessage("Successfully connected!",2000);
         ui->pushButtonConnect->setEnabled(false);
         ui->pushButtonDisconnect->setEnabled(true);
     }
     else
     {
-        ui->kled->off();
         ui->statusBar->showMessage("Connection failed!",2000);
     }
 }
@@ -59,9 +50,17 @@ void GloveVizMainWindow::on_pushButtonDisconnect_clicked()
     ui->statusBar->showMessage("Disconnecting...",2000);
     ui->pushButtonDisconnect->setEnabled(false);
     seriallineconnector->disconnect_device();
-    ui->kled->off();
     gsp->reset_glove_data();
     emit gsp->repaint();
     ui->statusBar->showMessage("Disconnected!",2000);
     ui->pushButtonConnect->setEnabled(true);
+}
+
+void GloveVizMainWindow::updateJointBar(unsigned short *data)
+{
+    const int min=4095;
+    const int max=2000;
+    const int targetRange=ui->jointBar->maximum();
+    const int val=data[14];
+    ui->jointBar->setValue(((val-min) * targetRange) / (max-min));
 }

@@ -1,4 +1,4 @@
-#include <QtGui/QApplication>
+#include <QApplication>
 #include "glovevizmainwindow.h"
 
 int main(int argc, char *argv[])
@@ -8,5 +8,4 @@ int main(int argc, char *argv[])
     w.show();
 
     return a.exec();
-    //return 0;
 }
