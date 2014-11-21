@@ -77,24 +77,30 @@ int GloveWidget::heightForWidth(int w) const
 
 void GloveWidget::paintEvent(QPaintEvent * /*event*/)
 {
+	update_svg();
+
 	QPainter painter(this);
 	painter.setRenderHint(QPainter::HighQualityAntialiasing,false);
-	update_svg();
-	qSvgRendererPtr->load(qDomDocPtr->toByteArray());
 	qSvgRendererPtr->render(&painter);
 }
 
 void GloveWidget::update_data(unsigned short *data)
 {
+	mutex.lock();
 	std::copy(data, data + NO_TAXELS, this->data);
 	bDirty = true;
+	mutex.unlock();
+
 	update();
 }
 
 void GloveWidget::reset_data()
 {
+	mutex.lock();
 	bzero(data, sizeof(data));
 	bDirty = true;
+	mutex.unlock();
+
 	update();
 }
 
@@ -118,5 +124,6 @@ void GloveWidget::update_svg()
 		snprintf (value,256,"fill:#%06x;stroke=none", color);
 		qDomNodeArray[i].setNodeValue(QString(value));
 	}
+	qSvgRendererPtr->load(qDomDocPtr->toByteArray());
 	bDirty = false;
 }

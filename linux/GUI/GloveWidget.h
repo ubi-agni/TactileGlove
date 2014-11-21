@@ -2,6 +2,7 @@
 
 #include <QWidget>
 #include <QDomNode>
+#include <QMutex>
 
 #define NO_TAXELS 64
 
@@ -29,6 +30,7 @@ private:
 	QDomDocument  *qDomDocPtr;
 	QSvgRenderer  *qSvgRendererPtr;
 	QDomNode       qDomNodeArray[NO_TAXELS];
+	QMutex         mutex;
 	unsigned short data[NO_TAXELS];
 	bool           bDirty;
 };

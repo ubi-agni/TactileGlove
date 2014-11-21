@@ -1,41 +1,38 @@
 #include "MainWindow.h"
 #include "ui_MainWindow.h"
 #include "GloveWidget.h"
+#include <boost/bind.hpp>
 
 MainWindow::MainWindow(QWidget *parent) :
    QMainWindow(parent),
    ui(new Ui::MainWindow)
 {
+	lastUpdate.start();
+
 	ui->setupUi(this);
-	ui->verticalLayout->insertWidget(1, gsp = new GloveWidget);
+	ui->verticalLayout->insertWidget(1, gloveWidget = new GloveWidget);
+	ui->btnDisconnect->setEnabled(false);
+
 	serialThread = new SerialThread;
-	ui->pushButtonDisconnect->setEnabled(false);
-	connect(serialThread, SIGNAL ( read_frame(unsigned short*) ),
-	        gsp, SLOT ( update_data(unsigned short*) ));
-	connect(serialThread, SIGNAL ( read_frame(unsigned short*) ),
-	        this, SLOT ( updateJointBar (unsigned short*) ));
-	connect (serialThread, SIGNAL ( full_frame_update_message (QString)),
-	         ui->statusBar, SLOT (showMessage (QString)));
-	serialThread->start();
+	serialThread->setUpdateFunction(boost::bind(&MainWindow::updateData, this, _1));
+
+	connect(this, SIGNAL(jointChanged(int)), ui->jointBar, SLOT(setValue(int)));
 }
 
 MainWindow::~MainWindow()
 {
-	serialThread->disconnect_device();
-	serialThread->endthread();
-	serialThread->wait();
+	serialThread->disconnect();
 	delete ui;
 }
 
-void MainWindow::on_pushButtonConnect_clicked()
+void MainWindow::on_btnConnect_clicked()
 {
-
 	ui->statusBar->showMessage (QString ("Connecting..."), 2000);
-	if (serialThread->connect_device(ui->lineEdit->text().toLatin1().data()))
+	if (serialThread->connect(ui->lineEdit->text().toLatin1().data()))
 	{
 		ui->statusBar->showMessage("Successfully connected!",2000);
-		ui->pushButtonConnect->setEnabled(false);
-		ui->pushButtonDisconnect->setEnabled(true);
+		ui->btnConnect->setEnabled(false);
+		ui->btnDisconnect->setEnabled(true);
 	}
 	else
 	{
@@ -43,22 +40,30 @@ void MainWindow::on_pushButtonConnect_clicked()
 	}
 }
 
-void MainWindow::on_pushButtonDisconnect_clicked()
+void MainWindow::on_btnDisconnect_clicked()
 {
 	ui->statusBar->showMessage("Disconnecting...",2000);
-	ui->pushButtonDisconnect->setEnabled(false);
-	serialThread->disconnect_device();
-	gsp->reset_data();
-	emit gsp->repaint();
+	ui->btnDisconnect->setEnabled(false);
+
+	serialThread->disconnect();
+	gloveWidget->reset_data();
+
 	ui->statusBar->showMessage("Disconnected!",2000);
-	ui->pushButtonConnect->setEnabled(true);
+	ui->btnConnect->setEnabled(true);
 }
 
-void MainWindow::updateJointBar(unsigned short *data)
+void MainWindow::updateData(unsigned short *data) {
+	if (lastUpdate.elapsed() < 100) return;
+
+	gloveWidget->update_data(data);
+	updateJointBar(data[14]);
+	lastUpdate.restart();
+}
+
+void MainWindow::updateJointBar(unsigned short data)
 {
 	const int min=4095;
 	const int max=2000;
-	const int targetRange=ui->jointBar->maximum();
-	const int val=data[14];
-	ui->jointBar->setValue(((val-min) * targetRange) / (max-min));
+	const int targetRange=100;
+	emit jointChanged(((data-min) * targetRange) / (max-min));
 }

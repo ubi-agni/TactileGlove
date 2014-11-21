@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QMainWindow>
+#include <QTime>
 #include "SerialThread.h"
 
 namespace Ui {
@@ -17,13 +18,20 @@ public:
 	explicit MainWindow(QWidget *parent = 0);
 	~MainWindow();
 
+private:
+	void updateData(unsigned short *data);
+	void updateJointBar(unsigned short data);
+
 private slots:
-	void on_pushButtonConnect_clicked();
-	void on_pushButtonDisconnect_clicked();
-	void updateJointBar(unsigned short*);
+	void on_btnConnect_clicked();
+	void on_btnDisconnect_clicked();
+
+signals:
+	void jointChanged(int);
 
 private:
 	Ui::MainWindow *ui;
-	GloveWidget *gsp;
-	SerialThread* serialThread;
+	GloveWidget    *gloveWidget;
+	SerialThread   *serialThread;
+	QTime           lastUpdate;
 };
