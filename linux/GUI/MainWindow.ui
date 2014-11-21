@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>GloveVizMainWindow</class>
- <widget class="QMainWindow" name="GloveVizMainWindow">
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
   <property name="windowModality">
    <enum>Qt::NonModal</enum>
   </property>
@@ -136,7 +136,7 @@
   <connection>
    <sender>actionQuit</sender>
    <signal>triggered()</signal>
-   <receiver>GloveVizMainWindow</receiver>
+   <receiver>MainWindow</receiver>
    <slot>close()</slot>
    <hints>
     <hint type="sourcelabel">

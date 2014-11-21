@@ -1,5 +1,6 @@
-#ifndef SERIALLINECONNECTOR_H
-#define SERIALLINECONNECTOR_H
+#pragma once
+
+#include "GloveWidget.h"
 
 #include <QObject>
 #include <QThread>
@@ -13,16 +14,14 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#include "GloveWidget.h"
-
 #define SLIDING_AVG 2
 #define PACKET_SIZE_BYTES 5
 
-class SerialLineConnector : public QThread
+class SerialThread : public QThread
 {
     Q_OBJECT
 public:
-    SerialLineConnector();
+    SerialThread();
     bool connect_device (const char* device);
     bool disconnect_device ();
     void endthread();
@@ -42,8 +41,8 @@ private:
     bool connected;
     bool send_update;
     bool keep_going;
-    unsigned short sensor_data[NO_GLOVE_ELEMENTS];
-    unsigned short full_frame_sensor_data[SLIDING_AVG][NO_GLOVE_ELEMENTS];
+    unsigned short sensor_data[NO_TAXELS];
+    unsigned short full_frame_sensor_data[SLIDING_AVG][NO_TAXELS];
     unsigned short* slot_frame;
     unsigned long int full_frames_counter;
     bool check_packet();
@@ -56,5 +55,3 @@ private:
     QMutex sensor_data_mutex;
     QMutex full_frame_sensor_data_mutex;
 };
-
-#endif // SERIALLINECONNECTOR_H

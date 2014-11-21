@@ -1,221 +1,122 @@
 #include "GloveWidget.h"
+
+#include <QtSvg>
+#include <QDomDocument>
 #include <stdexcept>
 
-static const char lookup[NO_GLOVE_ELEMENTS][9] =
-//	A(tip)	    B(left)	C(middle)  D(right)  E		F	   G	      H		 I
-    {"","path3443","path3419","path3427","path3431","path3393",//1 Thumb
-     "path3389","path3395","path3397","path3391","path3403","path3401","path3409","path3407","path3433", //2 Index finger
-     "path3423","path3471","path3467","path3465","path3359","path3459","path3411","path3449", //3 Middle finger
-     "path3447","path3363","path3451","path3415","path3413","path3461","path3469","path3361", //4 Ring finger
-     "path3383","path3479","path3477","path3475","path3385","path3387","path3381","path3375","path3365", //5 Little finger
-     "path3371","path3357","path3369","path3377", //6 Heel of the Hand (line under the fingers) pad
-     "path3367","path3429","path3481","path3457", //7 Ball of the thumb pad
-     "path3439","path3435","path3441","path3445","path3437", //8 Ball of the Hand (middle) pad
-     "path3419","path3425","path3421","path3431","path3433","path3429","path3423","path3427","path3437"}; //9 Side of the hand pad
-
-void
-GloveSvgPainter::init_glovedata ()
-{
-  int i;
-  gd->data_mutex = (pthread_mutex_t*) malloc (sizeof (pthread_mutex_t));
-  if (gd->data_mutex == NULL)
-    {
-      perror ("init_glovedata: malloc");
-      exit (EXIT_FAILURE);
-    }
-
-  pthread_mutex_init (gd->data_mutex, NULL);
-  for (i = 0; i < NO_GLOVE_ELEMENTS; i++)
-    gd->data_array[i] = 0;
-
+static const QStringList& pathNames() {
+	static QStringList names;
+	if (names.isEmpty()) {
+		names << "" << "path3443" << "path3419" << "path3427" << "path3431" << "path3393" //1 Thumb
+		      << "path3389" << "path3395" << "path3397" << "path3391" << "path3403" << "path3401" << "path3409" << "path3407" << "path3433" //2 Index finger
+		      << "path3423" << "path3471" << "path3467" << "path3465" << "path3359" << "path3459" << "path3411" << "path3449" //3 Middle finger
+		      << "path3447" << "path3363" << "path3451" << "path3415" << "path3413" << "path3461" << "path3469" << "path3361" //4 Ring finger
+		      << "path3383" << "path3479" << "path3477" << "path3475" << "path3385" << "path3387" << "path3381" << "path3375" << "path3365" //5 Little finger
+		      << "path3371" << "path3357" << "path3369" << "path3377" //6 Heel of the Hand (line under the fingers) pad
+		      << "path3367" << "path3429" << "path3481" << "path3457" //7 Ball of the thumb pad
+		      << "path3439" << "path3435" << "path3441" << "path3445" << "path3437" //8 Ball of the Hand (middle) pad
+		      << "path3419" << "path3425" << "path3421" << "path3431" << "path3433" << "path3429" << "path3423" << "path3427" << "path3437"; //9 Side of the hand pad
+	}
+	return names;
 }
 
-void
-GloveSvgPainter::reset_glove_data()
+GloveWidget::GloveWidget(QWidget *parent) : QWidget(parent), bDirty(false)
 {
-    if (0 != pthread_mutex_lock(gd->data_mutex))
-    {
-        perror ("GloveSvgPainter::reset_glove_data():pthreat_mutex_lock");
-        exit (EXIT_FAILURE);
-    }
-    for (int i = 0; i < NO_GLOVE_ELEMENTS; i++)
-      gd->data_array[i] = 0;
-    if (0 != pthread_mutex_unlock(gd->data_mutex))
-    {
-        perror ("GloveSvgPainter::reset_glove_data():pthreat_mutex_unlock");
-        exit (EXIT_FAILURE);
-    }
+	qDomDocPtr = new QDomDocument ("Sensorlayout");
+	QFile file(":Sensorlayout04.svg");
+	if (!file.open(QIODevice::ReadOnly))
+		throw std::runtime_error("failed to open sensor layout");
+
+	QString errorMsg;
+	if (!qDomDocPtr->setContent(&file, &errorMsg)) {
+		file.close();
+		throw std::runtime_error(errorMsg.toStdString());
+	}
+	file.close();
+
+	qSvgRendererPtr = new QSvgRenderer (this);
+	QDomElement docElem = qDomDocPtr->documentElement();
+	QDomNode gRoot, gLevel1, pathlevel;
+
+	/* Finding nodes for the elements */
+	if ((gRoot = docElem.firstChildElement(QString ("g"))).isNull())
+		throw std::runtime_error("Invalid SVG document: no root node 'g'");
+
+	if ((gLevel1 = gRoot.firstChildElement(QString("g"))).isNull())
+		throw std::runtime_error("Invalid SVG document: no level-1 node 'g'");
+
+	if ((pathlevel = gLevel1.firstChildElement(QString("path"))).isNull())
+		throw std::runtime_error("Invalid SVG document: no path elements");
+
+	for (; !pathlevel.isNull(); pathlevel = pathlevel.nextSiblingElement("path")) {
+		QDomNamedNodeMap qmap = pathlevel.attributes();
+		QDomNode nid = qmap.namedItem(QString("id"));
+		if (nid.isNull()) continue;
+
+		int i = pathNames().indexOf(nid.nodeValue());
+		if (i < 0) continue;
+		qDomNodeArray[i] = qmap.namedItem(QString("style"));
+	}
+	reset_data();
+
+	QSizePolicy sp(QSizePolicy::Preferred, QSizePolicy::Preferred);
+	sp.setHeightForWidth(true);
+	setSizePolicy(sp);
 }
 
-void
-GloveSvgPainter::new_glove_data_available(unsigned short* glove_update)
+QSize GloveWidget::sizeHint() const
 {
-    int i;
-
-    if (0 != pthread_mutex_lock (gd->data_mutex))
-    {
-        perror ("GloveSvgPainter::new_glove_data_available: pthread_mutex_lock");
-        exit (EXIT_FAILURE);
-    }
-    for (i=0; i < NO_GLOVE_ELEMENTS; i++)
-    {
-        gd->data_array[i] = glove_update[i];
-    }
-    if (0 != pthread_mutex_unlock (gd->data_mutex))
-    {
-        perror ("GloveSvgPainter::new_glove_data_available: pthread_mutex_unlock");
-        exit (EXIT_FAILURE);
-    }
-    update();
+	return qSvgRendererPtr->defaultSize();
 }
 
-void
-GloveSvgPainter::generate_random_glovedata ()
+int GloveWidget::heightForWidth(int w) const
 {
-  int i;
-
-  long int rndnumber;
-
-  if (0 != pthread_mutex_lock (gd->data_mutex))
-    {
-      perror ("generate_new_glovedata: pthread_mutex_lock");
-      exit (EXIT_FAILURE);
-    }
-
-  for (i=0; i < NO_GLOVE_ELEMENTS; i++)
-    {
-      rndnumber = random();
-
-      if (rndnumber < (RAND_MAX / 2)) /* only give new value 50% of time */
-        gd->data_array[i] = rndnumber&0xFFF;
-    }
-  if (0 != pthread_mutex_unlock (gd->data_mutex))
-    {
-      perror ("generate_new_glovedata: pthread_mutex_unlock");
-      exit (EXIT_FAILURE);
-    }
-}
-GloveSvgPainter::GloveSvgPainter(QWidget *parent) :
-    QWidget(parent)
-{
-    gd = (glovedata_t*) malloc (sizeof (glovedata_t));
-    if (NULL == gd)
-    {
-        perror ("main(): malloc");
-        exit (EXIT_FAILURE);
-    }
-    qDomDocPtr = new QDomDocument ("Sensorlayout");
-    QFile file(":Sensorlayout04.svg");
-    if (!file.open(QIODevice::ReadOnly))
-        throw std::runtime_error("failed to open sensor layout");
-    QString errorMsg;
-    if (!qDomDocPtr->setContent(&file, &errorMsg)) {
-       file.close();
-       throw std::runtime_error(errorMsg.toStdString());
-    }
-    file.close();
-    init_glovedata ();
-    qSvgRendererPtr = new QSvgRenderer (this);
-
-    QDomElement docElem = qDomDocPtr->documentElement();
-
-    /* Finding nodes for the elements */
-    QDomNode groot = docElem.firstChildElement(QString ("g"));
-    if (groot.isNull())
-    {
-        std::cerr << "Unexpectedly encountered no g node" << std::endl;
-        return;
-    }
-    QDomNode glevel1 = groot.firstChildElement(QString("g"));
-    if (glevel1.isNull())
-    {
-        std::cerr << "Could not find Node g level 1" << std::endl;
-        return;
-    }
-    QDomNode pathlevel = glevel1.firstChildElement(QString("path"));
-    if (pathlevel.isNull())
-    {
-        std::cerr << "Could not find path level " << std::endl;
-        return;
-    }
-    for (; !pathlevel.isNull(); pathlevel = pathlevel.nextSiblingElement("path")) {
-         QDomNamedNodeMap qmap = pathlevel.attributes();
-         QDomNode nid = qmap.namedItem(QString("id"));
-         if (nid.isNull())
-             continue;
-
-         QDomNode nstyle = qmap.namedItem(QString("style"));
-         for (int i = 0; i < NO_GLOVE_ELEMENTS; i++)
-         {
-             if (QString(lookup[i]).compare(nid.nodeValue())==0)
-                 qDomNodeArray[i] = nstyle;
-         }
-    }
-
-    QSizePolicy sp(QSizePolicy::Preferred, QSizePolicy::Preferred);
-    sp.setHeightForWidth(true);
-    setSizePolicy(sp);
+	const QSize &s = qSvgRendererPtr->defaultSize();
+	return w*s.height()/s.width();
 }
 
-QSize GloveSvgPainter::sizeHint() const
+void GloveWidget::paintEvent(QPaintEvent * /*event*/)
 {
-    return qSvgRendererPtr->defaultSize();
+	QPainter painter(this);
+	painter.setRenderHint(QPainter::HighQualityAntialiasing,false);
+	update_svg();
+	qSvgRendererPtr->load(qDomDocPtr->toByteArray());
+	qSvgRendererPtr->render(&painter);
 }
 
-int GloveSvgPainter::heightForWidth(int w) const
+void GloveWidget::update_data(unsigned short *data)
 {
-    const QSize &s = qSvgRendererPtr->defaultSize();
-    return w*s.height()/s.width();
+	std::copy(data, data + NO_TAXELS, this->data);
+	bDirty = true;
+	update();
 }
 
-void GloveSvgPainter::paintEvent(QPaintEvent * /*event*/)
+void GloveWidget::reset_data()
 {
-    QPainter painter(this);
-    painter.setRenderHint(QPainter::HighQualityAntialiasing,false);
-    update_svg();
-    qSvgRendererPtr->load(qDomDocPtr->toByteArray());
-    qSvgRendererPtr->render(&painter);
-    emit ready_for_more();
+	bzero(data, sizeof(data));
+	bDirty = true;
+	update();
 }
 
-void
-GloveSvgPainter::update_svg()
+void GloveWidget::update_svg()
 {
-    int i;
+	if (!bDirty) return;
+	for (int i=0; i < NO_TAXELS; ++i) {
+		char value[256];
+		unsigned int temp = data[i];
+		unsigned int color;
 
-    if (0 != pthread_mutex_lock(gd->data_mutex))
-    {
-        perror ("GloveSvgPainter::update_svg: pthread_mutex_lock");
-        exit (EXIT_FAILURE);
-    }
-    for (i=0; i < NO_GLOVE_ELEMENTS; i++)
-    {
-        char value[256];
-        unsigned int temp = gd->data_array[i];
-        unsigned int color;
-        if (temp > 4095) temp = 4095;
-        if (temp <= 1365)
-        {
-            color = 0x100*(((1000*temp / 5353) > 255)?255:(1000*temp / 5353));
-        }
-        else
-        {
-            if (temp <= 2730)
-            {
-                color = (1000*(temp-1365) / 5353)*0x10000 + 0xff00;
-            }
-            else
-            {
-                color = 0x100*(0xff - (1000*(temp-2730) / 5353)) + 0xff0000;
-            }
-        }
-        snprintf (value,256,"fill:#%06x;stroke=none",color);
-        qDomNodeArray[i].setNodeValue(QString(value));
-    }
-
-    if (0 != pthread_mutex_unlock (gd->data_mutex))
-    {
-        perror ("GloveSvgPainter::update_svg: pthread_mutex_unlock");
-        exit (EXIT_FAILURE);
-    }
+		if (temp > 4095) temp = 4095;
+		if (temp <= 1365)
+			color = 0x100*(((1000*temp / 5353) > 255)?255:(1000*temp / 5353));
+		else {
+			if (temp <= 2730)
+				color = (1000*(temp-1365) / 5353)*0x10000 + 0xff00;
+			else
+				color = 0x100*(0xff - (1000*(temp-2730) / 5353)) + 0xff0000;
+		}
+		snprintf (value,256,"fill:#%06x;stroke=none", color);
+		qDomNodeArray[i].setNodeValue(QString(value));
+	}
+	bDirty = false;
 }

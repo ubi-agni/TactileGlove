@@ -1,47 +1,35 @@
-#ifndef GLOVESVGPAINTER_H
-#define GLOVESVGPAINTER_H
+#pragma once
 
 #include <QWidget>
-#include <QtSvg>
-#include <QPainter>
-#include <QDomDocument>
-#include <iostream>
+#include <QDomNode>
 
+#define NO_TAXELS 64
 
-#define NO_GLOVE_ELEMENTS 62
+class QDomDocument;
+class QDomNode;
+class QSvgRenderer;
 
-
-typedef struct GloveData_T
+class GloveWidget : public QWidget
 {
-  pthread_mutex_t* data_mutex;
-  unsigned short data_array[NO_GLOVE_ELEMENTS];
-} glovedata_t;
-
-
-class GloveSvgPainter : public QWidget
-{
-    Q_OBJECT
+	Q_OBJECT
 public:
-    explicit GloveSvgPainter(QWidget *parent = 0);
-    void generate_random_glovedata ();
-    void reset_glove_data();
-    QSize sizeHint() const;
-    int heightForWidth(int) const;
+	explicit GloveWidget(QWidget *parent = 0);
+	QSize sizeHint() const;
+	int heightForWidth(int) const;
+
+public slots:
+	void update_data(unsigned short* data);
+	void reset_data();
 
 protected:
-    virtual void paintEvent(QPaintEvent *event);
-signals:
-    void ready_for_more ();
-public slots:
-    void new_glove_data_available(unsigned short* glove_update);
-private:
-    QDomDocument* qDomDocPtr;
-    QSvgRenderer* qSvgRendererPtr;
-    QDomNode qDomNodeArray[NO_GLOVE_ELEMENTS];
-    glovedata_t* gd;
-    void update_svg ();
-    void init_glovedata();
+	virtual void paintEvent(QPaintEvent *event);
+	void update_svg();
 
+private:
+	QDomDocument  *qDomDocPtr;
+	QSvgRenderer  *qSvgRendererPtr;
+	QDomNode       qDomNodeArray[NO_TAXELS];
+	unsigned short data[NO_TAXELS];
+	bool           bDirty;
 };
 
-#endif // GLOVESVGPAINTER_H

@@ -1,6 +1,6 @@
 #include "SerialThread.h"
 
-SerialLineConnector::SerialLineConnector()
+SerialThread::SerialThread()
 {
     connected = full_frame = false;
     for (int i=0; i < PACKET_SIZE_BYTES; i++)
@@ -10,41 +10,38 @@ SerialLineConnector::SerialLineConnector()
     full_frames_counter = 0;
     keep_going = true;
     enable_sliding_average = true;
-    send_update = false;
     index_sliding_average = 0;
-    slot_frame = (unsigned short*) malloc (NO_GLOVE_ELEMENTS*sizeof (unsigned short));
+    slot_frame = (unsigned short*) malloc (NO_TAXELS*sizeof (unsigned short));
     for (int i= 0; i < SLIDING_AVG; i++)
     {
-        for (int j=0; j < NO_GLOVE_ELEMENTS; j++)
+        for (int j=0; j < NO_TAXELS; j++)
             full_frame_sensor_data[i][j] = 0;
     }
 }
 
 bool
-SerialLineConnector::connect_device(const char *device)
+SerialThread::connect_device(const char *device)
 {
-    fd = open (device,O_RDWR | O_NOCTTY | O_NONBLOCK );
-    if (fd < 0)
-    {
+    if ((fd = open (device, O_RDONLY | O_NOCTTY)) < 0) {
         perror (device);
         return false;
     }
+
     tcgetattr(fd,&oldtio); /* save current port settings */
 
     bzero(&newtio, sizeof(newtio));
-
     newtio.c_cc[VTIME]    = 0;   /* inter-character timer unused */
     newtio.c_cc[VMIN]     = PACKET_SIZE_BYTES;   /* blocking read until 5 chars received */
 
     tcflush(fd, TCIFLUSH);
     tcsetattr(fd,TCSANOW,&newtio);
+
     connected = true;
-    send_update = true;
     return (true);
 }
 
 bool
-SerialLineConnector::disconnect_device()
+SerialThread::disconnect_device()
 {
     if (connected)
     {
@@ -58,7 +55,7 @@ SerialLineConnector::disconnect_device()
 }
 
 bool
-SerialLineConnector::check_packet()
+SerialThread::check_packet()
 {
     if ((buf[0] < 0x3c) || (buf[0] > 0x7B))
         return false;
@@ -70,7 +67,7 @@ SerialLineConnector::check_packet()
 }
 
 void
-SerialLineConnector::recover()
+SerialThread::recover()
 {
   unsigned int start=0;
   fprintf(stderr,"recover from %2X %2X %2X %2X %2X\n",buf[0],buf[1],buf[2],buf[3],buf[4]);
@@ -90,21 +87,21 @@ SerialLineConnector::recover()
 }
 
 unsigned int
-SerialLineConnector::next_index( int i)
+SerialThread::next_index( int i)
 {
-    if (++i < NO_GLOVE_ELEMENTS)
+    if (++i < NO_TAXELS)
         return i;
     else
         return (0);
 }
 
 bool
-SerialLineConnector::get_full_frame(unsigned short *full_frame)
+SerialThread::get_full_frame(unsigned short *full_frame)
 {
     if (full_frame)
     {
         full_frame_sensor_data_mutex.lock();
-        memcpy((void*)full_frame,(void*)full_frame_sensor_data,(size_t)NO_GLOVE_ELEMENTS*sizeof (unsigned short));
+        memcpy((void*)full_frame,(void*)full_frame_sensor_data,(size_t)NO_TAXELS*sizeof (unsigned short));
         full_frame_sensor_data_mutex.unlock();
         return true;
     }
@@ -112,17 +109,17 @@ SerialLineConnector::get_full_frame(unsigned short *full_frame)
 }
 
 void
-SerialLineConnector::get_sensor_data(unsigned short *sensor_frame)
+SerialThread::get_sensor_data(unsigned short *sensor_frame)
 {
     sensor_data_mutex.lock();
-    memcpy((void*)sensor_frame,(void*) sensor_data,(size_t) NO_GLOVE_ELEMENTS*sizeof (unsigned short));
+    memcpy((void*)sensor_frame,(void*) sensor_data,(size_t) NO_TAXELS*sizeof (unsigned short));
     sensor_data_mutex.unlock();
 }
 
 
 
 void
-SerialLineConnector::update_field()
+SerialThread::update_field()
 {
     static unsigned int fields_in_a_row=0;
     static int last_packet_id = -1;
@@ -131,7 +128,7 @@ SerialLineConnector::update_field()
 
     index = buf[0] - 0x3c;
     //fprintf (stderr,"index = 0x%x %u %u\n",index, fields_in_a_row,NO_GLOVE_ELEMENTS);
-    if (index + 1 > NO_GLOVE_ELEMENTS) // We skip elements 74-7B
+    if (index + 1 > NO_TAXELS) // We skip elements 74-7B
         return;
     sensor_data_mutex.lock();
     sensor_data[index] = 0x0fff - (((0x0f&buf[2])*0x100) + (buf[3]));
@@ -145,13 +142,13 @@ SerialLineConnector::update_field()
     }
     last_packet_id = index;
 
-    if (fields_in_a_row+1 >= NO_GLOVE_ELEMENTS)
+    if (fields_in_a_row+1 >= NO_TAXELS)
     {
         full_frame = true;
     }
     else
         full_frame = false;
-    if (full_frame && (last_packet_id == (NO_GLOVE_ELEMENTS-1)))
+    if (full_frame && (last_packet_id == (NO_TAXELS-1)))
     {
       //fprintf (stderr,"Fullframe \n");
         index_sliding_average++;
@@ -159,14 +156,14 @@ SerialLineConnector::update_field()
             index_sliding_average = 0;
         full_frame_sensor_data_mutex.lock();
         sensor_data_mutex.lock();
-        memcpy((void*)full_frame_sensor_data[index_sliding_average],(void*)sensor_data,(size_t) NO_GLOVE_ELEMENTS*sizeof(unsigned short));
+        memcpy((void*)full_frame_sensor_data[index_sliding_average],(void*)sensor_data,(size_t) NO_TAXELS*sizeof(unsigned short));
         sensor_data_mutex.unlock();
         full_frame_sensor_data_mutex.unlock();
         full_frames_counter++;
         sensor_data_mutex.lock();
         if (enable_sliding_average)
         {
-            for (int i=0; i < NO_GLOVE_ELEMENTS; i++)
+            for (int i=0; i < NO_TAXELS; i++)
             {
                 slot_frame[i] = 0;
                 for (int j=0; j < SLIDING_AVG; j++)
@@ -178,14 +175,10 @@ SerialLineConnector::update_field()
         }
         else
         {
-          memcpy((void*)slot_frame,(void*)sensor_data,(size_t) NO_GLOVE_ELEMENTS*sizeof(unsigned short));
+          memcpy((void*)slot_frame,(void*)sensor_data,(size_t) NO_TAXELS*sizeof(unsigned short));
         }
         sensor_data_mutex.unlock();
-        if (send_update)
-        {
-            emit read_frame(slot_frame);
-            send_update = false;
-        }
+		  emit read_frame(slot_frame);
         switch ((full_frames_counter/2) % 8)
         {
         case 0: emit full_frame_update_message((QString ("Receiving ...")));
@@ -212,19 +205,18 @@ SerialLineConnector::update_field()
 }
 
 void
-SerialLineConnector::enable_send()
+SerialThread::enable_send()
 {
     send_update = true;
 }
 
 void
-SerialLineConnector::endthread()
+SerialThread::endthread()
 {
     keep_going = false;
 }
 
-void
-SerialLineConnector::run()
+void SerialThread::run()
 {
     int res;
     fd_set fdset;

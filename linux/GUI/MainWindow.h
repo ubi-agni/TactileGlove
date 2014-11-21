@@ -4,26 +4,26 @@
 #include "SerialThread.h"
 
 namespace Ui {
-    class GloveVizMainWindow;
+class MainWindow;
 }
-class GloveSvgPainter;
-class SerialLineConnector;
+class GloveWidget;
+class SerialThread;
 
-class GloveVizMainWindow : public QMainWindow
+class MainWindow : public QMainWindow
 {
-    Q_OBJECT
+	Q_OBJECT
 
 public:
-    explicit GloveVizMainWindow(QWidget *parent = 0);
-    ~GloveVizMainWindow();
+	explicit MainWindow(QWidget *parent = 0);
+	~MainWindow();
 
 private slots:
-    void on_pushButtonConnect_clicked();
-    void on_pushButtonDisconnect_clicked();
-    void updateJointBar(unsigned short*);
+	void on_pushButtonConnect_clicked();
+	void on_pushButtonDisconnect_clicked();
+	void updateJointBar(unsigned short*);
 
 private:
-    Ui::GloveVizMainWindow *ui;
-    GloveSvgPainter *gsp;
-    SerialLineConnector* seriallineconnector;
+	Ui::MainWindow *ui;
+	GloveWidget *gsp;
+	SerialThread* serialThread;
 };
