@@ -25,6 +25,9 @@ public:
     explicit GloveSvgPainter(QWidget *parent = 0);
     void generate_random_glovedata ();
     void reset_glove_data();
+    QSize sizeHint() const;
+    int heightForWidth(int) const;
+
 protected:
     virtual void paintEvent(QPaintEvent *event);
 signals:

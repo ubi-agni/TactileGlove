@@ -18,6 +18,8 @@ HEADERS  += glovevizmainwindow.h \
     glovesvgpainter.h \
     seriallineconnector.h
 
+RESOURCES = resources.qrc
+
 FORMS    += glovevizmainwindow.ui
 
 
