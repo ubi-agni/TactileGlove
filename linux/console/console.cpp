@@ -5,61 +5,123 @@
 #include <termios.h>
 #include <stdio.h>
 #include <string.h>
-#include <ncurses.h>  // For text display
 #include <boost/thread/thread_time.hpp>
+#include <boost/program_options.hpp>
+
+#if HAVE_CURSES
+#include <ncurses.h>  // For text display
+#endif
+#if HAVE_ROS
+#include <ros/ros.h>
+#include <std_msgs/UInt8MultiArray.h>
+#endif
 
 // Serialport settings
-#define BAUDRATE B115200
-#define MODEMDEVICE "/dev/ttyACM0"
-#define PACKET_SIZE_BYTES 1
-#define TAXELNB           64
-void print_SensData(); // Output sensor data
-void initNcurses(); // Setup text terminal display
+#define BAUDRATE          B115200
+#define PACKET_SIZE_BYTES 5
+#define NO_TAXELS         64
+#define OUTPUT_CURSES     (1 << 0)
+#define OUTPUT_ROS        (1 << 1)
 
-// Store our pressure data
-unsigned short ldata[154];
+void initCurses();  // Setup text terminal display
+void printCurses(const unsigned short data[NO_TAXELS]);
+void publishToROS(const unsigned short data[NO_TAXELS]);
 
-unsigned int fps=0;
-static unsigned int frames=0;
-static boost::system_time tLast = boost::get_system_time();
+using namespace std;
+namespace po=boost::program_options;
+std::string sPublisher;
+uint        nErrors=0;
+
+po::options_description options("options");
+void usage(char* argv[]) {
+	cout << "usage: " << argv[0] << " [options]" << endl
+	     << options << endl;
+}
+
+bool handleCommandline(uint &outflags,
+                       std::string &device, std::string &sPublisher,
+                       int argc, char *argv[]) {
+	// define processed options
+	options.add_options()
+		("help,h", "Display this help message.")
+		("device,d", po::value<string>(&device)->default_value("/dev/ttyACM0"), "serial input device")
+#if HAVE_CURSES
+		("console,c", "enable console output")
+#endif
+#if HAVE_ROS
+		("ros,r", "enable ros output")
+		("publisher,p", po::value<string>(&sPublisher)->default_value("TactileGlove"), "ros publisher name")
+#endif
+	;
+
+	po::variables_map map;
+	po::store(po::command_line_parser(argc, argv)
+	          .options(options)
+	          .run(), map);
+
+	if (map.count("help")) return true;
+	po::notify(map);
+
+	outflags = 0;
+	if (map.count("console")) outflags |= OUTPUT_CURSES;
+	if (map.count("ros") || map.count("publisher")) outflags |= OUTPUT_ROS;
+#if HAVE_CURSES
+	if (!outflags) outflags |= OUTPUT_CURSES;
+#endif
+	if (!outflags) {
+		cout << "no output method specified" << endl;
+		return true;
+	}
+
+	return false;
+}
 
 
 int main(int argc, char **argv)
 {
-	int fd; // Serial port device handle
-	int res; // Stores amount of received bytes
-	struct termios oldtio,newtio;  // For serial port settings
-	unsigned char buf[255];        // Data receive buffer
-  
+	uint outflags;
+	std::string sDevice;
+	try {
+		if (handleCommandline(outflags, sDevice, sPublisher, argc, argv)) {
+			usage(argv);
+			return EXIT_SUCCESS;
+		}
+	} catch (const exception& e) {
+		cerr << e.what() << endl;
+		usage(argv);
+		return EXIT_FAILURE;
+	}
 
-	// Serial port settings
-	if (argc > 1)
-		fd = open(argv[1], O_RDWR | O_NOCTTY );
-	else
-		fd = open(MODEMDEVICE, O_RDWR | O_NOCTTY );
-	if (fd <0) {
-		perror(MODEMDEVICE); 
+#if HAVE_ROS
+	ros::init (argc, argv, "tactile_glove_server");
+#endif
+
+	// open and configure serial port
+	int fd; // Serial port device handle
+	struct termios oldtio,newtio;  // serial port settings
+
+	if ((fd = open(sDevice.c_str(), O_RDONLY | O_NOCTTY )) < 0) {
+		perror(sDevice.c_str());
 		exit(-1); 
 	}
 
 	tcgetattr(fd,&oldtio); // Save current port settings
 
 	bzero(&newtio, sizeof(newtio));
- 
 	newtio.c_cc[VTIME]    = 0;   // Inter-character timer unused
 	newtio.c_cc[VMIN]     = PACKET_SIZE_BYTES;   // Blocking read until PAKET_SIZE_BYTES chars received
 
 	tcflush(fd, TCIFLUSH);
 	tcsetattr(fd,TCSANOW,&newtio); // set new port settings
 
-	initNcurses();
+	initCurses();
 
-	// Init array
-	for(unsigned char x=0;x<TAXELNB;x++){
-		 ldata[x]=0;
-	}
-
+	unsigned char buf[PACKET_SIZE_BYTES]; // receive buffer
+	int           res;         // stores amount of received bytes
 	unsigned char index, ch=0;
+	unsigned short data[NO_TAXELS];
+	assert(sizeof(data) == sizeof(unsigned short)*NO_TAXELS);
+	bzero(data, sizeof(data));
 
 	while (ch != 'q') // Loop for input
 	{
@@ -75,18 +137,19 @@ int main(int argc, char **argv)
 
 		index=0;
 		if(res==5){  // If read 5 bytes
-			if((buf[0]>=0x3C) && (buf[0]<=0x7B))
+			if((buf[0]>=0x3C) && ((index = buf[0] - 0x3C) < NO_TAXELS) &&
+			      buf[1] == 0x01 && buf[4] == 0x00)
 			{
 				// We have a full packet
 				unsigned short value = ((0x0F & buf[2])<<8) | buf[3]; // Get pressure value
-				index = buf[0] -0x3C;  // Get taxel number
-				ldata[index] = 4095-value;
+				data[index] = 4095-value;
 
 				// got full frame
-				if(index==TAXELNB-1){ 
-					print_SensData();
+				if(index==NO_TAXELS-1){
+					if (outflags & OUTPUT_CURSES) printCurses(data);
+					if (outflags & OUTPUT_ROS) publishToROS(data);
 				}
-			}
+			} else ++nErrors;
 		}
 		ch = getch();
 	}
@@ -95,17 +158,25 @@ int main(int argc, char **argv)
 }
 
 // Init ncurses terminal display
-void initNcurses(){
+void initCurses()
+{
+#if HAVE_CURSES
 	initscr(); // Ncurses init function
 	noecho();
 	cbreak();
 	timeout(0);
 	clear();   // Clear terminal
 	atexit( (void(*)())endwin ); // Ncurses cleanup function
+#endif
 }
 
 // Pretty print the data
-void print_SensData(){	
+void printCurses(const unsigned short data[])
+{
+#if HAVE_CURSES
+	static unsigned int frames=0, fps;
+	static boost::system_time tLast = boost::get_system_time();
+
 	frames++;
 	boost::system_time tNow = boost::get_system_time();
 	if ( (tNow - tLast).total_milliseconds() > 1000 ){
@@ -116,17 +187,39 @@ void print_SensData(){
 
 	// Print FPS & title
 	mvprintw(0, 0, "---> Tactile Dataglove Test <---");
-	mvprintw(1, 0, "FPS: %u", fps); clrtoeol(); printw("\n");
+	mvprintw(1, 0, "FPS: %u  errors: %u", fps, nErrors); clrtoeol(); printw("\n");
 	clrtobot();
 
 	// Print data
-	for(unsigned char x=0;x<TAXELNB;x++){
+	for(unsigned char x=0;x<NO_TAXELS;x++){
 		if (getcurx(stdscr) + 10 >= getmaxx(stdscr)) {
 			clrtoeol();
 			printw("\n");
 		}
-		printw("%2d: %4d    ", x+1, ldata[x]);
+		printw("%2d: %4d    ", x+1, data[x]);
 	}
 
 	refresh(); 
+#endif
+}
+
+void publishToROS(const unsigned short data[]) {
+#if HAVE_ROS
+	static bool bInitialized = false;
+	static ros::NodeHandle   rosNodeHandle; //< node handle
+	static ros::Publisher    rosPublisher;  //< joint publisher
+	static std_msgs::UInt8MultiArray msg;
+
+	if (!bInitialized) {
+		rosPublisher = rosNodeHandle.advertise<std_msgs::UInt8MultiArray>(sPublisher, 1);
+		msg.layout.dim.resize(1);
+		msg.layout.dim[0].label = "tactile data";
+		msg.layout.dim[0].size  = NO_TAXELS;
+		msg.data.resize(NO_TAXELS);
+	}
+
+	std::copy(data, data + NO_TAXELS, msg.data.begin());
+	rosPublisher.publish(msg);
+	ros::spinOnce();
+#endif
 }

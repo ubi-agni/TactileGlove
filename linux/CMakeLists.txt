@@ -4,7 +4,7 @@ project (tactile_glove)
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-find_package(catkin QUIET COMPONENTS roscpp)
+find_package(catkin QUIET COMPONENTS roscpp std_msgs)
 find_package(Boost 1.38 REQUIRED COMPONENTS thread program_options)
 
 add_subdirectory (console)
@@ -153,5 +153,5 @@ include_directories(
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)
 else()
-  message("ROS catkin not found, building without ROS support")
+  message(WARNING "ROS catkin not found, building without ROS support")
 endif()
