@@ -1,7 +1,7 @@
 #pragma once
 
 #include <QMainWindow>
-#include "seriallineconnector.h"
+#include "SerialThread.h"
 
 namespace Ui {
     class GloveVizMainWindow;

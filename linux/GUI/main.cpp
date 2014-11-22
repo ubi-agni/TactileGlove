@@ -1,5 +1,5 @@
 #include <QApplication>
-#include "glovevizmainwindow.h"
+#include "MainWindow.h"
 
 int main(int argc, char *argv[])
 {

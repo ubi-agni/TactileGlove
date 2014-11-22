@@ -1,6 +1,6 @@
-#include "glovevizmainwindow.h"
-#include "ui_glovevizmainwindow.h"
-#include "glovesvgpainter.h"
+#include "MainWindow.h"
+#include "ui_MainWindow.h"
+#include "GloveWidget.h"
 
 GloveVizMainWindow::GloveVizMainWindow(QWidget *parent) :
     QMainWindow(parent),

@@ -1,4 +1,4 @@
-#include "seriallineconnector.h"
+#include "SerialThread.h"
 
 SerialLineConnector::SerialLineConnector()
 {

@@ -13,7 +13,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#include "glovesvgpainter.h"
+#include "GloveWidget.h"
 
 #define SLIDING_AVG 2
 #define PACKET_SIZE_BYTES 5

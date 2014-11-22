@@ -1,4 +1,4 @@
-#include "glovesvgpainter.h"
+#include "GloveWidget.h"
 #include <stdexcept>
 
 static const char lookup[NO_GLOVE_ELEMENTS][9] =
