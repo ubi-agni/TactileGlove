@@ -34,4 +34,5 @@ private:
 	GloveWidget    *gloveWidget;
 	SerialThread   *serialThread;
 	QTime           lastUpdate;
+	uint            frameCount;
 };

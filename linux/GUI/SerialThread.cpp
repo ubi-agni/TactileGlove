@@ -10,8 +10,9 @@ SerialThread::SerialThread()
 	connected = false;
 }
 
-bool SerialThread::connect(const char *device)
+bool SerialThread::connect(const QString &sDevice)
 {
+	const char* device = sDevice.toLatin1().data();
 	if ((fd = open (device, O_RDONLY | O_NOCTTY)) < 0) {
 		perror (device);
 		return false;

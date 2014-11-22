@@ -13,7 +13,7 @@ public:
 	typedef boost::function<void(unsigned short*)> UpdateFunction;
 
 	SerialThread();
-	bool connect(const char* device);
+	bool connect(const QString &sDevice);
 	bool disconnect();
 	void setUpdateFunction(const UpdateFunction &f);
 
