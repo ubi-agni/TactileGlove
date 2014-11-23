@@ -22,7 +22,7 @@ public slots:
 	void update_data(unsigned short* data);
 	void reset_data();
 
-protected:
+private:
 	virtual void paintEvent(QPaintEvent *event);
 	void update_svg();
 
@@ -30,8 +30,6 @@ private:
 	QDomDocument  *qDomDocPtr;
 	QSvgRenderer  *qSvgRendererPtr;
 	QDomNode       qDomNodeArray[NO_TAXELS];
-	QMutex         mutex;
 	unsigned short data[NO_TAXELS];
-	bool           bDirty;
 };
 

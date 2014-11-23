@@ -20,7 +20,7 @@ static const QStringList& pathNames() {
 	return names;
 }
 
-GloveWidget::GloveWidget(QWidget *parent) : QWidget(parent), bDirty(false)
+GloveWidget::GloveWidget(QWidget *parent) : QWidget(parent)
 {
 	qDomDocPtr = new QDomDocument ("Sensorlayout");
 	QFile file(":Sensorlayout04.svg");
@@ -77,8 +77,6 @@ int GloveWidget::heightForWidth(int w) const
 
 void GloveWidget::paintEvent(QPaintEvent * /*event*/)
 {
-	update_svg();
-
 	QPainter painter(this);
 	painter.setRenderHint(QPainter::HighQualityAntialiasing,false);
 	qSvgRendererPtr->render(&painter);
@@ -86,27 +84,26 @@ void GloveWidget::paintEvent(QPaintEvent * /*event*/)
 
 void GloveWidget::update_data(unsigned short *data)
 {
-	mutex.lock();
-	std::copy(data, data + NO_TAXELS, this->data);
-	bDirty = true;
-	mutex.unlock();
+	bool bDirty = false;
+	for (int i=0; i < NO_TAXELS; ++i)
+		if (this->data[i] != data[i]) {
+			bDirty = true;
+			break;
+		}
+	if (!bDirty) return;
 
-	update();
+	std::copy(data, data + NO_TAXELS, this->data);
+	update_svg();
 }
 
 void GloveWidget::reset_data()
 {
-	mutex.lock();
 	bzero(data, sizeof(data));
-	bDirty = true;
-	mutex.unlock();
-
-	update();
+	update_svg();
 }
 
 void GloveWidget::update_svg()
 {
-	if (!bDirty) return;
 	for (int i=0; i < NO_TAXELS; ++i) {
 		char value[256];
 		unsigned int temp = data[i];
@@ -125,5 +122,5 @@ void GloveWidget::update_svg()
 		qDomNodeArray[i].setNodeValue(QString(value));
 	}
 	qSvgRendererPtr->load(qDomDocPtr->toByteArray());
-	bDirty = false;
+	update();
 }
