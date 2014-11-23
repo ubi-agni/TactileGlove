@@ -114,7 +114,7 @@ int main(int argc, char **argv)
 	tcflush(fd, TCIFLUSH);
 	tcsetattr(fd,TCSANOW,&newtio); // set new port settings
 
-	initCurses();
+	if (outflags & OUTPUT_CURSES) initCurses();
 
 	unsigned char buf[PACKET_SIZE_BYTES]; // receive buffer
 	int           res;         // stores amount of received bytes
