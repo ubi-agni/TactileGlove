@@ -9,6 +9,9 @@
 class SerialThread : public QThread
 {
 	Q_OBJECT
+signals:
+	void statusMessage(const QString&, int time);
+
 public:
 	typedef boost::function<void(unsigned short*)> UpdateFunction;
 

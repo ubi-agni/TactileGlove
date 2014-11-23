@@ -21,6 +21,8 @@ MainWindow::MainWindow(QWidget *parent) :
 
 	serialThread = new SerialThread;
 	serialThread->setUpdateFunction(boost::bind(&MainWindow::updateData, this, _1));
+	connect(serialThread, SIGNAL(statusMessage(QString,int)),
+	        ui->statusBar, SLOT(showMessage(QString,int)));
 
 	connect(this, SIGNAL(jointChanged(int)), ui->jointBar, SLOT(setValue(int)));
 }

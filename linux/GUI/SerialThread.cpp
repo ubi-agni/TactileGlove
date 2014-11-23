@@ -2,6 +2,7 @@
 
 #include <fcntl.h>
 #include <stdio.h>
+#include <errno.h>
 
 #define PACKET_SIZE_BYTES 5
 
@@ -14,9 +15,10 @@ bool SerialThread::connect(const QString &sDevice)
 {
 	const char* device = sDevice.toLatin1().data();
 	if ((fd = open (device, O_RDONLY | O_NOCTTY)) < 0) {
-		perror (device);
+		emit statusMessage(QString("Connection failed: ") + strerror(errno), 2000);
 		return false;
 	}
+	emit statusMessage("Successfully connected.", 2000);
 
 	tcgetattr(fd,&oldtio); /* save current port settings */
 
@@ -28,6 +30,7 @@ bool SerialThread::connect(const QString &sDevice)
 	tcsetattr(fd,TCSANOW,&newtio);
 
 	start();
+
 	return (connected = true);
 }
 
@@ -41,6 +44,7 @@ bool SerialThread::disconnect()
 	tcsetattr(fd,TCSANOW,&oldtio);
 	close(fd);
 
+	emit statusMessage("Disconnected.", 2000);
 	return true;
 }
 
