@@ -55,7 +55,23 @@
        <number>10</number>
       </property>
       <property name="value">
-       <number>100</number>
+       <number>10</number>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="QDoubleSpinBox" name="lambdaSpinBox">
+      <property name="toolTip">
+       <string>smoothing factor (sliding average)</string>
+      </property>
+      <property name="maximum">
+       <double>1.000000000000000</double>
+      </property>
+      <property name="singleStep">
+       <double>0.010000000000000</double>
+      </property>
+      <property name="value">
+       <double>0.000000000000000</double>
       </property>
      </widget>
     </item>
@@ -126,17 +142,6 @@
   <widget class="QToolBar" name="toolBar">
    <property name="windowTitle">
     <string>toolbar</string>
-   </property>
-   <attribute name="toolBarArea">
-    <enum>TopToolBarArea</enum>
-   </attribute>
-   <attribute name="toolBarBreak">
-    <bool>false</bool>
-   </attribute>
-  </widget>
-  <widget class="QToolBar" name="serialToolBar">
-   <property name="windowTitle">
-    <string>serial toolbar</string>
    </property>
    <attribute name="toolBarArea">
     <enum>TopToolBarArea</enum>

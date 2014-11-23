@@ -20,19 +20,25 @@ public:
 
 private:
 	void updateData(unsigned short *data);
-	void updateJointBar(unsigned short data);
+	void updateJointBar(unsigned short value);
+	void timerEvent(QTimerEvent *event);
 
 private slots:
 	void on_btnConnect_clicked();
 	void on_btnDisconnect_clicked();
-
-signals:
-	void jointChanged(int);
+	void setTimer(int interval);
+	void setLambda(double value);
 
 private:
 	Ui::MainWindow *ui;
 	GloveWidget    *gloveWidget;
 	SerialThread   *serialThread;
+
+	QMutex          dataMutex;
+	float           frameData[NO_TAXELS];
+	float           lambda;
+
 	QTime           lastUpdate;
 	uint            frameCount;
+	int             timerID;
 };
