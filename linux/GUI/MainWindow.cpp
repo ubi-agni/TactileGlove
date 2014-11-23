@@ -2,13 +2,11 @@
 #include "ui_MainWindow.h"
 
 #include "SerialThread.h"
-#include "ROSInput.h"
 #include "RandomInput.h"
-
 #if HAVE_ROS
-#include "ros/ros.h"
-#include <std_msgs/UInt16MultiArray.h>
+#include "ROSInput.h"
 #endif
+
 #include <boost/bind.hpp>
 
 MainWindow::MainWindow(QWidget *parent) :
@@ -104,6 +102,7 @@ void MainWindow::configSerial()
 
 void MainWindow::configROS()
 {
+#if HAVE_ROS
 	ui->inputLineEdit->setText("TactileGlove");
 
 	ROSInput *rosInput = new ROSInput;
@@ -111,6 +110,9 @@ void MainWindow::configROS()
 	connect(rosInput, SIGNAL(statusMessage(QString,int)),
 	        ui->statusBar, SLOT(showMessage(QString,int)));
 	input = rosInput;
+
+	on_btnConnect_clicked(); // auto-connect to ROS topic
+#endif
 }
 
 void MainWindow::configRandom()

@@ -1,0 +1,16 @@
+Tactile Glove software
+
+The software is split in two parts: a console program and a GUI program (in corresponding sub dirs).
+
+** console
+The console program supports two output modes
+- console
+- ROS publisher (to /TactileGlove)
+
+** GloveViz GUI
+The GUI program correspondingly supports several input modes
+- read directly from serial device
+- read from ROS publisher
+- generate random values (for testing purposes)
+
+If no ROS/catkin environment is found during build, ROS support is disabled.
