@@ -13,7 +13,7 @@
 #endif
 #if HAVE_ROS
 #include <ros/ros.h>
-#include <std_msgs/UInt8MultiArray.h>
+#include <std_msgs/UInt16MultiArray.h>
 #endif
 
 // Serialport settings
@@ -208,10 +208,10 @@ void publishToROS(const unsigned short data[]) {
 	static bool bInitialized = false;
 	static ros::NodeHandle   rosNodeHandle; //< node handle
 	static ros::Publisher    rosPublisher;  //< joint publisher
-	static std_msgs::UInt8MultiArray msg;
+	static std_msgs::UInt16MultiArray msg;
 
 	if (!bInitialized) {
-		rosPublisher = rosNodeHandle.advertise<std_msgs::UInt8MultiArray>(sPublisher, 1);
+		rosPublisher = rosNodeHandle.advertise<std_msgs::UInt16MultiArray>(sPublisher, 1);
 		msg.layout.dim.resize(1);
 		msg.layout.dim[0].label = "tactile data";
 		msg.layout.dim[0].size  = NO_TAXELS;

@@ -1,5 +1,5 @@
 #include "SerialThread.h"
-
+#include "GloveWidget.h"
 #include <fcntl.h>
 #include <stdio.h>
 #include <errno.h>
@@ -18,7 +18,6 @@ bool SerialThread::connect(const QString &sDevice)
 		emit statusMessage(QString("Connection failed: ") + strerror(errno), 2000);
 		return false;
 	}
-	emit statusMessage("Successfully connected.", 2000);
 
 	tcgetattr(fd,&oldtio); /* save current port settings */
 
@@ -44,13 +43,7 @@ bool SerialThread::disconnect()
 	tcsetattr(fd,TCSANOW,&oldtio);
 	close(fd);
 
-	emit statusMessage("Disconnected.", 2000);
 	return true;
-}
-
-void SerialThread::setUpdateFunction(const SerialThread::UpdateFunction &f)
-{
-	updateFunc = f;
 }
 
 void SerialThread::run()

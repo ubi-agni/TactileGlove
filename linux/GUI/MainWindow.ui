@@ -49,7 +49,7 @@
        <number>10</number>
       </property>
       <property name="maximum">
-       <number>1000</number>
+       <number>100</number>
       </property>
       <property name="singleStep">
        <number>10</number>
@@ -76,12 +76,12 @@
      </widget>
     </item>
     <item>
-     <widget class="QLineEdit" name="deviceLineEdit">
+     <widget class="QLineEdit" name="inputLineEdit">
       <property name="toolTip">
        <string>serial device name</string>
       </property>
       <property name="text">
-       <string>/dev/ttyACM0</string>
+       <string/>
       </property>
      </widget>
     </item>

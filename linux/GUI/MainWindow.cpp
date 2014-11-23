@@ -1,6 +1,12 @@
 #include "MainWindow.h"
 #include "ui_MainWindow.h"
-#include "GloveWidget.h"
+#include "SerialThread.h"
+#include "ROSInput.h"
+
+#if HAVE_ROS
+#include "ros/ros.h"
+#include <std_msgs/UInt16MultiArray.h>
+#endif
 #include <boost/bind.hpp>
 
 MainWindow::MainWindow(QWidget *parent) :
@@ -12,7 +18,7 @@ MainWindow::MainWindow(QWidget *parent) :
 	ui->setupUi(this);
 	ui->toolBar->addWidget(ui->updateTimeSpinBox);
 	ui->toolBar->addWidget(ui->lambdaSpinBox);
-	ui->toolBar->addWidget(ui->deviceLineEdit);
+	ui->toolBar->addWidget(ui->inputLineEdit);
 	ui->toolBar->addWidget(ui->btnConnect);
 	ui->toolBar->addWidget(ui->btnDisconnect);
 	ui->btnDisconnect->setEnabled(false);
@@ -20,18 +26,14 @@ MainWindow::MainWindow(QWidget *parent) :
 
 	ui->verticalLayout->insertWidget(0, gloveWidget = new GloveWidget);
 
-	serialThread = new SerialThread;
-	serialThread->setUpdateFunction(boost::bind(&MainWindow::updateData, this, _1));
-	connect(serialThread, SIGNAL(statusMessage(QString,int)),
-	        ui->statusBar, SLOT(showMessage(QString,int)));
-
 	connect(ui->updateTimeSpinBox, SIGNAL(valueChanged(int)), this, SLOT(setTimer(int)));
 	connect(ui->lambdaSpinBox, SIGNAL(valueChanged(double)), this, SLOT(setLambda(double)));
 }
 
 MainWindow::~MainWindow()
 {
-	serialThread->disconnect();
+	input->disconnect();
+	delete input;
 	delete ui;
 }
 
@@ -66,33 +68,8 @@ void MainWindow::timerEvent(QTimerEvent *event)
 	if (fps >= 0) ui->fps->setText(QString("%1 fps").arg(fps));
 }
 
-void MainWindow::on_btnConnect_clicked()
-{
-	ui->statusBar->showMessage (QString ("Connecting..."), 2000);
 
-	if (serialThread->connect(ui->deviceLineEdit->text())) {
-		frameCount = 0; lastUpdate.start();
-		timerID = startTimer (ui->updateTimeSpinBox->value());
-
-		ui->btnConnect->setEnabled(false);
-		ui->btnDisconnect->setEnabled(true);
-		ui->fps->show(); ui->toolBar->addWidget(ui->fps);
-	}
-}
-
-void MainWindow::on_btnDisconnect_clicked()
-{
-	ui->statusBar->showMessage("Disconnecting...",2000);
-	ui->btnDisconnect->setEnabled(false);
-
-	serialThread->disconnect();
-	gloveWidget->reset_data();
-
-	ui->btnConnect->setEnabled(true);
-	killTimer(timerID); timerID = 0;
-}
-
-void MainWindow::updateData(unsigned short *data) {
+void MainWindow::updateData(const unsigned short *data) {
 	dataMutex.lock();
 
 	float alpha = 1.0 - lambda;
@@ -109,4 +86,55 @@ void MainWindow::updateJointBar(unsigned short value)
 	const int max=2000;
 	const int targetRange=100;
 	ui->jointBar->setValue(((value-min) * targetRange) / (max-min));
+}
+
+
+void MainWindow::configSerial()
+{
+	ui->inputLineEdit->setText("/dev/ttyACM0");
+
+	SerialThread *serial = new SerialThread;
+	serial->setUpdateFunction(boost::bind(&MainWindow::updateData, this, _1));
+	connect(serial, SIGNAL(statusMessage(QString,int)),
+	        ui->statusBar, SLOT(showMessage(QString,int)));
+	input = serial;
+}
+
+void MainWindow::configROS()
+{
+	ui->inputLineEdit->setText("TactileGlove");
+
+	ROSInput *rosInput = new ROSInput;
+	rosInput->setUpdateFunction(boost::bind(&MainWindow::updateData, this, _1));
+	connect(rosInput, SIGNAL(statusMessage(QString,int)),
+	        ui->statusBar, SLOT(showMessage(QString,int)));
+	input = rosInput;
+}
+
+void MainWindow::on_btnConnect_clicked()
+{
+	ui->statusBar->showMessage (QString ("Connecting..."), 2000);
+
+	if (input->connect(ui->inputLineEdit->text())) {
+		frameCount = 0; lastUpdate.start();
+		timerID = startTimer (ui->updateTimeSpinBox->value());
+
+		ui->btnConnect->setEnabled(false);
+		ui->btnDisconnect->setEnabled(true);
+		ui->fps->show(); ui->toolBar->addWidget(ui->fps);
+		ui->statusBar->showMessage("Successfully connected.", 2000);
+	}
+}
+
+void MainWindow::on_btnDisconnect_clicked()
+{
+	ui->statusBar->showMessage("Disconnecting...",2000);
+	ui->btnDisconnect->setEnabled(false);
+
+	input->disconnect();
+	gloveWidget->reset_data();
+	ui->statusBar->showMessage("Disconnected.", 2000);
+
+	ui->btnConnect->setEnabled(true);
+	killTimer(timerID); timerID = 0;
 }
