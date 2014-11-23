@@ -3,19 +3,23 @@
 #include <QtSvg>
 #include <QDomDocument>
 #include <stdexcept>
+#include <assert.h>
+#include <iostream>
+
+using namespace std;
 
 static const QStringList& pathNames() {
 	static QStringList names;
 	if (names.isEmpty()) {
-		names << "" << "path3443" << "path3419" << "path3427" << "path3431" << "path3393" //1 Thumb
-		      << "path3389" << "path3395" << "path3397" << "path3391" << "path3403" << "path3401" << "path3409" << "path3407" << "path3433" //2 Index finger
-		      << "path3423" << "path3471" << "path3467" << "path3465" << "path3359" << "path3459" << "path3411" << "path3449" //3 Middle finger
-		      << "path3447" << "path3363" << "path3451" << "path3415" << "path3413" << "path3461" << "path3469" << "path3361" //4 Ring finger
-		      << "path3383" << "path3479" << "path3477" << "path3475" << "path3385" << "path3387" << "path3381" << "path3375" << "path3365" //5 Little finger
-		      << "path3371" << "path3357" << "path3369" << "path3377" //6 Heel of the Hand (line under the fingers) pad
-		      << "path3367" << "path3429" << "path3481" << "path3457" //7 Ball of the thumb pad
-		      << "path3439" << "path3435" << "path3441" << "path3445" << "path3437" //8 Ball of the Hand (middle) pad
-		      << "path3419" << "path3425" << "path3421" << "path3431" << "path3433" << "path3429" << "path3423" << "path3427" << "path3437"; //9 Side of the hand pad
+		names << "" << "" << "" << "" << "" << "LF12" << "LF11" << "LF13" << "LF23" << "LF14" // 1..10
+		      << "LF21" << "LF22" << "LF32" << "LF31" << "" << "" << "FF12" << "FF11" << "FF14" << "FF23" // 11..20
+		      << "FF21" << "TH13" << "TH11" << "TH12" << "FF31" << "TH14" << "TH22" << "TH21" << "FF22" << "FF13" // 21..30
+		      << "FF32" << "RF23" << "RF13" << "RF12" << "RF11" << "RF22" << "RF21" << "MF23" << "MF21" << "MF11" // 31..40
+		      << "MF12" << "MF31" << "MF14" << "MF22" << "MF13" << "" << "RF14" << "RF31" << "PM34" << "PM32" // 41..50
+		      << "PM31" << "PM21" << "" << "PM14" << "PM11" << "PM13" << "PM44" << "PM41" << "PM43" << "PM12" // 51..60
+		      << "PM42" << "PM33" << "PM35" << ""; // 61..64
+		assert(names.size() == NO_TAXELS);
+		assert(QSet<QString>::fromList(names).size() == 54+1);
 	}
 	return names;
 }
@@ -54,7 +58,11 @@ GloveWidget::GloveWidget(QWidget *parent) : QWidget(parent)
 		if (nid.isNull()) continue;
 
 		int i = pathNames().indexOf(nid.nodeValue());
-		if (i < 0) continue;
+		if (i < 0) {
+			if (nid.nodeValue().length() == 4)
+				cerr << "didn't find node " << nid.nodeValue().toStdString();
+			continue;
+		}
 		qDomNodeArray[i] = qmap.namedItem(QString("style"));
 	}
 	reset_data();
