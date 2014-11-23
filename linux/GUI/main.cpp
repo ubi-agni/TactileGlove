@@ -2,6 +2,7 @@
 
 #include <QApplication>
 #include <boost/program_options.hpp>
+#include <signal.h>
 #if HAVE_ROS
 #include <ros/ros.h>
 #endif
@@ -48,6 +49,11 @@ bool handleCommandline(uint &inpflags, int argc, char *argv[]) {
 	return false;
 }
 
+QApplication *pApp;
+void mySigIntHandler(int sig) {
+	if (pApp) pApp->quit();
+}
+
 int main(int argc, char *argv[])
 {
 	uint inpflags;
@@ -62,18 +68,22 @@ int main(int argc, char *argv[])
 		return EXIT_FAILURE;
 	}
 
-#if HAVE_ROS
-	ros::init (argc, argv, "tactile_glove_viz");
-#endif
-
 	QApplication app(argc, argv);
 	MainWindow w;
 
 	switch (inpflags) {
 	case INPUT_SERIAL: w.configSerial(); break;
-	case INPUT_ROS: w.configROS(); break;
+#if HAVE_ROS
+	case INPUT_ROS:
+		ros::init (argc, argv, "tactile_glove_viz");
+		w.configROS();
+		break;
+#endif
 	case INPUT_RANDOM: w.configRandom(); break;
 	}
+
+	// install signal handler
+	pApp = &app; signal(SIGINT, mySigIntHandler);
 
 	w.show();
 	return app.exec();

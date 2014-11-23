@@ -4,6 +4,7 @@
 #include <fcntl.h>
 #include <termios.h>
 #include <stdio.h>
+#include <signal.h>
 #include <string.h>
 #include <boost/thread/thread_time.hpp>
 #include <boost/program_options.hpp>
@@ -44,7 +45,7 @@ bool handleCommandline(uint &outflags,
 	// define processed options
 	options.add_options()
 		("help,h", "Display this help message.")
-		("device,d", po::value<string>(&device)->default_value("/dev/ttyACM0"), "serial input device")
+		("serial,s", po::value<string>(&device)->default_value("/dev/ttyACM0"), "serial input device")
 #if HAVE_CURSES
 		("console,c", "enable console output")
 #endif
@@ -64,7 +65,7 @@ bool handleCommandline(uint &outflags,
 
 	outflags = 0;
 	if (map.count("console")) outflags |= OUTPUT_CURSES;
-	if (map.count("ros") || map.count("publisher")) outflags |= OUTPUT_ROS;
+	if (map.count("ros")) outflags |= OUTPUT_ROS;
 #if HAVE_CURSES
 	if (!outflags) outflags |= OUTPUT_CURSES;
 #endif
@@ -76,6 +77,10 @@ bool handleCommandline(uint &outflags,
 	return false;
 }
 
+bool bRun=true;
+void mySigIntHandler(int sig) {
+	bRun = false;
+}
 
 int main(int argc, char **argv)
 {
@@ -93,8 +98,10 @@ int main(int argc, char **argv)
 	}
 
 #if HAVE_ROS
-	ros::init (argc, argv, "tactile_glove_server");
+	if (outflags & OUTPUT_ROS)
+		ros::init (argc, argv, "tactile_glove_server");
 #endif
+	signal(SIGINT, mySigIntHandler);
 
 	// open and configure serial port
 	int fd; // Serial port device handle
@@ -123,7 +130,7 @@ int main(int argc, char **argv)
 	assert(sizeof(data) == sizeof(unsigned short)*NO_TAXELS);
 	bzero(data, sizeof(data));
 
-	while (ch != 'q') // Loop for input
+	while (bRun && ch != 'q') // Loop for input
 	{
 		res = read(fd,buf,5);   // read a maximum of 5 bytes into buf (actual read count is in res)
 /* Parsing:
