@@ -17,6 +17,7 @@ public:
 
 	void configSerial();
 	void configROS();
+	void configRandom();
 
 private:
 	void updateData(const unsigned short *data);

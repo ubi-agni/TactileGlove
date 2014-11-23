@@ -1,7 +1,9 @@
 #include "MainWindow.h"
 #include "ui_MainWindow.h"
+
 #include "SerialThread.h"
 #include "ROSInput.h"
+#include "RandomInput.h"
 
 #if HAVE_ROS
 #include "ros/ros.h"
@@ -109,6 +111,14 @@ void MainWindow::configROS()
 	connect(rosInput, SIGNAL(statusMessage(QString,int)),
 	        ui->statusBar, SLOT(showMessage(QString,int)));
 	input = rosInput;
+}
+
+void MainWindow::configRandom()
+{
+	ui->verticalLayout->addWidget(ui->inputLineEdit);
+	ui->inputLineEdit->hide();
+	input = new RandomInput;
+	input->setUpdateFunction(boost::bind(&MainWindow::updateData, this, _1));
 }
 
 void MainWindow::on_btnConnect_clicked()

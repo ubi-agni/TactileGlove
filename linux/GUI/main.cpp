@@ -17,6 +17,7 @@ void usage(char* argv[]) {
 
 #define INPUT_SERIAL     1
 #define INPUT_ROS        2
+#define INPUT_RANDOM     3
 bool handleCommandline(uint &inpflags, int argc, char *argv[]) {
 	// define processed options
 	options.add_options()
@@ -25,7 +26,7 @@ bool handleCommandline(uint &inpflags, int argc, char *argv[]) {
 #if HAVE_ROS
 		("ros,r", "use ros input")
 #endif
-	;
+		("dummy,d", "use random dummy input");
 
 	po::variables_map map;
 	po::store(po::command_line_parser(argc, argv)
@@ -41,6 +42,7 @@ bool handleCommandline(uint &inpflags, int argc, char *argv[]) {
 	}
 
 	inpflags = INPUT_SERIAL;
+	if (map.count("dummy")) inpflags = INPUT_RANDOM;
 	if (map.count("ros")) inpflags = INPUT_ROS;
 
 	return false;
@@ -70,6 +72,7 @@ int main(int argc, char *argv[])
 	switch (inpflags) {
 	case INPUT_SERIAL: w.configSerial(); break;
 	case INPUT_ROS: w.configROS(); break;
+	case INPUT_RANDOM: w.configRandom(); break;
 	}
 
 	w.show();
