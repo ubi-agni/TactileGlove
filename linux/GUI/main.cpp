@@ -19,13 +19,15 @@ void usage(char* argv[]) {
 #define INPUT_SERIAL     1
 #define INPUT_ROS        2
 #define INPUT_RANDOM     3
-bool handleCommandline(uint &inpflags, int argc, char *argv[]) {
+bool handleCommandline(uint &inputMethod, std::string &sInput, int argc, char *argv[]) {
 	// define processed options
 	options.add_options()
 		("help,h", "Display this help message.")
-		("serial,s", "use serial input")
+		("serial,s", po::value<string>(&sInput)->implicit_value("/dev/ttyACM0"),
+		 "use serial input (default)")
 #if HAVE_ROS
-		("ros,r", "use ros input")
+		("ros,r", po::value<string>(&sInput)->implicit_value("TactileGlove"),
+		 "use ros input")
 #endif
 		("dummy,d", "use random dummy input");
 
@@ -35,16 +37,21 @@ bool handleCommandline(uint &inpflags, int argc, char *argv[]) {
 	          .run(), map);
 
 	if (map.count("help")) return true;
-	po::notify(map);
 
-	if (map.count("ros") && map.count("serial")) {
+	if (map.count("ros") && map.count("serial") && map.count("dummy")) {
 		cout << "multiple input methods specified" << endl;
 		return true;
 	}
 
-	inpflags = INPUT_SERIAL;
-	if (map.count("dummy")) inpflags = INPUT_RANDOM;
-	if (map.count("ros")) inpflags = INPUT_ROS;
+	po::notify(map);
+	inputMethod = 0;
+	if (map.count("serial")) inputMethod = INPUT_SERIAL;
+	if (map.count("dummy")) inputMethod = INPUT_RANDOM;
+	if (map.count("ros")) inputMethod = INPUT_ROS;
+	if (!inputMethod) { // default
+		inputMethod = INPUT_SERIAL;
+		sInput = "/dev/ttyACM0";
+	}
 
 	return false;
 }
@@ -56,9 +63,10 @@ void mySigIntHandler(int sig) {
 
 int main(int argc, char *argv[])
 {
-	uint inpflags;
+	uint inputMethod;
+	std::string sInput;
 	try {
-		if (handleCommandline(inpflags, argc, argv)) {
+		if (handleCommandline(inputMethod, sInput, argc, argv)) {
 			usage(argv);
 			return EXIT_SUCCESS;
 		}
@@ -71,12 +79,17 @@ int main(int argc, char *argv[])
 	QApplication app(argc, argv);
 	MainWindow w;
 
-	switch (inpflags) {
-	case INPUT_SERIAL: w.configSerial(); break;
+	QString qsInput = QString::fromStdString(sInput);
+	switch (inputMethod) {
+	case INPUT_SERIAL: w.configSerial(qsInput); break;
 #if HAVE_ROS
 	case INPUT_ROS:
 		ros::init (argc, argv, "tactile_glove_viz");
-		w.configROS();
+		if (!ros::master::check()) {
+			cerr << "Failed to contact ROS master." << endl;
+			return EXIT_FAILURE;
+		}
+		w.configROS(qsInput);
 		break;
 #endif
 	case INPUT_RANDOM: w.configRandom(); break;

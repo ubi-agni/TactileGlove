@@ -16,7 +16,7 @@ signals:
 public:
 	ROSInput();
 	~ROSInput();
-	bool connect(const QString &sPublisher);
+	bool connect(const QString &sTopic);
 	bool disconnect();
 
 private:

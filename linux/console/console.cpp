@@ -30,7 +30,7 @@ void publishToROS(const unsigned short data[NO_TAXELS]);
 
 using namespace std;
 namespace po=boost::program_options;
-std::string sPublisher;
+std::string sTopic;
 uint        nErrors=0;
 
 po::options_description options("options");
@@ -40,18 +40,18 @@ void usage(char* argv[]) {
 }
 
 bool handleCommandline(uint &outflags,
-                       std::string &device, std::string &sPublisher,
+                       std::string &device, std::string &sTopic,
                        int argc, char *argv[]) {
 	// define processed options
 	options.add_options()
 		("help,h", "Display this help message.")
 		("serial,s", po::value<string>(&device)->default_value("/dev/ttyACM0"), "serial input device")
 #if HAVE_CURSES
-		("console,c", "enable console output")
+		("console,c", "enable console output (default)")
 #endif
 #if HAVE_ROS
-		("ros,r", "enable ros output")
-		("publisher,p", po::value<string>(&sPublisher)->default_value("TactileGlove"), "ros publisher name")
+		("ros,r", po::value<string>(&sTopic)->implicit_value("TactileGlove"),
+		 "enable ros output to specified topic")
 #endif
 	;
 
@@ -87,7 +87,7 @@ int main(int argc, char **argv)
 	uint outflags;
 	std::string sDevice;
 	try {
-		if (handleCommandline(outflags, sDevice, sPublisher, argc, argv)) {
+		if (handleCommandline(outflags, sDevice, sTopic, argc, argv)) {
 			usage(argv);
 			return EXIT_SUCCESS;
 		}
@@ -218,7 +218,7 @@ void publishToROS(const unsigned short data[]) {
 	static std_msgs::UInt16MultiArray msg;
 
 	if (!bInitialized) {
-		rosPublisher = rosNodeHandle.advertise<std_msgs::UInt16MultiArray>(sPublisher, 1);
+		rosPublisher = rosNodeHandle.advertise<std_msgs::UInt16MultiArray>(sTopic, 1);
 		msg.layout.dim.resize(1);
 		msg.layout.dim[0].label = "tactile data";
 		msg.layout.dim[0].size  = NO_TAXELS;

@@ -11,7 +11,7 @@
 
 MainWindow::MainWindow(QWidget *parent) :
    QMainWindow(parent), ui(new Ui::MainWindow),
-   frameCount(0), timerID(0)
+   input(0), frameCount(0), timerID(0)
 {
 	bzero(frameData, sizeof(frameData));
 
@@ -32,8 +32,10 @@ MainWindow::MainWindow(QWidget *parent) :
 
 MainWindow::~MainWindow()
 {
-	input->disconnect();
-	delete input;
+	if (input) {
+		input->disconnect();
+		delete input;
+	}
 	delete ui;
 }
 
@@ -58,7 +60,7 @@ void MainWindow::timerEvent(QTimerEvent *event)
 	int fps = -1;
 	std::copy(frameData, frameData+NO_TAXELS, data);
 	if (lastUpdate.elapsed() > 1000) { // update framerate every 1s
-		fps = frameCount * 1000 / lastUpdate.restart();
+		fps = roundf (float(frameCount * 1000) / lastUpdate.restart());
 		frameCount = 0;
 	}
 	dataMutex.unlock();
@@ -89,9 +91,10 @@ void MainWindow::updateJointBar(unsigned short value)
 }
 
 
-void MainWindow::configSerial()
+void MainWindow::configSerial(const QString &sDevice)
 {
-	ui->inputLineEdit->setText("/dev/ttyACM0");
+	ui->inputLineEdit->setText(sDevice);
+	ui->inputLineEdit->setToolTip("serial device name");
 
 	SerialThread *serial = new SerialThread;
 	serial->setUpdateFunction(boost::bind(&MainWindow::updateData, this, _1));
@@ -100,10 +103,11 @@ void MainWindow::configSerial()
 	input = serial;
 }
 
-void MainWindow::configROS()
+void MainWindow::configROS(const QString &sTopic)
 {
 #if HAVE_ROS
-	ui->inputLineEdit->setText("TactileGlove");
+	ui->inputLineEdit->setText(sTopic);
+	ui->inputLineEdit->setToolTip("ROS topic");
 
 	ROSInput *rosInput = new ROSInput;
 	rosInput->setUpdateFunction(boost::bind(&MainWindow::updateData, this, _1));

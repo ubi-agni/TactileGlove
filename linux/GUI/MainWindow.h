@@ -15,8 +15,8 @@ public:
 	explicit MainWindow(QWidget *parent = 0);
 	~MainWindow();
 
-	void configSerial();
-	void configROS();
+	void configSerial(const QString &sDevice);
+	void configROS(const QString &sTopic);
 	void configRandom();
 
 private:

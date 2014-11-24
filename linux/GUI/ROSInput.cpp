@@ -1,6 +1,5 @@
 #include "ROSInput.h"
 #include "GloveWidget.h"
-#include <QDebug>
 
 ROSInput::ROSInput() :
    spinner(1)
@@ -13,11 +12,19 @@ ROSInput::~ROSInput()
 	subscriber.shutdown();
 }
 
-bool ROSInput::connect(const QString &sPublisher)
+bool ROSInput::connect(const QString &sTopic)
 {
-	subscriber = nh.subscribe(sPublisher.toStdString(), 10, &ROSInput::receiveCallback, this);
-	spinner.start();
-	return true;
+	try {
+		subscriber = nh.subscribe(sTopic.toStdString(), 10, &ROSInput::receiveCallback, this);
+		spinner.start();
+		return true;
+	} catch (const ros::InvalidNameException &e) {
+		emit statusMessage(QString("failed to create subscriber ").append(sTopic), 2000);
+	} catch (const std::exception &e) {
+		const std::string &resolved = nh.resolveName(sTopic.toStdString());
+		emit statusMessage(QString("failed to create subscriber ").append(resolved.c_str()), 2000);
+	}
+	return false;
 }
 
 bool ROSInput::disconnect()
