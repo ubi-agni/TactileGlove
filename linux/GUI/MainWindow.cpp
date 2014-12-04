@@ -6,7 +6,7 @@
 #if HAVE_ROS
 #include "ROSInput.h"
 #endif
-
+#include <math.h>
 #include <boost/bind.hpp>
 
 MainWindow::MainWindow(QWidget *parent) :
