@@ -17,6 +17,7 @@ else()
    list(REMOVE_ITEM SOURCES ${ROS_SRC})
 endif()
 
+add_definitions(${QT_DEFINITIONS})
 include_directories(${CMAKE_CURRENT_BINARY_DIR} ${QT_INCLUDES})
 
 add_executable(GloveViz ${SOURCES} ${FORM_SRC} ${RESOURCES})
