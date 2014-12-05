@@ -1,16 +1,26 @@
 Tactile Glove software
 
+* required dependencies
+- boost::program_options
+- boost::thread
+
+* optional dependencies
+- Qt4 or Qt5 with QtSVG (for visualization)
+- ncurses (for nice console output)
+- ROS (for ROS support)
+
+* Usage
 The software is split in two parts: a console program and a GUI program (in corresponding sub dirs).
 
 ** console
 The console program supports two output modes
 - console
-- ROS publisher (to /TactileGlove)
+- ROS publisher (to topic /TactileGlove)
 
 ** GloveViz GUI
-The GUI program correspondingly supports several input modes
+The GUI program correspondingly supports several input modes, that are choose on the command line
 - read directly from serial device
-- read from ROS publisher
+- read from ROS publisher (topic /TactileGlove)
 - generate random values (for testing purposes)
 
-If no ROS/catkin environment is found during build, ROS support is disabled.
+If no ROS/catkin environment is found during build, ROS support will be disabled.
