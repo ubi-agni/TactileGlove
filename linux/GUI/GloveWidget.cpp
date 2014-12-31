@@ -2,6 +2,7 @@
 
 #include <QtSvg>
 #include <QDomDocument>
+#include <QAction>
 #include <stdexcept>
 #include <assert.h>
 #include <iostream>
@@ -23,6 +24,13 @@ static const QStringList& pathNames() {
 	}
 	return names;
 }
+static QString getLabel(int channel, const QString &id, bool showChannel, bool showID) {
+	QString result;
+	if (showChannel) result.setNum(channel);
+	if (showChannel && showID) result.append(": ");
+	if (showID) result.append(id);
+	return result;
+}
 
 GloveWidget::GloveWidget(QWidget *parent) : QWidget(parent)
 {
@@ -37,6 +45,19 @@ GloveWidget::GloveWidget(QWidget *parent) : QWidget(parent)
 		throw std::runtime_error(errorMsg.toStdString());
 	}
 	file.close();
+
+	actShowChannels = new QAction("show channels", this);
+	actShowChannels->setCheckable(true);
+	actShowChannels->setChecked(false);
+	connect(actShowChannels, SIGNAL(toggled(bool)), this, SLOT(update()));
+	actShowIDs = new QAction("show SVG ids", this);
+	actShowIDs->setCheckable(true);
+	actShowIDs->setChecked(false);
+	connect(actShowIDs, SIGNAL(toggled(bool)), this, SLOT(update()));
+
+	this->addAction(actShowChannels);
+	this->addAction(actShowIDs);
+	this->setContextMenuPolicy(Qt::ActionsContextMenu);
 
 	qSvgRendererPtr = new QSvgRenderer (this);
 	QDomElement docElem = qDomDocPtr->documentElement();
@@ -77,17 +98,43 @@ QSize GloveWidget::sizeHint() const
 	return qSvgRendererPtr->defaultSize();
 }
 
-int GloveWidget::heightForWidth(int w) const
-{
-	const QSize &s = qSvgRendererPtr->defaultSize();
-	return w*s.height()/s.width();
-}
-
 void GloveWidget::paintEvent(QPaintEvent * /*event*/)
 {
 	QPainter painter(this);
 	painter.setRenderHint(QPainter::HighQualityAntialiasing,false);
-	qSvgRendererPtr->render(&painter);
+
+	// setup correct scaling
+	const QSize& svgSize = qSvgRendererPtr->defaultSize();
+	QSize renderSize(svgSize);
+	renderSize.scale(painter.viewport().size(), Qt::KeepAspectRatio);
+	painter.setWindow(0,0, svgSize.width(), svgSize.height()); // logical coordinates are fixed
+	painter.setViewport(0,0, renderSize.width(), renderSize.height());
+
+	qSvgRendererPtr->render(&painter, painter.window());
+
+	if (!actShowIDs->isChecked() &&
+	    !actShowChannels->isChecked())
+		return;
+
+	QFont font = painter.font(); font.setPointSize(8);
+	painter.setFont(font);
+
+	const QStringList IDs=pathNames(); int channel=1;
+	for (QStringList::const_iterator it=IDs.begin(), end=IDs.end();
+	     it != end; ++it, ++channel) {
+		if (it->isEmpty()) continue;
+		QMatrix m = qSvgRendererPtr->matrixForElement(*it);
+		QRectF bounds = m.mapRect(qSvgRendererPtr->boundsOnElement(*it));
+		QString label = getLabel(channel, *it,
+		                         actShowChannels->isChecked(),
+		                         actShowIDs->isChecked());
+		painter.setPen(Qt::black);
+		painter.drawText(bounds.translated(1,1), Qt::AlignCenter, label);
+		painter.setPen(Qt::white);
+		painter.drawText(bounds, Qt::AlignCenter, label);
+	}
+}
+
 }
 
 void GloveWidget::update_data(unsigned short *data)

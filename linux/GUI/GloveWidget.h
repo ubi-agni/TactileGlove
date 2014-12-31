@@ -9,6 +9,7 @@
 class QDomDocument;
 class QDomNode;
 class QSvgRenderer;
+class QAction;
 
 class GloveWidget : public QWidget
 {
@@ -16,20 +17,21 @@ class GloveWidget : public QWidget
 public:
 	explicit GloveWidget(QWidget *parent = 0);
 	QSize sizeHint() const;
-	int heightForWidth(int) const;
 
 public slots:
 	void update_data(unsigned short* data);
 	void reset_data();
 
 private:
-	virtual void paintEvent(QPaintEvent *event);
+	void paintEvent(QPaintEvent *event);
 	void update_svg();
 
 private:
 	QDomDocument  *qDomDocPtr;
 	QSvgRenderer  *qSvgRendererPtr;
 	QDomNode       qDomNodeArray[NO_TAXELS];
+	QAction       *actShowChannels;
+	QAction       *actShowIDs;
 	unsigned short data[NO_TAXELS];
 };
 
