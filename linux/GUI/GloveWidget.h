@@ -25,6 +25,8 @@ public slots:
 private:
 	void paintEvent(QPaintEvent *event);
 	void update_svg();
+	bool event(QEvent *event);
+	int  channelAt(const QPoint &p);
 
 private:
 	QDomDocument  *qDomDocPtr;
@@ -32,6 +34,7 @@ private:
 	QDomNode       qDomNodeArray[NO_TAXELS];
 	QAction       *actShowChannels;
 	QAction       *actShowIDs;
+	QTransform     viewTransform;
 	unsigned short data[NO_TAXELS];
 };
 

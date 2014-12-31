@@ -24,7 +24,7 @@ static const QStringList& pathNames() {
 	}
 	return names;
 }
-static QString getLabel(int channel, const QString &id, bool showChannel, bool showID) {
+static QString getLabel(int channel, const QString &id, bool showChannel=true, bool showID=true) {
 	QString result;
 	if (showChannel) result.setNum(channel);
 	if (showChannel && showID) result.append(": ");
@@ -109,6 +109,7 @@ void GloveWidget::paintEvent(QPaintEvent * /*event*/)
 	renderSize.scale(painter.viewport().size(), Qt::KeepAspectRatio);
 	painter.setWindow(0,0, svgSize.width(), svgSize.height()); // logical coordinates are fixed
 	painter.setViewport(0,0, renderSize.width(), renderSize.height());
+	viewTransform = painter.combinedTransform();
 
 	qSvgRendererPtr->render(&painter, painter.window());
 
@@ -135,6 +136,32 @@ void GloveWidget::paintEvent(QPaintEvent * /*event*/)
 	}
 }
 
+int  GloveWidget::channelAt(const QPoint &p) {
+	const QStringList IDs=pathNames(); int channel=1;
+	for (QStringList::const_iterator it=IDs.begin(), end=IDs.end();
+	     it != end; ++it, ++channel) {
+		if (it->isEmpty()) continue;
+		QMatrix m = qSvgRendererPtr->matrixForElement(*it);
+		QRectF bounds = m.mapRect(qSvgRendererPtr->boundsOnElement(*it));
+		if (bounds.contains(p)) return channel;
+	}
+	return -1;
+}
+
+bool GloveWidget::event(QEvent *event)
+{
+	if (event->type() == QEvent::ToolTip) {
+		QHelpEvent *helpEvent = static_cast<QHelpEvent *>(event);
+		int ch = channelAt(viewTransform.inverted().map(helpEvent->pos()));
+		if (ch != -1) {
+			QToolTip::showText(helpEvent->globalPos(), getLabel(ch, pathNames().at(ch-1)));
+		} else {
+			QToolTip::hideText();
+			event->ignore();
+		}
+		return true;
+	}
+	return QWidget::event(event);
 }
 
 void GloveWidget::update_data(unsigned short *data)
