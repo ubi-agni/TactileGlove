@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 2.6)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}")
-find_package(Qt54 REQUIRED COMPONENTS Core Gui Svg)
+find_package(Qt54 REQUIRED COMPONENTS Core Gui Svg Xml)
 
 set(CMAKE_AUTOMOC ON)
 
