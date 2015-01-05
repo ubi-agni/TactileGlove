@@ -8,6 +8,7 @@
 #include <string.h>
 #include <boost/thread/thread_time.hpp>
 #include <boost/program_options.hpp>
+#include <iostream>
 
 #if HAVE_CURSES
 #include <ncurses.h>  // For text display

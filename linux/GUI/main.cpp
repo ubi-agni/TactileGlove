@@ -1,5 +1,6 @@
 #include "MainWindow.h"
 
+#include <iostream>
 #include <QApplication>
 #include <boost/program_options.hpp>
 #include <signal.h>
