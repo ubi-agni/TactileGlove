@@ -26,3 +26,5 @@ target_link_libraries(GloveViz
    ${QT_LIBRARIES}
    ${Boost_PROGRAM_OPTIONS_LIBRARY_RELEASE}
    ${roscpp_LIBRARIES})
+
+install(TARGETS GloveViz RUNTIME DESTINATION bin)

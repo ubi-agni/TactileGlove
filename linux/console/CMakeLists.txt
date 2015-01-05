@@ -15,3 +15,5 @@ target_link_libraries(console
    ${CURSES_NCURSES_LIBRARY}
    ${Boost_PROGRAM_OPTIONS_LIBRARY_RELEASE}
    ${roscpp_LIBRARIES})
+
+install(TARGETS console RUNTIME DESTINATION bin)
