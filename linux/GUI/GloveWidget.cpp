@@ -22,7 +22,8 @@ GloveWidget::GloveWidget(const QString &sLayout, const TaxelMapping &mapping, QW
    : QWidget(parent)
 {
 	qDomDocPtr = new QDomDocument ("Sensorlayout");
-	QFile file(QString(":%1.svg").arg(sLayout));
+	QFile file(sLayout);
+	if (!file.exists()) file.setFileName(QString(":%1.svg").arg(sLayout));
 	if (!file.open(QIODevice::ReadOnly))
 		throw std::runtime_error("failed to open sensor layout");
 
@@ -60,6 +61,7 @@ GloveWidget::GloveWidget(const QString &sLayout, const TaxelMapping &mapping, QW
 
 	/* Finding path elements */
 	QDomNodeList paths = docElem.elementsByTagName("path");
+	QString fillKey="fill:#";
 	for (int i=0; i<paths.count(); ++i) {
 		QDomNode path = paths.at(i);
 		QDomNamedNodeMap qmap = path.attributes();
@@ -69,6 +71,13 @@ GloveWidget::GloveWidget(const QString &sLayout, const TaxelMapping &mapping, QW
 		int idx = pathNames.indexOf(nid.nodeValue());
 		if (idx < 0) continue;
 		qDomNodeArray[idx] = qmap.namedItem(QString("style"));
+		sStyleStringArray[idx] = qDomNodeArray[idx].nodeValue();
+		iFillColorStartArray[idx] = sStyleStringArray[idx].indexOf(fillKey);
+		if (iFillColorStartArray[idx] == -1) {
+			// fillKey missing for node: add ourselves
+			iFillColorStartArray[idx] = sStyleStringArray[idx].length() + 1 + fillKey.length();
+			sStyleStringArray[idx].append(";fill:#ffffff");
+		} else iFillColorStartArray[idx] += fillKey.length();
 	}
 	/* check whether we found all path elements */
 	for (int i=0; i<pathNames.count(); ++i) {
@@ -176,8 +185,10 @@ void GloveWidget::reset_data()
 
 void GloveWidget::update_svg()
 {
+	static const QString fmt("%1");
 	for (int i=0; i < NO_TAXELS; ++i) {
-		char value[256];
+		if (qDomNodeArray[i].isNull()) continue;
+
 		unsigned int temp = data[i];
 		unsigned int color;
 
@@ -190,8 +201,10 @@ void GloveWidget::update_svg()
 			else
 				color = 0x100*(0xff - (1000*(temp-2730) / 5353)) + 0xff0000;
 		}
-		snprintf (value,256,"fill:#%06x;stroke=none", color);
-		qDomNodeArray[i].setNodeValue(QString(value));
+		// replace color string in style string
+		sStyleStringArray[i].replace(iFillColorStartArray[i], 6,
+		                             fmt.arg(color, 6, 16, QLatin1Char('0')));
+		qDomNodeArray[i].setNodeValue(sStyleStringArray[i]);
 	}
 	qSvgRendererPtr->load(qDomDocPtr->toByteArray());
 	update();

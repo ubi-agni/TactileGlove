@@ -36,10 +36,13 @@ private:
 	QDomDocument  *qDomDocPtr;
 	QSvgRenderer  *qSvgRendererPtr;
 	QDomNode       qDomNodeArray[NO_TAXELS];
+	QString        sStyleStringArray[NO_TAXELS];
+	unsigned short iFillColorStartArray[NO_TAXELS];
+	unsigned short data[NO_TAXELS];
+	QVector<QString> pathNames;
+
 	QAction       *actShowChannels;
 	QAction       *actShowIDs;
 	QTransform     viewTransform;
-	unsigned short data[NO_TAXELS];
-	QVector<QString> pathNames;
 };
 

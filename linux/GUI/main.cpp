@@ -128,7 +128,12 @@ int main(int argc, char *argv[])
 
 	QApplication app(argc, argv);
 	MainWindow w;
-	w.initGloveWidget(QString::fromStdString(sLayout), mapping);
+	try {
+		w.initGloveWidget(QString::fromStdString(sLayout), mapping);
+	} catch (const std::exception &e) {
+		cerr << e.what() << endl;
+		return EXIT_FAILURE;
+	}
 
 	QString qsInput = QString::fromStdString(sInput);
 	switch (inputMethod) {
