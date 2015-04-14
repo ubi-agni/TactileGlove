@@ -16,7 +16,9 @@ public:
 	explicit MainWindow(QWidget *parent = 0);
 	~MainWindow();
 
+	void initJointBar(TaxelMapping &mapping);
 	void initGloveWidget(const QString &layout, const TaxelMapping& mapping);
+
 	void configSerial(const QString &sDevice);
 	void configROS(const QString &sTopic);
 	void configRandom();
@@ -41,6 +43,7 @@ private:
 	QMutex           dataMutex;
 	float            frameData[NO_TAXELS];
 	float            lambda;
+	int              iJointIdx;
 
 	QTime            lastUpdate;
 	uint             frameCount;

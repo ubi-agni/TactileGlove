@@ -30,7 +30,7 @@ private:
 	void paintEvent(QPaintEvent *event);
 	void update_svg();
 	bool event(QEvent *event);
-	int  channelAt(const QPoint &p);
+	std::pair<QString, int> pathAt(const QPoint &p);
 
 private:
 	QDomDocument  *qDomDocPtr;
@@ -40,9 +40,11 @@ private:
 	unsigned short iFillColorStartArray[NO_TAXELS];
 	unsigned short data[NO_TAXELS];
 	QVector<QString> pathNames;
+	QList<QString>   allPathNames;
 
 	QAction       *actShowChannels;
 	QAction       *actShowIDs;
+	QAction       *actShowAllIDs;
 	QTransform     viewTransform;
 };
 

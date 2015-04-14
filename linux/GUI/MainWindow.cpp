@@ -10,7 +10,7 @@
 #include <boost/bind.hpp>
 
 MainWindow::MainWindow(QWidget *parent) :
-   QMainWindow(parent), ui(new Ui::MainWindow),
+   QMainWindow(parent), ui(new Ui::MainWindow), iJointIdx(-1),
    input(0), frameCount(0), timerID(0), gloveWidget(0)
 {
 	bzero(frameData, sizeof(frameData));
@@ -37,7 +37,22 @@ MainWindow::~MainWindow()
 	delete ui;
 }
 
+void MainWindow::initJointBar(TaxelMapping &mapping) {
+	// do we have a joint value?
+	TaxelMapping::iterator it = mapping.find("bar");
+	if (it != mapping.end()) {
+		iJointIdx = it->second;
+		mapping.erase(it);
+	}
+	if (iJointIdx < 0 || iJointIdx >= NO_TAXELS) {
+		iJointIdx = -1;
+		ui->jointBar->deleteLater();
+	}
+}
+
 void MainWindow::initGloveWidget(const QString &layout, const TaxelMapping &mapping) {
+	initJointBar(const_cast<TaxelMapping&>(mapping));
+
 	QMutexLocker lock(&dataMutex);
 
 	if (gloveWidget) {
@@ -77,7 +92,7 @@ void MainWindow::timerEvent(QTimerEvent *event)
 	lock.unlock();
 
 	gloveWidget->update_data(data);
-	updateJointBar(data[14]);
+	if (iJointIdx >= 0) updateJointBar(data[iJointIdx]);
 	if (fps >= 0) ui->fps->setText(QString("%1 fps").arg(fps));
 }
 

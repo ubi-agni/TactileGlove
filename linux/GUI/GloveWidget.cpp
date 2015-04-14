@@ -42,9 +42,19 @@ GloveWidget::GloveWidget(const QString &sLayout, const TaxelMapping &mapping, QW
 	actShowIDs->setCheckable(true);
 	actShowIDs->setChecked(false);
 	connect(actShowIDs, SIGNAL(toggled(bool)), this, SLOT(update()));
+	actShowAllIDs = new QAction("show all SVG ids", this);
+	actShowAllIDs->setCheckable(true);
+	actShowAllIDs->setChecked(false);
+	connect(actShowAllIDs, SIGNAL(toggled(bool)), this, SLOT(update()));
+	// actShowIDs+actShowChannels are mutually exclusive with actShowAllIDs:
+	connect(actShowIDs, SIGNAL(toggled(bool)), actShowAllIDs, SLOT(setDisabled(bool)));
+	connect(actShowAllIDs, SIGNAL(toggled(bool)), actShowIDs, SLOT(setDisabled(bool)));
+	connect(actShowChannels, SIGNAL(toggled(bool)), actShowAllIDs, SLOT(setDisabled(bool)));
+	connect(actShowAllIDs, SIGNAL(toggled(bool)), actShowChannels, SLOT(setDisabled(bool)));
 
 	this->addAction(actShowChannels);
 	this->addAction(actShowIDs);
+	this->addAction(actShowAllIDs);
 	this->setContextMenuPolicy(Qt::ActionsContextMenu);
 
 	// create pathNames StringList from TaxelMapping
@@ -59,7 +69,7 @@ GloveWidget::GloveWidget(const QString &sLayout, const TaxelMapping &mapping, QW
 	qSvgRendererPtr = new QSvgRenderer (this);
 	QDomElement docElem = qDomDocPtr->documentElement();
 
-	/* Finding path elements */
+	/* Find path elements */
 	QDomNodeList paths = docElem.elementsByTagName("path");
 	QString fillKey="fill:#";
 	for (int i=0; i<paths.count(); ++i) {
@@ -68,8 +78,10 @@ GloveWidget::GloveWidget(const QString &sLayout, const TaxelMapping &mapping, QW
 		QDomNode nid = qmap.namedItem(QString("id"));
 		if (nid.isNull()) continue;
 
+		allPathNames.push_back(nid.nodeValue());
 		int idx = pathNames.indexOf(nid.nodeValue());
 		if (idx < 0) continue;
+
 		qDomNodeArray[idx] = qmap.namedItem(QString("style"));
 		sStyleStringArray[idx] = qDomNodeArray[idx].nodeValue();
 		iFillColorStartArray[idx] = sStyleStringArray[idx].indexOf(fillKey);
@@ -81,8 +93,10 @@ GloveWidget::GloveWidget(const QString &sLayout, const TaxelMapping &mapping, QW
 	}
 	/* check whether we found all path elements */
 	for (int i=0; i<pathNames.count(); ++i) {
-		if (!pathNames.at(i).isEmpty() && qDomNodeArray[i].isNull())
+		if (!pathNames.at(i).isEmpty() && qDomNodeArray[i].isNull()) {
 			cerr << "couldn't find a node named " << pathNames.at(i).toStdString() << endl;
+			pathNames[i] = "";
+		}
 	}
 	reset_data();
 
@@ -111,49 +125,68 @@ void GloveWidget::paintEvent(QPaintEvent * /*event*/)
 
 	qSvgRendererPtr->render(&painter, painter.window());
 
-	if (!actShowIDs->isChecked() &&
-	    !actShowChannels->isChecked())
-		return;
-
-	// show IDs/channels of taxels
 	QFont font = painter.font(); font.setPointSize(8);
 	painter.setFont(font);
 
-	int channel=1;
-	for (QVector<QString>::const_iterator it=pathNames.begin(), end=pathNames.end();
-	     it != end; ++it, ++channel) {
-		if (it->isEmpty()) continue;
-		QMatrix m = qSvgRendererPtr->matrixForElement(*it);
-		QRectF bounds = m.mapRect(qSvgRendererPtr->boundsOnElement(*it));
-		QString label = getLabel(channel, *it,
-		                         actShowChannels->isChecked(),
-		                         actShowIDs->isChecked());
-		painter.setPen(Qt::black);
-		painter.drawText(bounds.translated(1,1), Qt::AlignCenter, label);
-		painter.setPen(Qt::white);
-		painter.drawText(bounds, Qt::AlignCenter, label);
+	// show IDs/channels of taxels
+	if (actShowIDs->isEnabled() && actShowChannels->isEnabled() &&
+	    (actShowIDs->isChecked() || actShowChannels->isChecked())) {
+		int channel=1;
+		for (QVector<QString>::const_iterator it=pathNames.begin(), end=pathNames.end();
+				  it != end; ++it, ++channel) {
+			if (it->isEmpty()) continue;
+			QMatrix m = qSvgRendererPtr->matrixForElement(*it);
+			QRectF bounds = m.mapRect(qSvgRendererPtr->boundsOnElement(*it));
+			QString label = getLabel(channel, *it,
+											 actShowChannels->isChecked(),
+											 actShowIDs->isChecked());
+			painter.setPen(Qt::black);
+			painter.drawText(bounds.translated(1,1), Qt::AlignCenter, label);
+			painter.setPen(Qt::white);
+			painter.drawText(bounds, Qt::AlignCenter, label);
+		}
+	}
+
+	if (actShowAllIDs->isEnabled() && actShowAllIDs->isChecked()) {
+		for (QList<QString>::const_iterator it=allPathNames.begin(), end=allPathNames.end();
+		     it != end; ++it) {
+			QMatrix m = qSvgRendererPtr->matrixForElement(*it);
+			QRectF bounds = m.mapRect(qSvgRendererPtr->boundsOnElement(*it));
+			QString label = getLabel(0, *it, false, true);
+			painter.setPen(Qt::black);
+			painter.drawText(bounds.translated(1,1), Qt::AlignCenter, label);
+			painter.setPen(Qt::white);
+			painter.drawText(bounds, Qt::AlignCenter, label);
+		}
 	}
 }
 
-int  GloveWidget::channelAt(const QPoint &p) {
-	int channel=1;
+std::pair<QString, int> GloveWidget::pathAt(const QPoint &p) {
 	for (QVector<QString>::const_iterator it=pathNames.begin(), end=pathNames.end();
-	     it != end; ++it, ++channel) {
+	     it != end; ++it) {
 		if (it->isEmpty()) continue;
 		QMatrix m = qSvgRendererPtr->matrixForElement(*it);
 		QRectF bounds = m.mapRect(qSvgRendererPtr->boundsOnElement(*it));
-		if (bounds.contains(p)) return channel;
+		if (bounds.contains(p)) return make_pair(*it, pathNames.indexOf(*it));
 	}
-	return -1;
+	for (QList<QString>::const_iterator it=allPathNames.begin(), end=allPathNames.end();
+	     it != end; ++it) {
+		if (it->isEmpty()) continue;
+		QMatrix m = qSvgRendererPtr->matrixForElement(*it);
+		QRectF bounds = m.mapRect(qSvgRendererPtr->boundsOnElement(*it));
+		if (bounds.contains(p)) return make_pair(*it, -1);
+	}
+	return make_pair(QString(), -1);
 }
 
 bool GloveWidget::event(QEvent *event)
 {
 	if (event->type() == QEvent::ToolTip) {
 		QHelpEvent *helpEvent = static_cast<QHelpEvent *>(event);
-		int ch = channelAt(viewTransform.inverted().map(helpEvent->pos()));
-		if (ch != -1) {
-			QToolTip::showText(helpEvent->globalPos(), getLabel(ch, pathNames.at(ch-1)));
+		pair<QString, int> info = pathAt(viewTransform.inverted().map(helpEvent->pos()));
+		if (!info.first.isNull()) {
+			QToolTip::showText(helpEvent->globalPos(), getLabel(info.second+1, info.first,
+			                                                    info.second >= 0, true));
 		} else {
 			QToolTip::hideText();
 			event->ignore();

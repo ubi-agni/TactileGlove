@@ -88,7 +88,7 @@ bool handleCommandline(uint &inputMethod, std::string &sInput,
 	mapping.merge(configFileMapping);
 	if (map.count("mapping")) {
 		TaxelMapping cmdlineMapping;
-		boost::regex r("([._A-Za-z]*)=(\\d*)");
+		boost::regex r("([._A-Za-z0-9]*)=(\\d*)");
 		boost::smatch match;
 		BOOST_FOREACH(const std::string &s, map["mapping"].as< vector<string> >()) {
 			if (boost::regex_match(s, match, r))
