@@ -11,7 +11,7 @@
 
 MainWindow::MainWindow(QWidget *parent) :
    QMainWindow(parent), ui(new Ui::MainWindow),
-   input(0), frameCount(0), timerID(0)
+   input(0), frameCount(0), timerID(0), gloveWidget(0)
 {
 	bzero(frameData, sizeof(frameData));
 
@@ -24,8 +24,6 @@ MainWindow::MainWindow(QWidget *parent) :
 	ui->btnDisconnect->setEnabled(false);
 	ui->fps->hide();
 
-	ui->verticalLayout->insertWidget(0, gloveWidget = new GloveWidget);
-
 	connect(ui->updateTimeSpinBox, SIGNAL(valueChanged(int)), this, SLOT(setTimer(int)));
 	connect(ui->lambdaSpinBox, SIGNAL(valueChanged(double)), this, SLOT(setLambda(double)));
 }
@@ -37,6 +35,18 @@ MainWindow::~MainWindow()
 		delete input;
 	}
 	delete ui;
+}
+
+void MainWindow::initGloveWidget(const QString &layout, const TaxelMapping &mapping) {
+	QMutexLocker lock(&dataMutex);
+
+	if (gloveWidget) {
+		on_btnDisconnect_clicked();
+		ui->verticalLayout->removeWidget(gloveWidget);
+		delete gloveWidget;
+		gloveWidget = 0;
+	}
+	ui->verticalLayout->insertWidget(0, gloveWidget = new GloveWidget(layout, mapping));
 }
 
 void MainWindow::setTimer(int interval)
@@ -55,7 +65,7 @@ void MainWindow::timerEvent(QTimerEvent *event)
 {
 	if (event->timerId() != timerID) return;
 
-	dataMutex.lock();
+	QMutexLocker lock(&dataMutex);
 	unsigned short data[NO_TAXELS];
 	int fps = -1;
 	std::copy(frameData, frameData+NO_TAXELS, data);
@@ -63,7 +73,8 @@ void MainWindow::timerEvent(QTimerEvent *event)
 		fps = roundf (float(frameCount * 1000) / lastUpdate.restart());
 		frameCount = 0;
 	}
-	dataMutex.unlock();
+	if (!gloveWidget) return;
+	lock.unlock();
 
 	gloveWidget->update_data(data);
 	updateJointBar(data[14]);
@@ -72,14 +83,12 @@ void MainWindow::timerEvent(QTimerEvent *event)
 
 
 void MainWindow::updateData(const unsigned short *data) {
-	dataMutex.lock();
+	QMutexLocker lock(&dataMutex);
 
 	float alpha = 1.0 - lambda;
 	for (int i=0; i < NO_TAXELS; ++i)
 		frameData[i] = lambda * frameData[i] + alpha * data[i];
 	++frameCount;
-
-	dataMutex.unlock();
 }
 
 void MainWindow::updateJointBar(unsigned short value)

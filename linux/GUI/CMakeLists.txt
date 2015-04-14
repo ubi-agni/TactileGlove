@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 2.6)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}")
 find_package(Qt54 REQUIRED COMPONENTS Core Gui Svg Xml)
+find_package(Boost 1.38 REQUIRED COMPONENTS thread program_options regex)
 
 set(CMAKE_AUTOMOC ON)
 
@@ -25,6 +26,7 @@ add_executable(GloveViz ${SOURCES} ${FORM_SRC} ${RESOURCES})
 target_link_libraries(GloveViz
    ${QT_LIBRARIES}
    ${Boost_PROGRAM_OPTIONS_LIBRARY_RELEASE}
+   ${Boost_REGEX_LIBRARY_RELEASE}
    ${roscpp_LIBRARIES})
 
 install(TARGETS GloveViz RUNTIME DESTINATION bin)

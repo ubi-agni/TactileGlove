@@ -1,8 +1,10 @@
 #pragma once
 
+#include "TaxelMapping.h"
 #include <QWidget>
 #include <QDomNode>
 #include <QMutex>
+#include <QVector>
 
 #define NO_TAXELS 64
 
@@ -15,7 +17,9 @@ class GloveWidget : public QWidget
 {
 	Q_OBJECT
 public:
-	explicit GloveWidget(QWidget *parent = 0);
+	explicit GloveWidget(const QString& sLayout,
+	                     const TaxelMapping& mapping,
+	                     QWidget *parent = 0);
 	QSize sizeHint() const;
 
 public slots:
@@ -36,5 +40,6 @@ private:
 	QAction       *actShowIDs;
 	QTransform     viewTransform;
 	unsigned short data[NO_TAXELS];
+	QVector<QString> pathNames;
 };
 

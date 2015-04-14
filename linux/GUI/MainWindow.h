@@ -2,6 +2,7 @@
 
 #include <QMainWindow>
 #include <QTime>
+#include "TaxelMapping.h"
 #include "GloveWidget.h"
 
 namespace Ui {class MainWindow;}
@@ -15,6 +16,7 @@ public:
 	explicit MainWindow(QWidget *parent = 0);
 	~MainWindow();
 
+	void initGloveWidget(const QString &layout, const TaxelMapping& mapping);
 	void configSerial(const QString &sDevice);
 	void configROS(const QString &sTopic);
 	void configRandom();

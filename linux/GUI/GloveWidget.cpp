@@ -6,24 +6,10 @@
 #include <stdexcept>
 #include <assert.h>
 #include <iostream>
+#include <boost/format.hpp>
 
 using namespace std;
 
-static const QStringList& pathNames() {
-	static QStringList names;
-	if (names.isEmpty()) {
-		names << "" << "" << "" << "" << "" << "LF12" << "LF11" << "LF13" << "LF23" << "LF14" // 1..10
-		      << "LF21" << "LF22" << "LF32" << "LF31" << "" << "" << "FF12" << "FF11" << "FF14" << "FF23" // 11..20
-		      << "FF21" << "TH13" << "TH11" << "TH12" << "FF31" << "TH14" << "TH22" << "TH21" << "FF22" << "FF13" // 21..30
-		      << "FF32" << "RF23" << "RF13" << "RF12" << "RF11" << "RF22" << "RF21" << "MF23" << "MF21" << "MF11" // 31..40
-		      << "MF12" << "MF31" << "MF14" << "MF22" << "MF13" << "" << "RF14" << "RF31" << "PM34" << "PM32" // 41..50
-		      << "PM31" << "PM21" << "" << "PM14" << "PM11" << "PM13" << "PM44" << "PM41" << "PM43" << "PM12" // 51..60
-		      << "PM42" << "PM33" << "PM35" << ""; // 61..64
-		assert(names.size() == NO_TAXELS);
-		assert(QSet<QString>::fromList(names).size() == 54+1);
-	}
-	return names;
-}
 static QString getLabel(int channel, const QString &id, bool showChannel=true, bool showID=true) {
 	QString result;
 	if (showChannel) result.setNum(channel);
@@ -32,10 +18,11 @@ static QString getLabel(int channel, const QString &id, bool showChannel=true, b
 	return result;
 }
 
-GloveWidget::GloveWidget(QWidget *parent) : QWidget(parent)
+GloveWidget::GloveWidget(const QString &sLayout, const TaxelMapping &mapping, QWidget *parent)
+   : QWidget(parent)
 {
 	qDomDocPtr = new QDomDocument ("Sensorlayout");
-	QFile file(":P2");
+	QFile file(QString(":%1.svg").arg(sLayout));
 	if (!file.open(QIODevice::ReadOnly))
 		throw std::runtime_error("failed to open sensor layout");
 
@@ -59,6 +46,15 @@ GloveWidget::GloveWidget(QWidget *parent) : QWidget(parent)
 	this->addAction(actShowIDs);
 	this->setContextMenuPolicy(Qt::ActionsContextMenu);
 
+	// create pathNames StringList from TaxelMapping
+	pathNames.resize(NO_TAXELS);
+	for (TaxelMapping::const_iterator it=mapping.begin(), end=mapping.end();
+	     it!=end; ++it) {
+		if (it->second >= NO_TAXELS)
+			throw std::runtime_error(boost::str(boost::format("invalid taxel channel %s=%d")
+		                                       % it->first % it->second));
+		pathNames[it->second] = QString::fromStdString(it->first);
+	}
 	qSvgRendererPtr = new QSvgRenderer (this);
 	QDomElement docElem = qDomDocPtr->documentElement();
 
@@ -70,14 +66,14 @@ GloveWidget::GloveWidget(QWidget *parent) : QWidget(parent)
 		QDomNode nid = qmap.namedItem(QString("id"));
 		if (nid.isNull()) continue;
 
-		int idx = pathNames().indexOf(nid.nodeValue());
+		int idx = pathNames.indexOf(nid.nodeValue());
 		if (idx < 0) continue;
 		qDomNodeArray[idx] = qmap.namedItem(QString("style"));
 	}
 	/* check whether we found all path elements */
-	for (int i=0; i<pathNames().count(); ++i) {
-		if (!pathNames().at(i).isEmpty() && qDomNodeArray[i].isNull())
-			cerr << "couldn't find a node named " << pathNames().at(i).toStdString() << endl;
+	for (int i=0; i<pathNames.count(); ++i) {
+		if (!pathNames.at(i).isEmpty() && qDomNodeArray[i].isNull())
+			cerr << "couldn't find a node named " << pathNames.at(i).toStdString() << endl;
 	}
 	reset_data();
 
@@ -110,11 +106,12 @@ void GloveWidget::paintEvent(QPaintEvent * /*event*/)
 	    !actShowChannels->isChecked())
 		return;
 
+	// show IDs/channels of taxels
 	QFont font = painter.font(); font.setPointSize(8);
 	painter.setFont(font);
 
-	const QStringList IDs=pathNames(); int channel=1;
-	for (QStringList::const_iterator it=IDs.begin(), end=IDs.end();
+	int channel=1;
+	for (QVector<QString>::const_iterator it=pathNames.begin(), end=pathNames.end();
 	     it != end; ++it, ++channel) {
 		if (it->isEmpty()) continue;
 		QMatrix m = qSvgRendererPtr->matrixForElement(*it);
@@ -130,8 +127,8 @@ void GloveWidget::paintEvent(QPaintEvent * /*event*/)
 }
 
 int  GloveWidget::channelAt(const QPoint &p) {
-	const QStringList IDs=pathNames(); int channel=1;
-	for (QStringList::const_iterator it=IDs.begin(), end=IDs.end();
+	int channel=1;
+	for (QVector<QString>::const_iterator it=pathNames.begin(), end=pathNames.end();
 	     it != end; ++it, ++channel) {
 		if (it->isEmpty()) continue;
 		QMatrix m = qSvgRendererPtr->matrixForElement(*it);
@@ -147,7 +144,7 @@ bool GloveWidget::event(QEvent *event)
 		QHelpEvent *helpEvent = static_cast<QHelpEvent *>(event);
 		int ch = channelAt(viewTransform.inverted().map(helpEvent->pos()));
 		if (ch != -1) {
-			QToolTip::showText(helpEvent->globalPos(), getLabel(ch, pathNames().at(ch-1)));
+			QToolTip::showText(helpEvent->globalPos(), getLabel(ch, pathNames.at(ch-1)));
 		} else {
 			QToolTip::hideText();
 			event->ignore();
