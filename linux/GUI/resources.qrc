@@ -1,5 +1,6 @@
 <RCC>
     <qresource prefix="/">
-        <file>Sensorlayout04.svg</file>
+        <file alias="P2">SensorlayoutP2.svg</file>
+        <file alias="P3">SensorlayoutP3.svg</file>
     </qresource>
 </RCC>

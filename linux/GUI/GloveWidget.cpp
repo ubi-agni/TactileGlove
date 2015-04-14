@@ -35,7 +35,7 @@ static QString getLabel(int channel, const QString &id, bool showChannel=true, b
 GloveWidget::GloveWidget(QWidget *parent) : QWidget(parent)
 {
 	qDomDocPtr = new QDomDocument ("Sensorlayout");
-	QFile file(":Sensorlayout04.svg");
+	QFile file(":P2");
 	if (!file.open(QIODevice::ReadOnly))
 		throw std::runtime_error("failed to open sensor layout");
 
