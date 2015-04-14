@@ -61,30 +61,23 @@ GloveWidget::GloveWidget(QWidget *parent) : QWidget(parent)
 
 	qSvgRendererPtr = new QSvgRenderer (this);
 	QDomElement docElem = qDomDocPtr->documentElement();
-	QDomNode gRoot, gLevel1, pathlevel;
 
-	/* Finding nodes for the elements */
-	if ((gRoot = docElem.firstChildElement(QString ("g"))).isNull())
-		throw std::runtime_error("Invalid SVG document: no root node 'g'");
-
-	if ((gLevel1 = gRoot.firstChildElement(QString("g"))).isNull())
-		throw std::runtime_error("Invalid SVG document: no level-1 node 'g'");
-
-	if ((pathlevel = gLevel1.firstChildElement(QString("path"))).isNull())
-		throw std::runtime_error("Invalid SVG document: no path elements");
-
-	for (; !pathlevel.isNull(); pathlevel = pathlevel.nextSiblingElement("path")) {
-		QDomNamedNodeMap qmap = pathlevel.attributes();
+	/* Finding path elements */
+	QDomNodeList paths = docElem.elementsByTagName("path");
+	for (int i=0; i<paths.count(); ++i) {
+		QDomNode path = paths.at(i);
+		QDomNamedNodeMap qmap = path.attributes();
 		QDomNode nid = qmap.namedItem(QString("id"));
 		if (nid.isNull()) continue;
 
-		int i = pathNames().indexOf(nid.nodeValue());
-		if (i < 0) {
-			if (nid.nodeValue().length() == 4)
-				cerr << "didn't find node " << nid.nodeValue().toStdString();
-			continue;
-		}
-		qDomNodeArray[i] = qmap.namedItem(QString("style"));
+		int idx = pathNames().indexOf(nid.nodeValue());
+		if (idx < 0) continue;
+		qDomNodeArray[idx] = qmap.namedItem(QString("style"));
+	}
+	/* check whether we found all path elements */
+	for (int i=0; i<pathNames().count(); ++i) {
+		if (!pathNames().at(i).isEmpty() && qDomNodeArray[i].isNull())
+			cerr << "couldn't find a node named " << pathNames().at(i).toStdString() << endl;
 	}
 	reset_data();
 
