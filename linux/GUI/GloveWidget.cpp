@@ -6,7 +6,6 @@
 #include <stdexcept>
 #include <assert.h>
 #include <iostream>
-#include <boost/format.hpp>
 
 using namespace std;
 
@@ -52,61 +51,118 @@ GloveWidget::GloveWidget(const QString &sLayout, const TaxelMapping &mapping, QW
 	connect(actShowChannels, SIGNAL(toggled(bool)), actShowAllIDs, SLOT(setDisabled(bool)));
 	connect(actShowAllIDs, SIGNAL(toggled(bool)), actShowChannels, SLOT(setDisabled(bool)));
 
+	actSaveMapping = new QAction("save taxel mapping", this);
+	connect(actSaveMapping, SIGNAL(triggered()), this, SLOT(save_mapping()));
+
+	QAction* separator=new QAction(this); separator->setSeparator(true);
 	this->addAction(actShowChannels);
 	this->addAction(actShowIDs);
 	this->addAction(actShowAllIDs);
+	this->addAction(separator);
+	this->addAction(actSaveMapping);
 	this->setContextMenuPolicy(Qt::ActionsContextMenu);
 
-	// create pathNames StringList from TaxelMapping
-	pathNames.resize(NO_TAXELS);
-	for (TaxelMapping::const_iterator it=mapping.begin(), end=mapping.end();
-	     it!=end; ++it) {
-		if (it->second >= NO_TAXELS)
-			throw std::runtime_error(boost::str(boost::format("invalid taxel channel %s=%d")
-		                                       % it->first % it->second));
-		if (!pathNames[it->second].isNull())
-			cerr << "warning: channel " << it->second << ":"
-			     << pathNames[it->second].toStdString()
-			     << " will be overwritten with new node " << it->first << endl;
-		pathNames[it->second] = QString::fromStdString(it->first);
-	}
-	qSvgRendererPtr = new QSvgRenderer (this);
-	QDomElement docElem = qDomDocPtr->documentElement();
-
-	/* Find path elements */
-	QDomNodeList paths = docElem.elementsByTagName("path");
-	QString fillKey="fill:#";
+	// retrieve mapping from all node names to their style attribute items
+	QDomNodeList paths = qDomDocPtr->documentElement().elementsByTagName("path");
 	for (int i=0; i<paths.count(); ++i) {
 		QDomNode path = paths.at(i);
 		QDomNamedNodeMap qmap = path.attributes();
-		QDomNode nid = qmap.namedItem(QString("id"));
-		if (nid.isNull()) continue;
-
-		allPathNames.push_back(nid.nodeValue());
-		int idx = pathNames.indexOf(nid.nodeValue());
-		if (idx < 0) continue;
-
-		qDomNodeArray[idx] = qmap.namedItem(QString("style"));
-		sStyleStringArray[idx] = qDomNodeArray[idx].nodeValue();
-		iFillColorStartArray[idx] = sStyleStringArray[idx].indexOf(fillKey);
-		if (iFillColorStartArray[idx] == -1) {
-			// fillKey missing for node: add ourselves
-			iFillColorStartArray[idx] = sStyleStringArray[idx].length() + 1 + fillKey.length();
-			sStyleStringArray[idx].append(";fill:#ffffff");
-		} else iFillColorStartArray[idx] += fillKey.length();
+		QString name = qmap.namedItem(QString("id")).nodeValue();
+		QDomNode  sn = qmap.namedItem(QString("style"));
+		if (name.isEmpty() || sn.isNull()) continue;
+		allNodes[name] = sn;
 	}
-	/* check whether we found all requested path elements */
-	for (int i=0; i<pathNames.count(); ++i) {
-		if (!pathNames.at(i).isEmpty() && qDomNodeArray[i].isNull()) {
-			cerr << "couldn't find a node named " << pathNames.at(i).toStdString() << endl;
-			pathNames[i] = "";
-		}
+
+	// realize TaxelMapping
+	for (TaxelMapping::const_iterator it=mapping.begin(), end=mapping.end();
+	     it!=end; ++it) {
+		QString sName = QString::fromStdString(it->first);
+		if (!assign(sName, it->second))
+			cerr << "couldn't find a node named " << it->first << endl;
 	}
+
+	qSvgRendererPtr = new QSvgRenderer (this);
 	reset_data();
 
 	QSizePolicy sp(QSizePolicy::Preferred, QSizePolicy::Preferred);
 	sp.setHeightForWidth(true);
 	setSizePolicy(sp);
+}
+
+const QDomNode& GloveWidget::find(const QString &sNode) const {
+	static const QDomNode dummy;
+	StyleNodeMap::const_iterator it = allNodes.find(sNode);
+	if (it == allNodes.end()) return dummy; // not found
+	else return *it;
+}
+
+GloveWidget::TaxelInfo::TaxelInfo(unsigned short idx, const QDomNode &node)
+   : channel(idx), styleNode(node)
+{
+	static const QString fillKey="fill:#";
+
+	styleString = styleNode.nodeValue();
+	iFillStart = styleString.indexOf(fillKey);
+	if (iFillStart == -1) {
+		// fillKey missing for node: add ourselves
+		iFillStart = styleString.length() + 1 + fillKey.length();
+		styleString.append(";fill:#ffffff");
+	} else iFillStart += fillKey.length();
+}
+
+bool GloveWidget::assign(const QString &sName, int idx) {
+	const QDomNode &styleNode = find(sName);
+	if (styleNode.isNull()) return false;
+
+	if (idx < 0 || idx >= NO_TAXELS)
+		throw std::runtime_error(QString("invalid taxel channel %1=%2")
+	                            .arg(sName).arg(idx).toStdString());
+
+	taxels.insert(sName, TaxelInfo(idx, styleNode));
+	return true;
+}
+
+void GloveWidget::unassign(const QString &sName) {
+	taxels.remove(sName);
+}
+
+void GloveWidget::save_mapping()
+{
+	QString sFileName = QFileDialog::getSaveFileName(0, "save taxel mapping");
+	QFile file(sFileName);
+	if (!file.open(QFile::WriteOnly | QFile::Truncate)) {
+		QMessageBox::warning(this, "save taxel mapping",
+		                     QString("Failed to open file for writing:\n%1").arg(sFileName));
+		return;
+	}
+
+	QTextStream ts(&file);
+	// write associated mappings
+	unsigned int iWritten=0;
+	for (TaxelMap::const_iterator it=taxels.begin(), end=taxels.end(); it!=end; ++it) {
+		ts << it.key() << "=" << it->channel << endl;
+		++iWritten;
+	}
+	if (iWritten > NO_TAXELS / 2) return;
+
+	// write all node names
+	ts << endl;
+	for (StyleNodeMap::const_iterator it=allNodes.begin(), end=allNodes.end();
+	     it != end; ++it) {
+		if (it.key().isEmpty() || taxels.find(it.key()) != taxels.end()) continue;
+		ts << it.key() << "=" << endl;
+	}
+}
+
+void GloveWidget::edit_mapping(const QString& node, int channel)
+{
+	if (node.isEmpty()) return;
+	bool ok;
+	int newChannel = QInputDialog::getInt(this, "adapt taxel mapping", QString("Map %1 to channel:").arg(node),
+	                                      channel+1, 0, NO_TAXELS, 1, &ok);
+	if (!ok) return;
+	if (newChannel == 0) unassign(node);
+	else assign(node, newChannel-1);
 }
 
 QSize GloveWidget::sizeHint() const
@@ -135,13 +191,12 @@ void GloveWidget::paintEvent(QPaintEvent * /*event*/)
 	// show IDs/channels of taxels
 	if (actShowIDs->isEnabled() && actShowChannels->isEnabled() &&
 	    (actShowIDs->isChecked() || actShowChannels->isChecked())) {
-		int channel=1;
-		for (QVector<QString>::const_iterator it=pathNames.begin(), end=pathNames.end();
-				  it != end; ++it, ++channel) {
-			if (it->isEmpty()) continue;
-			QMatrix m = qSvgRendererPtr->matrixForElement(*it);
-			QRectF bounds = m.mapRect(qSvgRendererPtr->boundsOnElement(*it));
-			QString label = getLabel(channel, *it,
+		for (TaxelMap::const_iterator it=taxels.begin(), end=taxels.end();
+				  it != end; ++it) {
+			const QString &sName = it.key();
+			QMatrix m = qSvgRendererPtr->matrixForElement(sName);
+			QRectF bounds = m.mapRect(qSvgRendererPtr->boundsOnElement(sName));
+			QString label = getLabel(it->channel+1, sName,
 											 actShowChannels->isChecked(),
 											 actShowIDs->isChecked());
 			painter.setPen(Qt::black);
@@ -152,11 +207,12 @@ void GloveWidget::paintEvent(QPaintEvent * /*event*/)
 	}
 
 	if (actShowAllIDs->isEnabled() && actShowAllIDs->isChecked()) {
-		for (QList<QString>::const_iterator it=allPathNames.begin(), end=allPathNames.end();
+		for (StyleNodeMap::const_iterator it=allNodes.begin(), end=allNodes.end();
 		     it != end; ++it) {
-			QMatrix m = qSvgRendererPtr->matrixForElement(*it);
-			QRectF bounds = m.mapRect(qSvgRendererPtr->boundsOnElement(*it));
-			QString label = getLabel(0, *it, false, true);
+			const QString &sName = it.key();
+			QMatrix m = qSvgRendererPtr->matrixForElement(sName);
+			QRectF bounds = m.mapRect(qSvgRendererPtr->boundsOnElement(sName));
+			QString label = getLabel(0, sName, false, true);
 			painter.setPen(Qt::black);
 			painter.drawText(bounds.translated(1,1), Qt::AlignCenter, label);
 			painter.setPen(Qt::white);
@@ -166,29 +222,31 @@ void GloveWidget::paintEvent(QPaintEvent * /*event*/)
 }
 
 std::pair<QString, int> GloveWidget::pathAt(const QPoint &p) {
-	for (QVector<QString>::const_iterator it=pathNames.begin(), end=pathNames.end();
+	for (TaxelMap::const_iterator it=taxels.begin(), end=taxels.end();
 	     it != end; ++it) {
-		if (it->isEmpty()) continue;
-		QMatrix m = qSvgRendererPtr->matrixForElement(*it);
-		QRectF bounds = m.mapRect(qSvgRendererPtr->boundsOnElement(*it));
-		if (bounds.contains(p)) return make_pair(*it, pathNames.indexOf(*it));
+		const QString &sName = it.key();
+		QMatrix m = qSvgRendererPtr->matrixForElement(sName);
+		QRectF bounds = m.mapRect(qSvgRendererPtr->boundsOnElement(sName));
+		if (bounds.contains(p)) return make_pair(sName, it->channel);
 	}
-	for (QList<QString>::const_iterator it=allPathNames.begin(), end=allPathNames.end();
+	for (StyleNodeMap::const_iterator it=allNodes.begin(), end=allNodes.end();
 	     it != end; ++it) {
-		if (it->isEmpty()) continue;
-		QMatrix m = qSvgRendererPtr->matrixForElement(*it);
-		QRectF bounds = m.mapRect(qSvgRendererPtr->boundsOnElement(*it));
-		if (bounds.contains(p)) return make_pair(*it, -1);
+		const QString &sName = it.key();
+		if (sName.isEmpty()) continue;
+		QMatrix m = qSvgRendererPtr->matrixForElement(sName);
+		QRectF bounds = m.mapRect(qSvgRendererPtr->boundsOnElement(sName));
+		if (bounds.contains(p)) return make_pair(sName, -1);
 	}
 	return make_pair(QString(), -1);
 }
 
 bool GloveWidget::event(QEvent *event)
 {
-	if (event->type() == QEvent::ToolTip) {
+	switch(event->type()) {
+	case QEvent::ToolTip: {
 		QHelpEvent *helpEvent = static_cast<QHelpEvent *>(event);
 		pair<QString, int> info = pathAt(viewTransform.inverted().map(helpEvent->pos()));
-		if (!info.first.isNull()) {
+		if (!info.first.isEmpty()) {
 			QToolTip::showText(helpEvent->globalPos(), getLabel(info.second+1, info.first,
 			                                                    info.second >= 0, true));
 		} else {
@@ -196,6 +254,15 @@ bool GloveWidget::event(QEvent *event)
 			event->ignore();
 		}
 		return true;
+	}
+	case QEvent::MouseButtonDblClick:
+		QMouseEvent *mouseEvent = static_cast <QMouseEvent *>(event);
+		if (mouseEvent->button() == Qt::LeftButton) {
+			pair<QString, int> info = pathAt(viewTransform.inverted().map(mouseEvent->pos()));
+			edit_mapping(info.first, info.second);
+			return true;
+		}
+		break;
 	}
 	return QWidget::event(event);
 }
@@ -223,10 +290,8 @@ void GloveWidget::reset_data()
 void GloveWidget::update_svg()
 {
 	static const QString fmt("%1");
-	for (int i=0; i < NO_TAXELS; ++i) {
-		if (qDomNodeArray[i].isNull()) continue;
-
-		unsigned int temp = data[i];
+	for (TaxelMap::iterator it=taxels.begin(), end=taxels.end(); it!=end; ++it) {
+		unsigned int temp = data[it->channel];
 		unsigned int color;
 
 		if (temp > 4095) temp = 4095;
@@ -239,9 +304,8 @@ void GloveWidget::update_svg()
 				color = 0x100*(0xff - (1000*(temp-2730) / 5353)) + 0xff0000;
 		}
 		// replace color string in style string
-		sStyleStringArray[i].replace(iFillColorStartArray[i], 6,
-		                             fmt.arg(color, 6, 16, QLatin1Char('0')));
-		qDomNodeArray[i].setNodeValue(sStyleStringArray[i]);
+		it->styleString.replace(it->iFillStart, 6, fmt.arg(color, 6, 16, QLatin1Char('0')));
+		it->styleNode.setNodeValue(it->styleString);
 	}
 	qSvgRendererPtr->load(qDomDocPtr->toByteArray());
 	update();
