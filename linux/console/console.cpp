@@ -100,7 +100,7 @@ int main(int argc, char **argv)
 
 #if HAVE_ROS
 	if (outflags & OUTPUT_ROS)
-		ros::init (argc, argv, "tactile_glove_server");
+		ros::init (argc, argv, "tactile_glove");
 #endif
 	signal(SIGINT, mySigIntHandler);
 
@@ -215,7 +215,7 @@ void publishToROS(const unsigned short data[]) {
 #if HAVE_ROS
 	static bool bInitialized = false;
 	static ros::NodeHandle   rosNodeHandle; //< node handle
-	static ros::Publisher    rosPublisher;  //< joint publisher
+	static ros::Publisher    rosPublisher;  //< publisher
 	static std_msgs::UInt16MultiArray msg;
 
 	if (!bInitialized) {

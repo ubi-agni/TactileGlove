@@ -64,6 +64,10 @@ GloveWidget::GloveWidget(const QString &sLayout, const TaxelMapping &mapping, QW
 		if (it->second >= NO_TAXELS)
 			throw std::runtime_error(boost::str(boost::format("invalid taxel channel %s=%d")
 		                                       % it->first % it->second));
+		if (!pathNames[it->second].isNull())
+			cerr << "warning: channel " << it->second << ":"
+			     << pathNames[it->second].toStdString()
+			     << " will be overwritten with new node " << it->first << endl;
 		pathNames[it->second] = QString::fromStdString(it->first);
 	}
 	qSvgRendererPtr = new QSvgRenderer (this);
@@ -91,7 +95,7 @@ GloveWidget::GloveWidget(const QString &sLayout, const TaxelMapping &mapping, QW
 			sStyleStringArray[idx].append(";fill:#ffffff");
 		} else iFillColorStartArray[idx] += fillKey.length();
 	}
-	/* check whether we found all path elements */
+	/* check whether we found all requested path elements */
 	for (int i=0; i<pathNames.count(); ++i) {
 		if (!pathNames.at(i).isEmpty() && qDomNodeArray[i].isNull()) {
 			cerr << "couldn't find a node named " << pathNames.at(i).toStdString() << endl;
