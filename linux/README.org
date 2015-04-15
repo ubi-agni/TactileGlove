@@ -1,26 +1,34 @@
-Tactile Glove software
-
-* required dependencies
+* Tactile Glove software
+** required dependencies
 - boost::program_options
 - boost::thread
+- boost::regex
 
-* optional dependencies
+** optional dependencies
 - Qt4 or Qt5 with QtSVG (for visualization)
 - ncurses (for nice console output)
 - ROS (for ROS support)
 
-* Usage
+** Usage
 The software is split in two parts: a console program and a GUI program (in corresponding sub dirs).
 
-** console
+*** console
 The console program supports two output modes
 - console
 - ROS publisher (to topic /TactileGlove)
 
-** GloveViz GUI
+*** GloveViz GUI
 The GUI program correspondingly supports several input modes, that are choose on the command line
 - read directly from serial device
 - read from ROS publisher (topic /TactileGlove)
 - generate random values (for testing purposes)
 
 If no ROS/catkin environment is found during build, ROS support will be disabled.
+
+As the glove comes in different variants, it's possible to chose the taxel layout 
+as well as the mapping of taxels to individual data channels.
+To this end, the GloveViz GUI uses svg files describing the layout and a taxel.cfg file
+describing the mapping from svg node IDs to data channels. Both files are compiled into the binary.
+However, you can also specify your own or modify the existing mapping on the commandline,
+either loading an own mapping file with option =-c mapping.ini= or specifying individual mapping like so: =name=channel=.
+
