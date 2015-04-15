@@ -26,17 +26,21 @@ public:
 public slots:
 	void update_data(unsigned short* data);
 	void reset_data();
+	void save_svg();
 	void save_mapping();
-	void edit_mapping(const QString &node, int channel);
+	void edit_mapping(QString node, int channel);
 
 private:
-	const QDomNode &find(const QString &sNode) const;
+	int findPathNodeIndex(const QString &sName) const;
+	QDomNode findStyleNode(const QString &sName) const;
 	bool assign(const QString &sName, int idx);
 	void unassign(const QString &sName);
 
-	void paintEvent(QPaintEvent *event);
-	void update_svg();
 	bool event(QEvent *event);
+	void paintEvent(QPaintEvent *event);
+	void mouseDoubleClickEvent(QMouseEvent *event);
+
+	void update_svg();
 	std::pair<QString, int> pathAt(const QPoint &p);
 
 private:
@@ -55,14 +59,14 @@ private:
 
 	typedef QMap<QString, TaxelInfo> TaxelMap;
 	TaxelMap       taxels;
-	typedef QMap<QString, QDomNode>  StyleNodeMap;
-	StyleNodeMap   allNodes;
+	typedef QList<std::pair<QString, QDomNode> > PathList;
+	PathList       allNodes;
 
 	QAction       *actShowChannels;
 	QAction       *actShowIDs;
 	QAction       *actShowAllIDs;
-	QAction       *actRemap;
 	QAction       *actSaveMapping;
+	QAction       *actSaveSVG;
 	QTransform     viewTransform;
 };
 
