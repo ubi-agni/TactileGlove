@@ -19,7 +19,9 @@ else()
 endif()
 
 add_definitions(${QT_DEFINITIONS})
-include_directories(${CMAKE_CURRENT_BINARY_DIR} ${QT_INCLUDES})
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}
+                    ${CMAKE_CURRENT_BINARY_DIR}
+                    ${QT_INCLUDES})
 
 add_executable(GloveViz ${SOURCES} ${FORM_SRC} ${RESOURCES})
 
