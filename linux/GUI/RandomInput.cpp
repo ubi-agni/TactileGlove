@@ -48,8 +48,9 @@ void RandomInput::timerEvent(QTimerEvent *event)
 
 	for (int i=0; i < NO_TAXELS; ++i) {
 		long int rndnumber = random();
+		int scale = (i==0) ? 1 : 10;
 		if (rndnumber < (RAND_MAX / 2)) /* only give new value 50% of time */
-			data[i] = rndnumber & 0xFFF;
+			data[i] = (rndnumber & 0xFFF) / scale;
 	}
 
 	updateFunc(data);
