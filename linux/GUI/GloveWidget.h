@@ -1,6 +1,8 @@
 #pragma once
 
 #include "TaxelMapping.h"
+#include "ui_GloveWidget.h"
+
 #include <QWidget>
 #include <QDomNode>
 #include <QMutex>
@@ -13,9 +15,8 @@
 class QDomDocument;
 class QDomNode;
 class QSvgRenderer;
-class QAction;
 
-class GloveWidget : public QWidget
+class GloveWidget : public QWidget, private Ui::GloveWidget
 {
 	Q_OBJECT
 public:
@@ -100,15 +101,8 @@ private:
 	unsigned int   numNoTaxelNodes;
 	QSet<QString>  highlighted;
 
-	QAction       *actShowChannels;
-	QAction       *actShowIDs;
-	QAction       *actShowAllIDs;
-	QAction       *actConfMap;
-	QAction       *actSaveMapping;
-	QAction       *actSaveSVG;
 	QList<QAction*> _fileActions;
 	QList<QAction*> _optionActions;
 
 	QTransform     viewTransform;
 };
-

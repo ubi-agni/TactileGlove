@@ -1,0 +1,206 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>GloveWidget</class>
+ <widget class="QWidget" name="GloveWidget">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>400</width>
+    <height>300</height>
+   </rect>
+  </property>
+  <property name="focusPolicy">
+   <enum>Qt::StrongFocus</enum>
+  </property>
+  <property name="contextMenuPolicy">
+   <enum>Qt::ActionsContextMenu</enum>
+  </property>
+  <property name="windowTitle">
+   <string>Form</string>
+  </property>
+  <action name="actShowChannels">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>show channels</string>
+   </property>
+   <property name="shortcut">
+    <string>C</string>
+   </property>
+  </action>
+  <action name="actShowIDs">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>show node names</string>
+   </property>
+   <property name="toolTip">
+    <string>show names of SVG path nodes</string>
+   </property>
+   <property name="shortcut">
+    <string>N</string>
+   </property>
+  </action>
+  <action name="actShowAllIDs">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>show all node names</string>
+   </property>
+   <property name="toolTip">
+    <string>show all SVG path names</string>
+   </property>
+  </action>
+  <action name="actConfMap">
+   <property name="text">
+    <string>create taxel mapping</string>
+   </property>
+   <property name="toolTip">
+    <string>configure dangling taxels</string>
+   </property>
+  </action>
+  <action name="actSaveMapping">
+   <property name="icon">
+    <iconset theme="document-save">
+     <normaloff/>
+    </iconset>
+   </property>
+   <property name="text">
+    <string>save taxel mapping</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+S</string>
+   </property>
+  </action>
+  <action name="actSaveSVG">
+   <property name="text">
+    <string>save sensor layout</string>
+   </property>
+   <property name="toolTip">
+    <string>save current view as SVG</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Shift+S</string>
+   </property>
+  </action>
+ </widget>
+ <resources/>
+ <connections>
+  <connection>
+   <sender>actShowIDs</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>actShowAllIDs</receiver>
+   <slot>setDisabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actShowAllIDs</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>actShowIDs</receiver>
+   <slot>setDisabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actShowChannels</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>actShowAllIDs</receiver>
+   <slot>setDisabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actShowAllIDs</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>actShowChannels</receiver>
+   <slot>setDisabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actShowIDs</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>GloveWidget</receiver>
+   <slot>update()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>199</x>
+     <y>149</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actShowChannels</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>GloveWidget</receiver>
+   <slot>update()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>199</x>
+     <y>149</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actShowAllIDs</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>GloveWidget</receiver>
+   <slot>update()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>199</x>
+     <y>149</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
+</ui>

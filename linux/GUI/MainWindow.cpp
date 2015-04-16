@@ -63,9 +63,12 @@ void MainWindow::initGloveWidget(const QString &layout, const TaxelMapping &mapp
 		gloveWidget = 0;
 	}
 	ui->verticalLayout->insertWidget(0, gloveWidget = new GloveWidget(layout, mapping));
+
 	ui->menuFile->addActions(gloveWidget->fileActions());
 	ui->menuOptions->addActions(gloveWidget->optionActions());
 	ui->menuFile->addAction(ui->actionQuit);
+
+	gloveWidget->setFocus();
 }
 
 void MainWindow::setTimer(int interval)

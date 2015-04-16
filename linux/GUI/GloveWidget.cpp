@@ -24,6 +24,7 @@ GloveWidget::GloveWidget(const QString &sLayout, const TaxelMapping &mapping, QW
    : QWidget(parent), bDirtyDoc(false), bDirtyMapping(false),
      numNoTaxelNodes(0), bMonitorTaxel(false)
 {
+	setupUi(this);
 	qDomDocPtr = new QDomDocument (sLayout);
 	QFile file(sLayout);
 	if (!file.exists()) file.setFileName(QString(":%1.svg").arg(sLayout));
@@ -37,29 +38,8 @@ GloveWidget::GloveWidget(const QString &sLayout, const TaxelMapping &mapping, QW
 	}
 	file.close();
 
-	actShowChannels = new QAction("show channels", this);
-	actShowChannels->setCheckable(true);
-	actShowChannels->setChecked(false);
-	connect(actShowChannels, SIGNAL(toggled(bool)), this, SLOT(update()));
-	actShowIDs = new QAction("show SVG ids", this);
-	actShowIDs->setCheckable(true);
-	actShowIDs->setChecked(false);
-	connect(actShowIDs, SIGNAL(toggled(bool)), this, SLOT(update()));
-	actShowAllIDs = new QAction("show all SVG ids", this);
-	actShowAllIDs->setCheckable(true);
-	actShowAllIDs->setChecked(false);
-	connect(actShowAllIDs, SIGNAL(toggled(bool)), this, SLOT(update()));
-	// actShowIDs+actShowChannels are mutually exclusive with actShowAllIDs:
-	connect(actShowIDs, SIGNAL(toggled(bool)), actShowAllIDs, SLOT(setDisabled(bool)));
-	connect(actShowAllIDs, SIGNAL(toggled(bool)), actShowIDs, SLOT(setDisabled(bool)));
-	connect(actShowChannels, SIGNAL(toggled(bool)), actShowAllIDs, SLOT(setDisabled(bool)));
-	connect(actShowAllIDs, SIGNAL(toggled(bool)), actShowChannels, SLOT(setDisabled(bool)));
-
-	actConfMap = new QAction("create taxel mapping", this);
 	connect(actConfMap, SIGNAL(triggered()), this, SLOT(configureMapping()));
-	actSaveMapping = new QAction(QIcon::fromTheme("document-save"), "save taxel mapping", this);
 	connect(actSaveMapping, SIGNAL(triggered()), this, SLOT(saveMapping()));
-	actSaveSVG = new QAction(QIcon::fromTheme("document-save"), "save SVG", this);
 	connect(actSaveSVG, SIGNAL(triggered()), this, SLOT(saveSVG()));
 
 	QAction* separator=new QAction(this); separator->setSeparator(true);
@@ -68,7 +48,6 @@ GloveWidget::GloveWidget(const QString &sLayout, const TaxelMapping &mapping, QW
 	this->_fileActions << actSaveMapping << actSaveSVG;
 	this->addActions(_optionActions);
 	this->addActions(_fileActions);
-	this->setContextMenuPolicy(Qt::ActionsContextMenu);
 
 	// retrieve mapping from all node names to their style attribute items
 	QDomNodeList paths = qDomDocPtr->documentElement().elementsByTagName("path");
