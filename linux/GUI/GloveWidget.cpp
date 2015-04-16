@@ -10,16 +10,19 @@
 
 using namespace std;
 
+static const QString fillKey="fill:#";
+
 static QString getLabel(int channel, const QString &id, bool showChannel=true, bool showID=true) {
 	QString result;
-	if (showChannel) result.setNum(channel);
+	if (showChannel) result.setNum(channel+1);
 	if (showChannel && showID) result.append(": ");
 	if (showID) result.append(id);
 	return result;
 }
 
 GloveWidget::GloveWidget(const QString &sLayout, const TaxelMapping &mapping, QWidget *parent)
-   : QWidget(parent)
+   : QWidget(parent), bDirtyDoc(false), bDirtyMapping(false),
+     numNoTaxelNodes(0), bMonitorTaxel(false)
 {
 	qDomDocPtr = new QDomDocument (sLayout);
 	QFile file(sLayout);
@@ -52,18 +55,19 @@ GloveWidget::GloveWidget(const QString &sLayout, const TaxelMapping &mapping, QW
 	connect(actShowChannels, SIGNAL(toggled(bool)), actShowAllIDs, SLOT(setDisabled(bool)));
 	connect(actShowAllIDs, SIGNAL(toggled(bool)), actShowChannels, SLOT(setDisabled(bool)));
 
-	actSaveMapping = new QAction("save taxel mapping", this);
-	connect(actSaveMapping, SIGNAL(triggered()), this, SLOT(save_mapping()));
-	actSaveSVG = new QAction("save SVG", this);
-	connect(actSaveSVG, SIGNAL(triggered()), this, SLOT(save_svg()));
+	actConfMap = new QAction("create taxel mapping", this);
+	connect(actConfMap, SIGNAL(triggered()), this, SLOT(configureMapping()));
+	actSaveMapping = new QAction(QIcon::fromTheme("document-save"), "save taxel mapping", this);
+	connect(actSaveMapping, SIGNAL(triggered()), this, SLOT(saveMapping()));
+	actSaveSVG = new QAction(QIcon::fromTheme("document-save"), "save SVG", this);
+	connect(actSaveSVG, SIGNAL(triggered()), this, SLOT(saveSVG()));
 
 	QAction* separator=new QAction(this); separator->setSeparator(true);
-	this->addAction(actShowChannels);
-	this->addAction(actShowIDs);
-	this->addAction(actShowAllIDs);
-	this->addAction(separator);
-	this->addAction(actSaveMapping);
-	this->addAction(actSaveSVG);
+	this->_optionActions << actShowChannels << actShowIDs << actShowAllIDs;
+	this->_optionActions << separator << actConfMap;
+	this->_fileActions << actSaveMapping << actSaveSVG;
+	this->addActions(_optionActions);
+	this->addActions(_fileActions);
 	this->setContextMenuPolicy(Qt::ActionsContextMenu);
 
 	// retrieve mapping from all node names to their style attribute items
@@ -74,6 +78,7 @@ GloveWidget::GloveWidget(const QString &sLayout, const TaxelMapping &mapping, QW
 		QString name = qmap.namedItem("id").nodeValue();
 		QDomNode  sn = qmap.namedItem("style");
 		if (name.isEmpty() || sn.isNull()) continue;
+		numNoTaxelNodes += name.startsWith("path");
 		allNodes.push_front(make_pair(name, path));
 	}
 
@@ -84,9 +89,11 @@ GloveWidget::GloveWidget(const QString &sLayout, const TaxelMapping &mapping, QW
 		if (!assign(sName, it->second))
 			cerr << "couldn't find a node named " << it->first << endl;
 	}
+	bDirtyMapping = false;
+	actConfMap->setEnabled(allNodes.size() - numNoTaxelNodes > taxels.size());
 
 	qSvgRendererPtr = new QSvgRenderer (this);
-	reset_data();
+	resetData();
 
 	QSizePolicy sp(QSizePolicy::Preferred, QSizePolicy::Preferred);
 	sp.setHeightForWidth(true);
@@ -112,8 +119,6 @@ QDomNode GloveWidget::findStyleNode(const QString &sName) const
 GloveWidget::TaxelInfo::TaxelInfo(unsigned short idx, const QDomNode &node)
    : channel(idx), styleNode(node)
 {
-	static const QString fillKey="fill:#";
-
 	styleString = styleNode.nodeValue();
 	iFillStart = styleString.indexOf(fillKey);
 	if (iFillStart == -1) {
@@ -132,14 +137,15 @@ bool GloveWidget::assign(const QString &sName, int idx) {
 	                            .arg(sName).arg(idx).toStdString());
 
 	taxels.insert(sName, TaxelInfo(idx, styleNode));
+	bDirtyMapping = true;
 	return true;
 }
 
 void GloveWidget::unassign(const QString &sName) {
-	taxels.remove(sName);
+	if (taxels.remove(sName) > 0) bDirtyMapping = true;
 }
 
-void GloveWidget::save_svg()
+void GloveWidget::saveSVG()
 {
 	QString sFileName = QFileDialog::getSaveFileName(0, "save sensor layout",
 	                                                 qDomDocPtr->nodeValue(), "*.svg");
@@ -157,9 +163,10 @@ void GloveWidget::save_svg()
 	QTextStream ts(&file);
 	qDomDocPtr->save(ts, 2);
 	qDomDocPtr->setNodeValue(sFileName);
+	bDirtyDoc = false;
 }
 
-void GloveWidget::save_mapping()
+void GloveWidget::saveMapping()
 {
 	QString sFileName = QFileDialog::getSaveFileName(0, "save taxel mapping");
 	QFile file(sFileName);
@@ -182,6 +189,7 @@ void GloveWidget::save_mapping()
 		ts << it->second << "=" << it->first << endl;
 		++iWritten;
 	}
+	bDirtyMapping = false;
 	if (iWritten > NO_TAXELS / 2) return;
 
 	// write all other node names
@@ -189,16 +197,42 @@ void GloveWidget::save_mapping()
 	for (PathList::const_iterator it=allNodes.begin(), end=allNodes.end();
 	     it != end; ++it) {
 		const QString &key = it->first;
-		if (key.isEmpty() || taxels.find(key) != taxels.end()) continue;
+		if (key.isEmpty() || getTaxelChannel(key) != -1) continue;
 		ts << key << "=" << endl;
 	}
 }
 
-void GloveWidget::edit_mapping(QString node, int channel)
+bool GloveWidget::canClose()
+{
+	if (bDirtyDoc || bDirtyMapping) {
+		QMessageBox::StandardButton result
+		      = QMessageBox::warning(this, "Unsaved changes",
+		                             "You have unsaved changes. Close anyway?",
+		                             QMessageBox::Save | QMessageBox::Ok | QMessageBox::Cancel,
+		                             QMessageBox::Cancel);
+		if (result == QMessageBox::Save) {
+			if (bDirtyDoc) saveSVG();
+			if (bDirtyMapping) saveMapping();
+		}
+		if (result == QMessageBox::Cancel)
+			return false;
+	}
+	return true;
+}
+
+void GloveWidget::editMapping(QString node, int channel)
 {
 	if (node.isEmpty()) return;
+	QString oldStyle=highlight(node);
+
 	MappingDialog dlg(node, channel, this);
-	if (dlg.exec() != QDialog::Accepted) return;
+	connect(this, SIGNAL(pushedTaxel(int)), &dlg, SLOT(setChannel(int)));
+	setMonitorEnabled(channel < 0);
+
+	int res = dlg.exec(); setMonitorEnabled(false);
+	restore(node, oldStyle);
+
+	if (res != QDialog::Accepted) return;
 
 	QString newName = dlg.name().trimmed();
 	if (node != dlg.name() && !newName.isEmpty()) {
@@ -216,16 +250,51 @@ void GloveWidget::edit_mapping(QString node, int channel)
 			taxels.erase(it);
 		}
 		// changing allNodes is simpler: we simply change the name
-		allNodes[idx].first = newName;
-		update_svg();
+		allNodes[idx].first = node = newName;
+		updateSVG();
+		bDirtyDoc = true;
+		if (newName.startsWith("path") ^ node.startsWith("path"))
+			numNoTaxelNodes += newName.startsWith("path") ? 1 : -1;
 	}
-	if (dlg.channel() < 0) unassign(node);
-	else assign(node, dlg.channel());
+	if (getTaxelChannel(node) != dlg.channel()) {
+		if (dlg.channel() < 0) unassign(node);
+		else assign(node, dlg.channel());
+	}
+	actConfMap->setEnabled(allNodes.size() - numNoTaxelNodes > taxels.size());
+}
+
+void GloveWidget::setMonitorEnabled(bool bEnable)
+{
+	bMonitorTaxel = bEnable;
+	bzero(accumulated, sizeof(accumulated));
+}
+
+void GloveWidget::configureMapping()
+{
+	for (PathList::const_iterator it=allNodes.begin(), end=allNodes.end();
+	     it != end; ++it) {
+		// ignore nodes named path*
+		if (it->first.startsWith("path")) continue;
+		// and nodes already assigned
+		if (getTaxelChannel(it->first) >= 0) continue;
+
+		editMapping(it->first, -1);
+	}
 }
 
 QSize GloveWidget::sizeHint() const
 {
 	return qSvgRendererPtr->defaultSize();
+}
+
+const QList<QAction*>& GloveWidget::fileActions() const
+{
+	return _fileActions;
+}
+
+const QList<QAction*>& GloveWidget::optionActions() const
+{
+	return _optionActions;
 }
 
 void GloveWidget::paintEvent(QPaintEvent * /*event*/)
@@ -254,7 +323,7 @@ void GloveWidget::paintEvent(QPaintEvent * /*event*/)
 			const QString &sName = it.key();
 			QMatrix m = qSvgRendererPtr->matrixForElement(sName);
 			QRectF bounds = m.mapRect(qSvgRendererPtr->boundsOnElement(sName));
-			QString label = getLabel(it->channel+1, sName,
+			QString label = getLabel(it->channel, sName,
 											 actShowChannels->isChecked(),
 											 actShowIDs->isChecked());
 			painter.setPen(Qt::black);
@@ -282,38 +351,40 @@ void GloveWidget::paintEvent(QPaintEvent * /*event*/)
 void GloveWidget::mouseDoubleClickEvent(QMouseEvent *event)
 {
 	if (event->button() == Qt::LeftButton) {
-		pair<QString, int> info = pathAt(viewTransform.inverted().map(event->pos()));
-		edit_mapping(info.first, info.second);
+		QString sName = pathAt(viewTransform.inverted().map(event->pos()));
+		editMapping(sName, getTaxelChannel(sName));
 	}
 }
 
-std::pair<QString, int> GloveWidget::pathAt(const QPoint &p) {
-	for (TaxelMap::const_iterator it=taxels.begin(), end=taxels.end();
-	     it != end; ++it) {
-		const QString &sName = it.key();
-		QMatrix m = qSvgRendererPtr->matrixForElement(sName);
-		QRectF bounds = m.mapRect(qSvgRendererPtr->boundsOnElement(sName));
-		if (bounds.contains(p)) return make_pair(sName, it->channel);
-	}
+QString GloveWidget::pathAt(const QPoint &p) {
 	for (PathList::const_iterator it=allNodes.begin(), end=allNodes.end();
 	     it != end; ++it) {
 		const QString &sName = it->first;
 		if (sName.isEmpty()) continue;
 		QMatrix m = qSvgRendererPtr->matrixForElement(sName);
 		QRectF bounds = m.mapRect(qSvgRendererPtr->boundsOnElement(sName));
-		if (bounds.contains(p)) return make_pair(sName, -1);
+		if (bounds.contains(p)) return sName;
 	}
-	return make_pair(QString(), -1);
+	return QString();
+}
+
+int GloveWidget::getTaxelChannel(const QString &sName) const
+{
+	if (sName.isEmpty()) return -1;
+	TaxelMap::const_iterator it = taxels.find(sName);
+	if (it == taxels.end()) return -1;
+	return it->channel;
 }
 
 bool GloveWidget::event(QEvent *event)
 {
 	if (event->type() == QEvent::ToolTip) {
 		QHelpEvent *helpEvent = static_cast<QHelpEvent *>(event);
-		pair<QString, int> info = pathAt(viewTransform.inverted().map(helpEvent->pos()));
-		if (!info.first.isEmpty()) {
-			QToolTip::showText(helpEvent->globalPos(), getLabel(info.second+1, info.first,
-			                                                    info.second >= 0, true));
+		QString sName = pathAt(viewTransform.inverted().map(helpEvent->pos()));
+		if (!sName.isEmpty()) {
+			int channel = getTaxelChannel(sName);
+			QToolTip::showText(helpEvent->globalPos(),
+			                   getLabel(channel, sName, channel >= 0, true));
 		} else {
 			QToolTip::hideText();
 			event->ignore();
@@ -323,7 +394,24 @@ bool GloveWidget::event(QEvent *event)
 	return QWidget::event(event);
 }
 
-void GloveWidget::update_data(unsigned short *data)
+void GloveWidget::monitorTaxels(unsigned short *data) {
+	unsigned long valFirst=0, valSecond=0;
+	int idxFirst = -1, idxSecond = -1;
+
+	for (int i=0; i < NO_TAXELS; ++i) {
+		accumulated[i] += data[i];
+		if (accumulated[i] > valFirst) {
+			valSecond = valFirst; valFirst = accumulated[i];
+			idxSecond = idxFirst; idxFirst = i;
+		}
+	}
+	if (valFirst > 5 * valSecond && valFirst > 1000) {
+		emit pushedTaxel(idxFirst);
+		setMonitorEnabled(false);
+	}
+}
+
+void GloveWidget::updateData(unsigned short *data)
 {
 	bool bDirty = false;
 	for (int i=0; i < NO_TAXELS; ++i)
@@ -331,22 +419,46 @@ void GloveWidget::update_data(unsigned short *data)
 			bDirty = true;
 			break;
 		}
+	if (bMonitorTaxel) monitorTaxels(data);
 	if (!bDirty) return;
 
 	std::copy(data, data + NO_TAXELS, this->data);
-	update_svg();
+	updateTaxels();
 }
 
-void GloveWidget::reset_data()
+void GloveWidget::resetData()
 {
 	bzero(data, sizeof(data));
-	update_svg();
+	updateTaxels();
 }
 
-void GloveWidget::update_svg()
+QString GloveWidget::highlight(const QString &sName, const QColor &color)
+{
+	QDomNode styleNode = findStyleNode(sName);
+	if (styleNode.isNull()) return QString();
+
+	QString oldStyle = styleNode.nodeValue();
+	highlighted.insert(sName);
+	styleNode.setNodeValue(fillKey + color.name(QColor::HexRgb).mid(1));
+	updateSVG();
+	return oldStyle;
+}
+void GloveWidget::restore(const QString &sName, const QString &style) {
+	if (sName.isEmpty() || style.isEmpty()) return;
+	QDomNode styleNode = findStyleNode(sName);
+	if (styleNode.isNull()) return;
+
+	highlighted.remove(sName);
+	styleNode.setNodeValue(style);
+	updateSVG();
+}
+
+void GloveWidget::updateTaxels()
 {
 	static const QString fmt("%1");
 	for (TaxelMap::iterator it=taxels.begin(), end=taxels.end(); it!=end; ++it) {
+		if (highlighted.contains(it.key())) continue;
+
 		unsigned int temp = data[it->channel];
 		unsigned int color;
 
@@ -363,6 +475,10 @@ void GloveWidget::update_svg()
 		it->styleString.replace(it->iFillStart, 6, fmt.arg(color, 6, 16, QLatin1Char('0')));
 		it->styleNode.setNodeValue(it->styleString);
 	}
+	updateSVG();
+}
+void GloveWidget::updateSVG()
+{
 	qSvgRendererPtr->load(qDomDocPtr->toByteArray(-1));
 	update();
 }

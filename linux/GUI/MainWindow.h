@@ -27,6 +27,7 @@ private:
 	void updateData(const unsigned short *data);
 	void updateJointBar(unsigned short value);
 	void timerEvent(QTimerEvent *event);
+	void closeEvent(QCloseEvent *event);
 
 private slots:
 	void on_btnConnect_clicked();

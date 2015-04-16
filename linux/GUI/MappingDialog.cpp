@@ -7,10 +7,15 @@ MappingDialog::MappingDialog(const QString &sName, int channel, QWidget *parent)
 	setupUi(this);
 	nameEdit->setText(sName);
 	channelSpinBox->setMaximum(NO_TAXELS);
-	channelSpinBox->setValue(channel+1);
+	setChannel(channel);
 	channelSpinBox->setFocus();
 }
 
 QString MappingDialog::name() const {return nameEdit->text();}
 
 int MappingDialog::channel() const {return channelSpinBox->value()-1;}
+
+void MappingDialog::setChannel(int channel)
+{
+	channelSpinBox->setValue(channel+1);
+}

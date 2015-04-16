@@ -8,6 +8,7 @@
 #endif
 #include <math.h>
 #include <boost/bind.hpp>
+#include <QCloseEvent>
 
 MainWindow::MainWindow(QWidget *parent) :
    QMainWindow(parent), ui(new Ui::MainWindow), iJointIdx(-1),
@@ -62,6 +63,9 @@ void MainWindow::initGloveWidget(const QString &layout, const TaxelMapping &mapp
 		gloveWidget = 0;
 	}
 	ui->verticalLayout->insertWidget(0, gloveWidget = new GloveWidget(layout, mapping));
+	ui->menuFile->addActions(gloveWidget->fileActions());
+	ui->menuOptions->addActions(gloveWidget->optionActions());
+	ui->menuFile->addAction(ui->actionQuit);
 }
 
 void MainWindow::setTimer(int interval)
@@ -91,9 +95,15 @@ void MainWindow::timerEvent(QTimerEvent *event)
 	if (!gloveWidget) return;
 	lock.unlock();
 
-	gloveWidget->update_data(data);
+	gloveWidget->updateData(data);
 	if (iJointIdx >= 0) updateJointBar(data[iJointIdx]);
 	if (fps >= 0) ui->fps->setText(QString("%1 fps").arg(fps));
+}
+
+void MainWindow::closeEvent(QCloseEvent *event)
+{
+	if (gloveWidget && !gloveWidget->canClose())
+		event->ignore();
 }
 
 
@@ -172,7 +182,7 @@ void MainWindow::on_btnDisconnect_clicked()
 	ui->btnDisconnect->setEnabled(false);
 
 	input->disconnect();
-	gloveWidget->reset_data();
+	gloveWidget->resetData();
 	ui->statusBar->showMessage("Disconnected.", 2000);
 
 	ui->btnConnect->setEnabled(true);
