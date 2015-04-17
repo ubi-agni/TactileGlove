@@ -34,7 +34,10 @@ namespace tactile {
 class SerialInput : public InputInterface
 {
 public:
-	class timeout_error : std::exception {};
+	class timeout_error : public std::exception {
+	public:
+		const char* what() const throw();
+	};
 
 	SerialInput(size_t noTaxels);
 	~SerialInput();

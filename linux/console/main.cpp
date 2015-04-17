@@ -126,17 +126,34 @@ int main(int argc, char **argv)
 	// register Ctrl-C handler
 	signal(SIGINT, mySigIntHandler);
 
+	string sErr;
 	unsigned char ch=0;
 	while (bRun && ch != 'q') // loop until Ctrl-C
 	{
-		const tactile::InputInterface::data_vector &frame = input->readFrame();
-		if (outflags & OUTPUT_CURSES) printCurses(frame);
-		if (outflags & OUTPUT_ROS) publishToROS(frame);
+		try {
+			const tactile::InputInterface::data_vector &frame = input->readFrame();
+			if (outflags & OUTPUT_CURSES) printCurses(frame);
+			if (outflags & OUTPUT_ROS) publishToROS(frame);
+		} catch (const std::exception &e) {
+			if (bRun) sErr = e.what(); // not Ctrl-C stopped
+			break;
+		}
+
 		ch = getch();
 #if HAVE_ROS
 		r.sleep();
 #endif
 	}
+
+#if HAVE_CURSES
+	endwin(); // ncurses cleanup
+#endif
+
+	if (!sErr.empty()) {
+		cerr << sErr << endl;
+		return (EXIT_FAILURE);
+	}
+	return EXIT_SUCCESS;
 }
 
 // Init ncurses terminal display
@@ -148,7 +165,7 @@ void initCurses()
 	cbreak();
 	timeout(0);
 	clear();   // Clear terminal
-	atexit( (void(*)())endwin ); // Ncurses cleanup function
+//	atexit( (void(*)())endwin ); // Ncurses cleanup function
 #endif
 }
 

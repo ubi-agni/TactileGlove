@@ -35,6 +35,12 @@ namespace tactile {
 
 static const size_t PACKET_SIZE_BYTES = 5;
 
+const char *SerialInput::timeout_error::what() const throw()
+{
+	return "serial communication timed out";
+}
+
+
 SerialInput::SerialInput(size_t noTaxels)
    : InputInterface(noTaxels)
 {
@@ -74,9 +80,9 @@ void SerialInput::connect(const std::string &sDevice)
 void SerialInput::disconnect()
 {
 	if (!connected) return;
+	connected = false;
 	tcsetattr(fd,TCSANOW,&oldtio);
 	close(fd);
-	connected = false;
 }
 
 const InputInterface::data_vector& SerialInput::readFrame()
@@ -86,7 +92,7 @@ const InputInterface::data_vector& SerialInput::readFrame()
 	unsigned char buf[PACKET_SIZE_BYTES]; // receive buffer
 	size_t index;
 
-	while (true) {
+	while (connected) {
 		int res = pselect (fd+1,&fdset,NULL,NULL,&timeout,NULL);
 		if (res == -1) throw std::runtime_error(strerror(errno));
 		if (res == 0) 	throw timeout_error();
@@ -110,8 +116,10 @@ const InputInterface::data_vector& SerialInput::readFrame()
 				// got full frame ?
 				if (index==data.size()-1) return data;
 			}
-		}
+		} else throw std::runtime_error ("failed to read from serial input");
 	}
+
+	return data;
 }
 
 }

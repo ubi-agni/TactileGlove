@@ -29,10 +29,9 @@ void SerialThread::run()
 	while (input.isConnected()) {
 		try {
 			updateFunc(input.readFrame());
-		} catch (const tactile::SerialInput::timeout_error &e) {
-			emit statusMessage("serial connection timeout", 2000);
 		} catch (const std::exception &e) {
-			emit statusMessage(e.what(), 2000);
+			if (input.isConnected())
+				emit statusMessage(e.what(), 2000);
 		}
 	}
 }
