@@ -63,8 +63,6 @@ private:
 
 	/// establish the mapping from channel idx to taxel sName
 	bool assign(const QString &sName, int idx);
-	/// remove channel association from taxel sName
-	void unassign(const QString &sName);
 
 	bool event(QEvent *event);
 	void paintEvent(QPaintEvent *event);

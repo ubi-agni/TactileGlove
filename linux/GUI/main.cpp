@@ -5,7 +5,6 @@
 #include <QApplication>
 #include <boost/program_options.hpp>
 #include <boost/regex.hpp>
-#include <boost/lexical_cast.hpp>
 #include <boost/foreach.hpp>
 #include <signal.h>
 #if HAVE_ROS
@@ -86,11 +85,11 @@ bool handleCommandline(uint &inputMethod, std::string &sInput,
 	mapping.merge(configFileMapping);
 	if (map.count("mapping")) {
 		TaxelMapping cmdlineMapping;
-		boost::regex r("([._A-Za-z0-9]*)=(\\d+)");
+		boost::regex r("([._A-Za-z0-9]*)=(\\d*)");
 		boost::smatch match;
 		BOOST_FOREACH(const std::string &s, map["mapping"].as< vector<string> >()) {
 			if (boost::regex_match(s, match, r))
-				cmdlineMapping[match[1]] = boost::lexical_cast<TaxelMapping::mapped_type>(match[2]);
+				cmdlineMapping[match[1]] = TaxelMapping::parseChannel(match[2]);
 			else throw std::runtime_error("invalid taxel mapping: " + s);
 		}
 		mapping.merge(cmdlineMapping);

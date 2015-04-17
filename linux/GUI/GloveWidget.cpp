@@ -112,6 +112,11 @@ GloveWidget::TaxelInfo::TaxelInfo(unsigned short idx, const QDomNode &node)
 }
 
 bool GloveWidget::assign(const QString &sName, int idx) {
+	if (idx < 0) {
+		if (taxels.remove(sName) > 0) bDirtyMapping = true;
+		return true;
+	}
+
 	const QDomNode &styleNode = findStyleNode(sName);
 	if (styleNode.isNull()) return false;
 
@@ -122,10 +127,6 @@ bool GloveWidget::assign(const QString &sName, int idx) {
 	taxels.insert(sName, TaxelInfo(idx, styleNode));
 	bDirtyMapping = true;
 	return true;
-}
-
-void GloveWidget::unassign(const QString &sName) {
-	if (taxels.remove(sName) > 0) bDirtyMapping = true;
 }
 
 void GloveWidget::saveSVG()
@@ -239,10 +240,9 @@ void GloveWidget::editMapping(QString node, int channel)
 		if (newName.startsWith("path") ^ node.startsWith("path"))
 			numNoTaxelNodes += newName.startsWith("path") ? 1 : -1;
 	}
-	if (getTaxelChannel(node) != dlg.channel()) {
-		if (dlg.channel() < 0) unassign(node);
-		else assign(node, dlg.channel());
-	}
+	if (getTaxelChannel(node) != dlg.channel())
+		assign(node, dlg.channel());
+
 	actConfMap->setEnabled(allNodes.size() - numNoTaxelNodes > taxels.size());
 }
 

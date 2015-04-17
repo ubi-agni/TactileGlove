@@ -13,4 +13,6 @@ public:
 
 	TaxelMapping& merge(const TaxelMapping& other,
 	                    const std::string &sLayout="");
+
+	static int parseChannel(const std::string &sValue);
 };
