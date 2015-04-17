@@ -6,8 +6,8 @@ find_package(Boost 1.38 REQUIRED COMPONENTS thread program_options regex)
 
 set(CMAKE_AUTOMOC ON)
 
-file(GLOB SOURCES "*.[hc]*")
-file(GLOB ROS_SRC "ROSInput.[hc]*")
+file(GLOB SOURCES "RandomInput.*" "SerialThread.*" "ROSInput.*" "*.h" "*.cpp")
+file(GLOB ROS_SRC "ROSInput.*")
 file(GLOB FORMS "*.ui")
 qt_wrap_ui(FORM_SRC ${FORMS})
 qt_add_resources(RESOURCES resources.qrc)
@@ -23,12 +23,13 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}
                     ${CMAKE_CURRENT_BINARY_DIR}
                     ${QT_INCLUDES})
 
-add_executable(GloveViz ${SOURCES} ${FORM_SRC} ${RESOURCES})
-
-target_link_libraries(GloveViz
+set(PROG_NAME GloveViz)
+add_executable(${PROG_NAME} ${SOURCES} ${FORM_SRC} ${RESOURCES})
+target_link_libraries(${PROG_NAME}
+   ${PROJECT_NAME}
    ${QT_LIBRARIES}
    ${Boost_PROGRAM_OPTIONS_LIBRARY_RELEASE}
    ${Boost_REGEX_LIBRARY_RELEASE}
    ${roscpp_LIBRARIES})
 
-install(TARGETS GloveViz RUNTIME DESTINATION bin)
+install(TARGETS ${PROG_NAME} RUNTIME DESTINATION bin)

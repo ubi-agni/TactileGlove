@@ -1,8 +1,6 @@
 /* ============================================================
  *
- * This file is a part of the RSB project
- *
- * Copyright (C) 2014 by Robert Haschke <rhaschke at techfak dot uni-bielefeld dot de>
+ * Copyright (C) 2015 by Robert Haschke <rhaschke at techfak dot uni-bielefeld dot de>
  *
  * This file may be licensed under the terms of the
  * GNU Lesser General Public License Version 3 (the "LGPL"),
@@ -26,22 +24,31 @@
 #pragma once
 
 #include "InputInterface.h"
-#include "../lib/RandomInput.h"
-#include <QObject>
 
-class RandomInput : public QObject, public InputInterface
+#include <termios.h>
+#include <sys/types.h>
+#include <stdexcept>
+
+namespace tactile {
+
+class SerialInput : public InputInterface
 {
-	Q_OBJECT
-signals:
-	void statusMessage(const QString&, int time);
-
 public:
-	RandomInput(size_t noTaxels);
-	bool connect(const QString &dummy);
-	bool disconnect();
+	class timeout_error : std::exception {};
+
+	SerialInput(size_t noTaxels);
+	~SerialInput();
+
+	void setTimeOut(unsigned int msec);
+	void connect(const std::string &sDevice);
+	void disconnect();
+	const data_vector& readFrame ();
 
 private:
-	tactile::RandomInput input;
-	void timerEvent(QTimerEvent *event);
-	int timerID;
+	struct termios oldtio,newtio;
+	struct timespec timeout;
+	int    fd;
+	fd_set fdset;
 };
+
+}

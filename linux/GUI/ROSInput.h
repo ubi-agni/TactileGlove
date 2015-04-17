@@ -14,7 +14,7 @@ signals:
 	void statusMessage(const QString&, int time);
 
 public:
-	ROSInput();
+	ROSInput(size_t noTaxels);
 	~ROSInput();
 	bool connect(const QString &sTopic);
 	bool disconnect();
@@ -23,6 +23,7 @@ private:
 	void receiveCallback(const std_msgs::UInt16MultiArray& msg);
 
 private:
+	size_t            noTaxels;
 	ros::NodeHandle   nh;
 	ros::AsyncSpinner spinner;
 	ros::Subscriber   subscriber;

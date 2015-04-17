@@ -1,6 +1,7 @@
 #pragma once
 
 #include "TaxelMapping.h"
+#include "InputInterface.h"
 #include "ui_GloveWidget.h"
 
 #include <QWidget>
@@ -10,8 +11,6 @@
 #include <QMap>
 #include <QSet>
 
-#define NO_TAXELS 64
-
 class QDomDocument;
 class QDomNode;
 class QSvgRenderer;
@@ -20,7 +19,9 @@ class GloveWidget : public QWidget, private Ui::GloveWidget
 {
 	Q_OBJECT
 public:
-	explicit GloveWidget(const QString& sLayout,
+	typedef tactile::InputInterface::data_vector data_vector;
+
+	explicit GloveWidget(size_t noTaxels, const QString& sLayout,
 	                     const TaxelMapping& mapping,
 	                     QWidget *parent = 0);
 	QSize sizeHint() const;
@@ -30,7 +31,7 @@ public:
 
 public slots:
 	/// update internal data buffer and trigger updateSVG() on changes
-	void updateData(unsigned short* data);
+	void updateData(const data_vector &data);
 	/// reset SVG display
 	void resetData();
 
@@ -70,7 +71,7 @@ private:
 	void mouseDoubleClickEvent(QMouseEvent *event);
 
 	/// look for a peak in accumulated taxel data and signal its index
-	void monitorTaxels(unsigned short *data);
+	void monitorTaxels(const data_vector &data);
 	/// update the SVG with new colors
 	void updateTaxels();
 	/// reload the SVG and update display
@@ -89,8 +90,8 @@ private:
 	QDomDocument  *qDomDocPtr;
 	bool           bDirtyDoc;
 	QSvgRenderer  *qSvgRendererPtr;
-	unsigned short data[NO_TAXELS];
-	unsigned long  accumulated[NO_TAXELS];
+	data_vector    data;
+	std::vector<unsigned long> accumulated;
 	bool           bMonitorTaxel;
 
 	typedef QMap<QString, TaxelInfo> TaxelMap;

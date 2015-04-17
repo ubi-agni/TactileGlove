@@ -1,12 +1,13 @@
 #include "MappingDialog.h"
 #include "GloveWidget.h"
 
-MappingDialog::MappingDialog(const QString &sName, int channel, QWidget *parent) :
+MappingDialog::MappingDialog(const QString &sName, int channel,
+                             int maxChannel, QWidget *parent) :
    QDialog(parent)
 {
 	setupUi(this);
 	nameEdit->setText(sName);
-	channelSpinBox->setMaximum(NO_TAXELS);
+	channelSpinBox->setMaximum(maxChannel);
 	setChannel(channel);
 	channelSpinBox->setFocus();
 }

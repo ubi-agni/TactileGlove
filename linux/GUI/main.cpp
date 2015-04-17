@@ -78,10 +78,8 @@ bool handleCommandline(uint &inputMethod, std::string &sInput,
 		configFileMapping.merge(TaxelMapping(parsed.options), sLayout);
 	}
 
-	if (map.count("ros") + map.count("serial") + map.count("dummy") > 1) {
+	if (map.count("ros") + map.count("serial") + map.count("dummy") > 1)
 		throw std::logic_error("multiple input methods specified");
-		return true;
-	}
 
 	// merge taxel mapping options
 	mapping = TaxelMapping(sLayout);
@@ -127,7 +125,7 @@ int main(int argc, char *argv[])
 	}
 
 	QApplication app(argc, argv);
-	MainWindow w;
+	MainWindow w(64);
 	try {
 		w.initGloveWidget(QString::fromStdString(sLayout), mapping);
 	} catch (const std::exception &e) {

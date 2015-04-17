@@ -2,18 +2,19 @@
 
 #include <QMainWindow>
 #include <QTime>
+#include <QMutex>
 #include "TaxelMapping.h"
-#include "GloveWidget.h"
+#include "InputInterface.h"
 
 namespace Ui {class MainWindow;}
 
-class InputInterface;
+class GloveWidget;
 class MainWindow : public QMainWindow
 {
 	Q_OBJECT
 
 public:
-	explicit MainWindow(QWidget *parent = 0);
+	explicit MainWindow(size_t noTaxels, QWidget *parent = 0);
 	~MainWindow();
 
 	void initJointBar(TaxelMapping &mapping);
@@ -24,7 +25,7 @@ public:
 	void configRandom();
 
 private:
-	void updateData(const unsigned short *data);
+	void updateData(const InputInterface::data_vector &taxels);
 	void updateJointBar(unsigned short value);
 	void timerEvent(QTimerEvent *event);
 	void closeEvent(QCloseEvent *event);
@@ -42,9 +43,10 @@ private:
 	InputInterface  *input;
 
 	QMutex           dataMutex;
-	float            frameData[NO_TAXELS];
+	std::vector<float> data;
 	float            lambda;
 	int              iJointIdx;
+	InputInterface::data_vector display;
 
 	QTime            lastUpdate;
 	uint             frameCount;

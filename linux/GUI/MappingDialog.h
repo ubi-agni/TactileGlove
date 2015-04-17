@@ -7,7 +7,7 @@ class MappingDialog : public QDialog, private Ui::MappingDialog
 	Q_PROPERTY(int channel READ channel WRITE setChannel)
 
 public:
-	explicit MappingDialog(const QString &sName, int channel, QWidget *parent = 0);
+	explicit MappingDialog(const QString &sName, int channel, int maxChannel, QWidget *parent = 0);
 
 	QString name() const;
 	int channel() const;

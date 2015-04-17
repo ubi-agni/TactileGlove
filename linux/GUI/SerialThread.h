@@ -1,9 +1,8 @@
 #pragma once
 
 #include "InputInterface.h"
-
+#include "../lib/SerialInput.h"
 #include <QThread>
-#include <termios.h>
 
 class SerialThread : public QThread, public InputInterface
 {
@@ -12,7 +11,7 @@ signals:
 	void statusMessage(const QString&, int time);
 
 public:
-	SerialThread();
+	SerialThread(size_t noTaxels);
 	bool connect(const QString &sDevice);
 	bool disconnect();
 
@@ -20,8 +19,5 @@ protected:
 	void run();
 
 private:
-	struct termios oldtio,newtio;
-	int fd;
-
-	bool connected;
+	tactile::SerialInput input;
 };

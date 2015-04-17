@@ -1,8 +1,7 @@
 #include "ROSInput.h"
-#include "GloveWidget.h"
 
-ROSInput::ROSInput() :
-   spinner(1)
+ROSInput::ROSInput(size_t noTaxels) :
+   noTaxels(noTaxels), spinner(1)
 {
 }
 
@@ -36,6 +35,6 @@ bool ROSInput::disconnect()
 
 void ROSInput::receiveCallback(const std_msgs::UInt16MultiArray &msg)
 {
-	assert(msg.layout.dim[0].size == NO_TAXELS);
-	updateFunc(msg.data.data());
+	assert(msg.layout.dim[0].size == 64);
+	updateFunc(msg.data);
 }

@@ -1,7 +1,5 @@
 /* ============================================================
  *
- * This file is a part of the RSB project
- *
  * Copyright (C) 2014 by Robert Haschke <rhaschke at techfak dot uni-bielefeld dot de>
  *
  * This file may be licensed under the terms of the
@@ -23,25 +21,40 @@
  *     Bielefeld University
  *
  * ============================================================ */
-#pragma once
 
-#include "InputInterface.h"
-#include "../lib/RandomInput.h"
-#include <QObject>
+#include "RandomInput.h"
+#include <stdlib.h>
+#include <stdexcept>
 
-class RandomInput : public QObject, public InputInterface
+namespace tactile {
+
+RandomInput::RandomInput(size_t noTaxels)
+   : InputInterface(noTaxels)
 {
-	Q_OBJECT
-signals:
-	void statusMessage(const QString&, int time);
+}
 
-public:
-	RandomInput(size_t noTaxels);
-	bool connect(const QString &dummy);
-	bool disconnect();
+void RandomInput::connect(const std::string &dummy)
+{
+	connected = true;
+}
 
-private:
-	tactile::RandomInput input;
-	void timerEvent(QTimerEvent *event);
-	int timerID;
-};
+void RandomInput::disconnect()
+{
+	connected = false;
+}
+
+const InputInterface::data_vector& RandomInput::readFrame()
+{
+	if (!connected) throw std::runtime_error("not connected");
+
+	int scale = 1;
+	for (data_vector::iterator it=data.begin(), end=data.end(); it != end; ++it) {
+		long int rndnumber = random();
+		if (rndnumber < (RAND_MAX / 2)) /* only give new value 50% of time */
+			*it = (rndnumber & 0xFFF) / scale;
+		scale = 10; // all but first sample are scaled down
+	}
+	return data;
+}
+
+}

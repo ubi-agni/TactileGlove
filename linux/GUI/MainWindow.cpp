@@ -1,5 +1,6 @@
 #include "MainWindow.h"
 #include "ui_MainWindow.h"
+#include "GloveWidget.h"
 
 #include "SerialThread.h"
 #include "RandomInput.h"
@@ -10,12 +11,11 @@
 #include <boost/bind.hpp>
 #include <QCloseEvent>
 
-MainWindow::MainWindow(QWidget *parent) :
+MainWindow::MainWindow(size_t noTaxels, QWidget *parent) :
    QMainWindow(parent), ui(new Ui::MainWindow), iJointIdx(-1),
-   input(0), frameCount(0), timerID(0), gloveWidget(0)
+   input(0), data(noTaxels), display(noTaxels),
+   frameCount(0), timerID(0), gloveWidget(0)
 {
-	bzero(frameData, sizeof(frameData));
-
 	ui->setupUi(this);
 	ui->toolBar->addWidget(ui->updateTimeSpinBox);
 	ui->toolBar->addWidget(ui->lambdaSpinBox);
@@ -44,25 +44,27 @@ void MainWindow::initJointBar(TaxelMapping &mapping) {
 	if (it != mapping.end()) {
 		iJointIdx = it->second;
 		mapping.erase(it);
-	}
-	if (iJointIdx < 0 || iJointIdx >= NO_TAXELS) {
+	} else iJointIdx = -1;
+
+	if (iJointIdx < 0 || iJointIdx >= data.size()) {
 		iJointIdx = -1;
-		ui->jointBar->deleteLater();
-	}
+		ui->jointBar->hide();
+	} else ui->jointBar->show();
 }
 
 void MainWindow::initGloveWidget(const QString &layout, const TaxelMapping &mapping) {
+	// do before creating the GloveWidget to allow for removing of the bar mapping
 	initJointBar(const_cast<TaxelMapping&>(mapping));
 
 	QMutexLocker lock(&dataMutex);
-
 	if (gloveWidget) {
 		on_btnDisconnect_clicked();
 		ui->verticalLayout->removeWidget(gloveWidget);
 		delete gloveWidget;
 		gloveWidget = 0;
 	}
-	ui->verticalLayout->insertWidget(0, gloveWidget = new GloveWidget(layout, mapping));
+	gloveWidget = new GloveWidget(data.size(), layout, mapping);
+	ui->verticalLayout->insertWidget(0, gloveWidget);
 
 	ui->menuFile->addActions(gloveWidget->fileActions());
 	ui->menuOptions->addActions(gloveWidget->optionActions());
@@ -88,9 +90,9 @@ void MainWindow::timerEvent(QTimerEvent *event)
 	if (event->timerId() != timerID) return;
 
 	QMutexLocker lock(&dataMutex);
-	unsigned short data[NO_TAXELS];
 	int fps = -1;
-	std::copy(frameData, frameData+NO_TAXELS, data);
+
+	std::copy(data.begin(), data.end(), display.begin());
 	if (lastUpdate.elapsed() > 1000) { // update framerate every 1s
 		fps = roundf (float(frameCount * 1000) / lastUpdate.restart());
 		frameCount = 0;
@@ -98,8 +100,8 @@ void MainWindow::timerEvent(QTimerEvent *event)
 	if (!gloveWidget) return;
 	lock.unlock();
 
-	gloveWidget->updateData(data);
-	if (iJointIdx >= 0) updateJointBar(data[iJointIdx]);
+	gloveWidget->updateData(display);
+	if (iJointIdx >= 0) updateJointBar(display[iJointIdx]);
 	if (fps >= 0) ui->fps->setText(QString("%1 fps").arg(fps));
 }
 
@@ -109,13 +111,15 @@ void MainWindow::closeEvent(QCloseEvent *event)
 		event->ignore();
 }
 
-
-void MainWindow::updateData(const unsigned short *data) {
+void MainWindow::updateData(const InputInterface::data_vector &taxels) {
 	QMutexLocker lock(&dataMutex);
+	assert(taxels.size() == data.size());
 
 	float alpha = 1.0 - lambda;
-	for (int i=0; i < NO_TAXELS; ++i)
-		frameData[i] = lambda * frameData[i] + alpha * data[i];
+	std::vector<float>::iterator smooth=data.begin();
+	for (InputInterface::data_vector::const_iterator
+	     it=taxels.begin(), end=taxels.end(); it != end; ++it, ++smooth)
+		*smooth = lambda * *smooth + alpha * *it;
 	++frameCount;
 }
 
@@ -133,7 +137,7 @@ void MainWindow::configSerial(const QString &sDevice)
 	ui->inputLineEdit->setText(sDevice);
 	ui->inputLineEdit->setToolTip("serial device name");
 
-	SerialThread *serial = new SerialThread;
+	SerialThread *serial = new SerialThread(data.size());
 	serial->setUpdateFunction(boost::bind(&MainWindow::updateData, this, _1));
 	connect(serial, SIGNAL(statusMessage(QString,int)),
 	        ui->statusBar, SLOT(showMessage(QString,int)));
@@ -146,7 +150,7 @@ void MainWindow::configROS(const QString &sTopic)
 	ui->inputLineEdit->setText(sTopic);
 	ui->inputLineEdit->setToolTip("ROS topic");
 
-	ROSInput *rosInput = new ROSInput;
+	ROSInput *rosInput = new ROSInput(data.size());
 	rosInput->setUpdateFunction(boost::bind(&MainWindow::updateData, this, _1));
 	connect(rosInput, SIGNAL(statusMessage(QString,int)),
 	        ui->statusBar, SLOT(showMessage(QString,int)));
@@ -160,7 +164,7 @@ void MainWindow::configRandom()
 {
 	ui->verticalLayout->addWidget(ui->inputLineEdit);
 	ui->inputLineEdit->hide();
-	input = new RandomInput;
+	input = new RandomInput(data.size());
 	input->setUpdateFunction(boost::bind(&MainWindow::updateData, this, _1));
 }
 

@@ -20,11 +20,15 @@ static QString getLabel(int channel, const QString &id, bool showChannel=true, b
 	return result;
 }
 
-GloveWidget::GloveWidget(const QString &sLayout, const TaxelMapping &mapping, QWidget *parent)
+GloveWidget::GloveWidget(size_t noTaxels, const QString &sLayout,
+                         const TaxelMapping &mapping, QWidget *parent)
    : QWidget(parent), bDirtyDoc(false), bDirtyMapping(false),
      numNoTaxelNodes(0), bMonitorTaxel(false)
 {
 	setupUi(this);
+	data.resize(noTaxels);
+	accumulated.resize(noTaxels);
+
 	qDomDocPtr = new QDomDocument (sLayout);
 	QFile file(sLayout);
 	if (!file.exists()) file.setFileName(QString(":%1.svg").arg(sLayout));
@@ -111,7 +115,7 @@ bool GloveWidget::assign(const QString &sName, int idx) {
 	const QDomNode &styleNode = findStyleNode(sName);
 	if (styleNode.isNull()) return false;
 
-	if (idx < 0 || idx >= NO_TAXELS)
+	if (idx < 0 || idx >= data.size())
 		throw std::runtime_error(QString("invalid taxel channel %1=%2")
 	                            .arg(sName).arg(idx).toStdString());
 
@@ -169,7 +173,7 @@ void GloveWidget::saveMapping()
 		++iWritten;
 	}
 	bDirtyMapping = false;
-	if (iWritten > NO_TAXELS / 2) return;
+	if (iWritten > data.size() / 2) return;
 
 	// write all other node names
 	ts << endl;
@@ -204,7 +208,7 @@ void GloveWidget::editMapping(QString node, int channel)
 	if (node.isEmpty()) return;
 	QString oldStyle=highlight(node);
 
-	MappingDialog dlg(node, channel, this);
+	MappingDialog dlg(node, channel, data.size(), this);
 	connect(this, SIGNAL(pushedTaxel(int)), &dlg, SLOT(setChannel(int)));
 	setMonitorEnabled(channel < 0);
 
@@ -245,7 +249,7 @@ void GloveWidget::editMapping(QString node, int channel)
 void GloveWidget::setMonitorEnabled(bool bEnable)
 {
 	bMonitorTaxel = bEnable;
-	bzero(accumulated, sizeof(accumulated));
+	std::fill(accumulated.begin(), accumulated.end(), 0);
 }
 
 void GloveWidget::configureMapping()
@@ -373,15 +377,19 @@ bool GloveWidget::event(QEvent *event)
 	return QWidget::event(event);
 }
 
-void GloveWidget::monitorTaxels(unsigned short *data) {
+void GloveWidget::monitorTaxels(const data_vector &data) {
+	assert(accumulated.size() == data.size());
+
 	unsigned long valFirst=0, valSecond=0;
 	int idxFirst = -1, idxSecond = -1;
 
-	for (int i=0; i < NO_TAXELS; ++i) {
-		accumulated[i] += data[i];
-		if (accumulated[i] > valFirst) {
-			valSecond = valFirst; valFirst = accumulated[i];
-			idxSecond = idxFirst; idxFirst = i;
+	data_vector::const_iterator d = data.begin();
+	for (std::vector<unsigned long>::iterator acc = accumulated.begin(), end= accumulated.end();
+	     acc != end; ++acc, ++d) {
+		*acc += *d;
+		if (*acc > valFirst) {
+			valSecond = valFirst; valFirst = *acc;
+			idxSecond = idxFirst; idxFirst = acc-accumulated.begin();
 		}
 	}
 	if (valFirst > 5 * valSecond && valFirst > 1000) {
@@ -390,24 +398,29 @@ void GloveWidget::monitorTaxels(unsigned short *data) {
 	}
 }
 
-void GloveWidget::updateData(unsigned short *data)
+void GloveWidget::updateData(const data_vector &data)
 {
+	assert(data.size() == this->data.size());
+
 	bool bDirty = false;
-	for (int i=0; i < NO_TAXELS; ++i)
-		if (this->data[i] != data[i]) {
+	for (data_vector::const_iterator
+	     me=this->data.begin(), end=this->data.end(), other=data.begin();
+	     me != end; ++me, ++other) {
+		if (*me != *other) {
 			bDirty = true;
 			break;
 		}
+	}
 	if (bMonitorTaxel) monitorTaxels(data);
 	if (!bDirty) return;
 
-	std::copy(data, data + NO_TAXELS, this->data);
+	this->data = data;
 	updateTaxels();
 }
 
 void GloveWidget::resetData()
 {
-	bzero(data, sizeof(data));
+	std::fill(data.begin(), data.end(), 0);
 	updateTaxels();
 }
 
@@ -438,7 +451,7 @@ void GloveWidget::updateTaxels()
 	for (TaxelMap::iterator it=taxels.begin(), end=taxels.end(); it!=end; ++it) {
 		if (highlighted.contains(it.key())) continue;
 
-		unsigned int temp = data[it->channel];
+		data_vector::value_type temp = data[it->channel];
 		unsigned int color;
 
 		if (temp > 4095) temp = 4095;

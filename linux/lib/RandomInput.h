@@ -1,8 +1,6 @@
 /* ============================================================
  *
- * This file is a part of the RSB project
- *
- * Copyright (C) 2014 by Robert Haschke <rhaschke at techfak dot uni-bielefeld dot de>
+ * Copyright (C) 2015 by Robert Haschke <rhaschke at techfak dot uni-bielefeld dot de>
  *
  * This file may be licensed under the terms of the
  * GNU Lesser General Public License Version 3 (the "LGPL"),
@@ -26,22 +24,16 @@
 #pragma once
 
 #include "InputInterface.h"
-#include "../lib/RandomInput.h"
-#include <QObject>
 
-class RandomInput : public QObject, public InputInterface
+namespace tactile {
+
+class RandomInput : public InputInterface
 {
-	Q_OBJECT
-signals:
-	void statusMessage(const QString&, int time);
-
 public:
 	RandomInput(size_t noTaxels);
-	bool connect(const QString &dummy);
-	bool disconnect();
-
-private:
-	tactile::RandomInput input;
-	void timerEvent(QTimerEvent *event);
-	int timerID;
+	void connect(const std::string &dummy);
+	void disconnect();
+	const data_vector& readFrame ();
 };
+
+}

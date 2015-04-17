@@ -10,10 +10,12 @@ endif()
 
 include_directories(${CURSES_INCLUDE_PATH} ${Boost_INCLUDE_DIRS})
 
-add_executable(console console.cpp)
-target_link_libraries(console
+set(PROG_NAME gloveConsole)
+add_executable(${PROG_NAME} main.cpp)
+target_link_libraries(${PROG_NAME}
+   ${PROJECT_NAME}
    ${CURSES_NCURSES_LIBRARY}
    ${Boost_PROGRAM_OPTIONS_LIBRARY_RELEASE}
    ${roscpp_LIBRARIES})
 
-install(TARGETS console RUNTIME DESTINATION bin)
+install(TARGETS ${PROG_NAME} RUNTIME DESTINATION bin)
