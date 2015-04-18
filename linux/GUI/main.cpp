@@ -2,8 +2,11 @@
 
 #include <iostream>
 #include <fstream>
+#include <cstdio>
+#include <QResource>
 #include <QApplication>
 #include <boost/program_options.hpp>
+#include <boost/algorithm/string/predicate.hpp>
 #include <boost/regex.hpp>
 #include <boost/foreach.hpp>
 #include <signal.h>
@@ -24,38 +27,100 @@ void usage(char* argv[]) {
 #define INPUT_ROS        2
 #define INPUT_RANDOM     3
 
+// remove "prefix.layout" options, enabling the one matching sMappingFilter
+void filterLayoutOptions(const string &sMappingFilter,
+                         std::vector<po::basic_option<char> > &options)
+{
+	const string sLayoutKey ("layout");
+	const string sMatchKey = sMappingFilter + "." + sLayoutKey;
+
+	for (std::vector<po::basic_option<char> >::iterator
+	     it=options.begin(), end=options.end(); it!=end;) {
+		if (it->unregistered && boost::ends_with(it->string_key, sLayoutKey)) {
+			if (it->string_key == sMatchKey) {
+				// turn option into recognized one
+				it->unregistered = false;
+				it->string_key = sLayoutKey;
+			} else {
+				// remove this entry
+				it = options.erase(it); // returns next iterator
+				continue; // do not ++it again
+			}
+		}
+		++it;
+	}
+}
+
+// load mapping for sMappingFilter from is and store option "layout" in map
+// also consider declard options opts
+TaxelMapping mappingFromStream(istream &is,
+                               const string &sMappingFilter,
+                               const po::options_description &opts,
+                               po::variables_map &optsMap)
+{
+	po::parsed_options parsed = po::parse_config_file(is, opts, true);
+	filterLayoutOptions(sMappingFilter, parsed.options);
+	po::store(parsed, optsMap); // store known options
+
+	TaxelMapping all(parsed.options); // mapping from all unknown options
+	return TaxelMapping().merge(all, sMappingFilter); // filter by sMappingFilter
+}
+
+// load default mapping for sMappingFilter and store option "layout" in map
+TaxelMapping getDefaultMapping(const std::string &sMappingFilter,
+                               const po::options_description &opts,
+                               po::variables_map &optsMap)
+{
+	if (sMappingFilter.empty()) return TaxelMapping();
+
+	QResource res(":taxel.cfg");
+	QByteArray data = res.isCompressed() ? qUncompress(res.data(), res.size())
+	                                     : QByteArray((const char*) res.data(), res.size());
+	istringstream iss(data.constData());
+	return mappingFromStream(iss, sMappingFilter, opts, optsMap);
+}
+
+
 bool handleCommandline(uint &inputMethod, std::string &sInput,
                        std::string &sLayout, TaxelMapping &mapping,
-                       int argc, char *argv[]) {
+                       int argc, char *argv[])
+{
 	// default input method
 	inputMethod = INPUT_SERIAL;
 	sInput = "/dev/ttyACM0";
-	std::string sConfigFile;
+	std::string sConfigFile, sMapping;
 
 	po::options_description options("options");
-	po::options_description config; // config options
+	po::options_description config; // config options feasible for both cmdline + file
 	config.add_options()
-		("layout,l", po::value<string>(&sLayout)->default_value("P2"),
-		 "glove layout")
+		("mapping,m", po::value<string>(&sMapping)->default_value("P2"),
+		 "select a specific mapping from config")
+		("layout,l", po::value<string>(&sLayout),
+		 "glove layout SVG")
+		;
+
+	po::options_description hidden; // hidden positional options
+	hidden.add_options()
+		("taxelmap", po::value<vector<string> >()->composing(), "taxel mappings");
+
+	po::options_description input("input options");
+	input.add_options()
 		("serial,s", po::value<string>(&sInput)->implicit_value(sInput),
 		 "use serial input (default)")
 #if HAVE_ROS
 		("ros,r", po::value<string>(&sInput)->implicit_value("TactileGlove"),
 		 "use ros input")
-#endif
+		#endif
 		("dummy,d", "use random dummy input");
-
-	po::options_description hidden; // hidden positional options
-	hidden.add_options()
-		("mapping", po::value<vector<string> >()->composing(), "taxel mappings");
 
 	cmd.add_options()
 		("help,h", "Display this help message.")
 		("config,c", po::value<string>(&sConfigFile), "config file");
 	cmd.add(config);
+	cmd.add(input);
 
 	po::positional_options_description pos;
-	pos.add("mapping", -1);
+	pos.add("taxelmap", -1);
 
 	po::variables_map map;
 	po::store(po::command_line_parser(argc, argv)
@@ -70,24 +135,26 @@ bool handleCommandline(uint &inputMethod, std::string &sInput,
 	if (map.count("config")) {
 		ifstream ifs(sConfigFile.c_str());
 		if (!ifs) throw std::runtime_error("cannot open config file " + sConfigFile);
-
-		po::parsed_options parsed = po::parse_config_file(ifs, config, true);
-		po::store(parsed, map);
-		po::notify(map);
-		configFileMapping.merge(TaxelMapping(parsed.options), sLayout);
+		po::options_description fileOpts; fileOpts.add(config).add(input);
+		configFileMapping = mappingFromStream(ifs, sMapping, fileOpts, map);
+		po::notify(map); // fill variables
 	}
 
 	if (map.count("ros") + map.count("serial") + map.count("dummy") > 1)
 		throw std::logic_error("multiple input methods specified");
 
-	// merge taxel mapping options
-	mapping = TaxelMapping(sLayout);
+	// *** merge taxel mapping options ***
+	mapping = getDefaultMapping(sMapping, config, map); // initialize from defaults
+	po::notify(map); // will copy default "layout" option into sLayout
+
+	// merge stuff from explicit config file
 	mapping.merge(configFileMapping);
-	if (map.count("mapping")) {
+	// merge cmdline mapping
+	if (map.count("taxelmap")) {
 		TaxelMapping cmdlineMapping;
 		boost::regex r("([._A-Za-z0-9]*)=(\\d*)");
 		boost::smatch match;
-		BOOST_FOREACH(const std::string &s, map["mapping"].as< vector<string> >()) {
+		BOOST_FOREACH(const std::string &s, map["taxelmap"].as< vector<string> >()) {
 			if (boost::regex_match(s, match, r))
 				cmdlineMapping[match[1]] = TaxelMapping::parseChannel(match[2]);
 			else throw std::runtime_error("invalid taxel mapping: " + s);
