@@ -117,7 +117,7 @@ int main(int argc, char **argv)
 	// initialize ouput
 #if HAVE_ROS
 	if (outflags & OUTPUT_ROS)
-		ros::init (argc, argv, "tactile_glove");
+		ros::init (argc, argv, "tactile_glove", ros::init_options::NoSigintHandler);
 	ros::Time::init();
 	ros::Rate r(1000); // desired rate [Hz]
 #endif
