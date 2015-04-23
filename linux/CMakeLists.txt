@@ -7,12 +7,14 @@ project (tactile_glove)
 find_package(catkin QUIET COMPONENTS roscpp std_msgs)
 find_package(Boost 1.38 REQUIRED COMPONENTS thread program_options)
 
-add_subdirectory (lib)
-add_subdirectory (console)
-add_subdirectory (GUI)
-
 if(catkin_FOUND)
-  include_directories(${catkin_INCLUDE_DIRS})
+  # declare this as a catkin package
+  catkin_package()
 else()
   message(WARNING "ROS catkin not found, building without ROS support")
 endif()
+
+# add sub libraries *after* calling catking_package()
+add_subdirectory (lib)
+add_subdirectory (console)
+add_subdirectory (GUI)
