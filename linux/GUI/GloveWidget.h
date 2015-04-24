@@ -14,6 +14,7 @@
 class QDomDocument;
 class QDomNode;
 class QSvgRenderer;
+class MappingDialog;
 
 class GloveWidget : public QWidget, private Ui::GloveWidget
 {
@@ -40,11 +41,12 @@ public slots:
 
 	void saveSVG();
 	void saveMapping();
-	void editMapping(QString node, int channel);
+	void editMapping(QString node, int channel, MappingDialog *dlg=0);
 	/// enable peak monitoring, see monitorTaxels()
 	void setMonitorEnabled(bool bEnable=true);
 	/// configure all unassigned taxels
 	void configureMapping();
+	void setCancelConfigure(bool bCancel=true);
 	/// do we have changes not yet saved?
 	bool canClose();
 
@@ -91,6 +93,7 @@ private:
 	data_vector    data;
 	std::vector<unsigned long> accumulated;
 	bool           bMonitorTaxel;
+	bool           bCancelConfigure;
 
 	typedef QMap<QString, TaxelInfo> TaxelMap;
 	TaxelMap       taxels;
@@ -99,6 +102,8 @@ private:
 	PathList       allNodes;
 	unsigned int   numNoTaxelNodes;
 	QSet<QString>  highlighted;
+
+	QString        sMappingFile;
 
 	QList<QAction*> _fileActions;
 	QList<QAction*> _optionActions;

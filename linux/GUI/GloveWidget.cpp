@@ -133,6 +133,8 @@ void GloveWidget::saveSVG()
 {
 	QString sFileName = QFileDialog::getSaveFileName(0, "save sensor layout",
 	                                                 qDomDocPtr->nodeValue(), "*.svg");
+	if (sFileName.isNull()) return;
+
 	QFileInfo info(sFileName);
 	sFileName.remove(sFileName.size()-1 - info.completeSuffix().size(), sFileName.size());
 	sFileName.append(".svg");
@@ -152,7 +154,11 @@ void GloveWidget::saveSVG()
 
 void GloveWidget::saveMapping()
 {
-	QString sFileName = QFileDialog::getSaveFileName(0, "save taxel mapping");
+	QString sFileName = QFileDialog::getSaveFileName(0, "save taxel mapping",
+	                                                 sMappingFile, "*.cfg");
+	if (sFileName.isNull()) return;
+	sMappingFile = sFileName;
+
 	QFile file(sFileName);
 	if (!file.open(QFile::WriteOnly | QFile::Truncate)) {
 		QMessageBox::warning(this, "save taxel mapping",
@@ -204,22 +210,27 @@ bool GloveWidget::canClose()
 	return true;
 }
 
-void GloveWidget::editMapping(QString node, int channel)
+void GloveWidget::editMapping(QString node, int channel, MappingDialog* dlg)
 {
 	if (node.isEmpty()) return;
 	QString oldStyle=highlight(node);
 
-	MappingDialog dlg(node, channel, data.size(), this);
-	connect(this, SIGNAL(pushedTaxel(int)), &dlg, SLOT(setChannel(int)));
+	bool bOwnDialog = false;
+	if (!dlg) {
+		dlg = new MappingDialog(this);
+		bOwnDialog = true;
+	}
+	dlg->init(node, channel, data.size());
+	connect(this, SIGNAL(pushedTaxel(int)), dlg, SLOT(setChannel(int)));
 	setMonitorEnabled(channel < 0);
 
-	int res = dlg.exec(); setMonitorEnabled(false);
+	int res = dlg->exec(); setMonitorEnabled(false);
 	restore(node, oldStyle);
 
 	if (res != QDialog::Accepted) return;
 
-	QString newName = dlg.name().trimmed();
-	if (node != dlg.name() && !newName.isEmpty()) {
+	QString newName = dlg->name().trimmed();
+	if (node != dlg->name() && !newName.isEmpty()) {
 		// change id of path in QDomDocument
 		int idx = findPathNodeIndex(node); assert(idx >= 0 && idx < allNodes.size());
 		QDomNode path = allNodes[idx].second;
@@ -240,10 +251,11 @@ void GloveWidget::editMapping(QString node, int channel)
 		if (newName.startsWith("path") ^ node.startsWith("path"))
 			numNoTaxelNodes += newName.startsWith("path") ? 1 : -1;
 	}
-	if (getTaxelChannel(node) != dlg.channel())
-		assign(node, dlg.channel());
+	if (getTaxelChannel(node) != dlg->channel())
+		assign(node, dlg->channel());
 
 	actConfMap->setEnabled(allNodes.size() - numNoTaxelNodes > taxels.size());
+	if (bOwnDialog) dlg->deleteLater();
 }
 
 void GloveWidget::setMonitorEnabled(bool bEnable)
@@ -254,15 +266,27 @@ void GloveWidget::setMonitorEnabled(bool bEnable)
 
 void GloveWidget::configureMapping()
 {
+	MappingDialog* dlg = new MappingDialog(this);
+	bCancelConfigure = false;
+	QPushButton *btn = dlg->addButton(tr("&Abort"), QDialogButtonBox::DestructiveRole);
+	connect(btn, SIGNAL(clicked()), this, SLOT(setCancelConfigure()));
+	connect(btn, SIGNAL(clicked()), dlg, SLOT(reject()));
+
 	for (PathList::const_iterator it=allNodes.begin(), end=allNodes.end();
-	     it != end; ++it) {
+	     !bCancelConfigure && it != end; ++it) {
 		// ignore nodes named path*
 		if (it->first.startsWith("path")) continue;
 		// and nodes already assigned
 		if (getTaxelChannel(it->first) >= 0) continue;
 
-		editMapping(it->first, -1);
+		editMapping(it->first, -1, dlg);
 	}
+	dlg->deleteLater();
+}
+
+void GloveWidget::setCancelConfigure(bool bCancel)
+{
+	bCancelConfigure = bCancel;
 }
 
 QSize GloveWidget::sizeHint() const
