@@ -455,7 +455,12 @@ QString GloveWidget::highlight(const QString &sName, const QColor &color)
 
 	QString oldStyle = styleNode.nodeValue();
 	highlighted.insert(sName);
+#if (0 && QT_VERSION >= QT_VERSION_CHECK(5, 2, 0))
 	styleNode.setNodeValue(fillKey + color.name(QColor::HexRgb).mid(1));
+#else
+	unsigned int col = (color.red() << 16) | (color.green() << 8) | color.blue();
+	styleNode.setNodeValue(QString("%1%2").arg(fillKey).arg(col, 6, 16, QLatin1Char('0')));
+#endif
 	updateSVG();
 	return oldStyle;
 }
