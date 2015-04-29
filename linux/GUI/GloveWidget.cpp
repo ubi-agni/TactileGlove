@@ -25,6 +25,9 @@ GloveWidget::GloveWidget(size_t noTaxels, const QString &sLayout,
    : QWidget(parent), bDirtyDoc(false), bDirtyMapping(false),
      numNoTaxelNodes(0), bMonitorTaxel(false)
 {
+	QStringList colorNames; colorNames << "black" << "lime" << "yellow" << "red";
+	colorMap.append(colorNames);
+
 	setupUi(this);
 	data.resize(noTaxels);
 	accumulated.resize(noTaxels);
@@ -448,6 +451,15 @@ void GloveWidget::resetData()
 	updateTaxels();
 }
 
+static QString hexRGB(const QColor &color) {
+#if (0 && QT_VERSION >= QT_VERSION_CHECK(5, 2, 0))
+	return color.name(QColor::HexRgb).mid(1));
+#else
+	unsigned int col = (color.red() << 16) | (color.green() << 8) | color.blue();
+	return QString("%1").arg(col, 6, 16, QLatin1Char('0'));
+#endif
+}
+
 QString GloveWidget::highlight(const QString &sName, const QColor &color)
 {
 	QDomNode styleNode = findStyleNode(sName);
@@ -455,12 +467,7 @@ QString GloveWidget::highlight(const QString &sName, const QColor &color)
 
 	QString oldStyle = styleNode.nodeValue();
 	highlighted.insert(sName);
-#if (0 && QT_VERSION >= QT_VERSION_CHECK(5, 2, 0))
-	styleNode.setNodeValue(fillKey + color.name(QColor::HexRgb).mid(1));
-#else
-	unsigned int col = (color.red() << 16) | (color.green() << 8) | color.blue();
-	styleNode.setNodeValue(QString("%1%2").arg(fillKey).arg(col, 6, 16, QLatin1Char('0')));
-#endif
+	styleNode.setNodeValue(fillKey + hexRGB(color));
 	updateSVG();
 	return oldStyle;
 }
@@ -480,20 +487,9 @@ void GloveWidget::updateTaxels()
 	for (TaxelMap::iterator it=taxels.begin(), end=taxels.end(); it!=end; ++it) {
 		if (highlighted.contains(it.key())) continue;
 
-		data_vector::value_type temp = data[it->channel];
-		unsigned int color;
-
-		if (temp > 4095) temp = 4095;
-		if (temp <= 1365)
-			color = 0x100*(((1000*temp / 5353) > 255)?255:(1000*temp / 5353));
-		else {
-			if (temp <= 2730)
-				color = (1000*(temp-1365) / 5353)*0x10000 + 0xff00;
-			else
-				color = 0x100*(0xff - (1000*(temp-2730) / 5353)) + 0xff0000;
-		}
+		QColor color = colorMap.map(data[it->channel], 0, 4095);
 		// replace color string in style string
-		it->styleString.replace(it->iFillStart, 6, fmt.arg(color, 6, 16, QLatin1Char('0')));
+		it->styleString.replace(it->iFillStart, 6, hexRGB(color));
 		it->styleNode.setNodeValue(it->styleString);
 	}
 	updateSVG();

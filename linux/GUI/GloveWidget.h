@@ -3,6 +3,7 @@
 #include "TaxelMapping.h"
 #include "InputInterface.h"
 #include "ui_GloveWidget.h"
+#include "ColorMap.h"
 
 #include <QWidget>
 #include <QDomNode>
@@ -109,4 +110,5 @@ private:
 	QList<QAction*> _optionActions;
 
 	QTransform     viewTransform;
+	ColorMap       colorMap;
 };
