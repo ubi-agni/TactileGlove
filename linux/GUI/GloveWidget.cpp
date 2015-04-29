@@ -1,5 +1,6 @@
 #include "GloveWidget.h"
 #include "MappingDialog.h"
+#include "ColorMap.h"
 
 #include <QtSvg>
 #include <QDomDocument>
@@ -23,11 +24,8 @@ static QString getLabel(int channel, const QString &id, bool showChannel=true, b
 GloveWidget::GloveWidget(size_t noTaxels, const QString &sLayout,
                          const TaxelMapping &mapping, QWidget *parent)
    : QWidget(parent), bDirtyDoc(false), bDirtyMapping(false),
-     numNoTaxelNodes(0), bMonitorTaxel(false)
+     numNoTaxelNodes(0), bMonitorTaxel(false), colorMap(0), fMin(0), fMax(4095)
 {
-	QStringList colorNames; colorNames << "black" << "lime" << "yellow" << "red";
-	colorMap.append(colorNames);
-
 	setupUi(this);
 	data.resize(noTaxels);
 	accumulated.resize(noTaxels);
@@ -404,13 +402,13 @@ bool GloveWidget::event(QEvent *event)
 	return QWidget::event(event);
 }
 
-void GloveWidget::monitorTaxels(const data_vector &data) {
+void GloveWidget::monitorTaxels(const TactileData &data) {
 	assert(accumulated.size() == data.size());
 
 	unsigned long valFirst=0, valSecond=0;
 	int idxFirst = -1, idxSecond = -1;
 
-	data_vector::const_iterator d = data.begin();
+	TactileData::const_iterator d = data.begin();
 	for (std::vector<unsigned long>::iterator acc = accumulated.begin(), end= accumulated.end();
 	     acc != end; ++acc, ++d) {
 		*acc += *d;
@@ -425,12 +423,13 @@ void GloveWidget::monitorTaxels(const data_vector &data) {
 	}
 }
 
-void GloveWidget::updateData(const data_vector &data)
+void GloveWidget::updateData(const TactileData &data,
+                             float fMin, float fMax, ColorMap *colorMap)
 {
 	assert(data.size() == this->data.size());
 
 	bool bDirty = false;
-	for (data_vector::const_iterator
+	for (TactileData::const_iterator
 	     me=this->data.begin(), end=this->data.end(), other=data.begin();
 	     me != end; ++me, ++other) {
 		if (*me != *other) {
@@ -442,13 +441,15 @@ void GloveWidget::updateData(const data_vector &data)
 	if (!bDirty) return;
 
 	this->data = data;
+	this->fMin = fMin; this->fMax = fMax;
+	this->colorMap = colorMap;
 	updateTaxels();
 }
 
 void GloveWidget::resetData()
 {
 	std::fill(data.begin(), data.end(), 0);
-	updateTaxels();
+	if (!colorMap) updateSVG(); else updateTaxels();
 }
 
 static QString hexRGB(const QColor &color) {
@@ -487,7 +488,7 @@ void GloveWidget::updateTaxels()
 	for (TaxelMap::iterator it=taxels.begin(), end=taxels.end(); it!=end; ++it) {
 		if (highlighted.contains(it.key())) continue;
 
-		QColor color = colorMap.map(data[it->channel], 0, 4095);
+		QColor color = colorMap->map(data[it->channel], fMin, fMax);
 		// replace color string in style string
 		it->styleString.replace(it->iFillStart, 6, hexRGB(color));
 		it->styleNode.setNodeValue(it->styleString);

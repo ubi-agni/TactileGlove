@@ -3,7 +3,6 @@
 #include "TaxelMapping.h"
 #include "InputInterface.h"
 #include "ui_GloveWidget.h"
-#include "ColorMap.h"
 
 #include <QWidget>
 #include <QDomNode>
@@ -16,12 +15,13 @@ class QDomDocument;
 class QDomNode;
 class QSvgRenderer;
 class MappingDialog;
+class ColorMap;
 
 class GloveWidget : public QWidget, private Ui::GloveWidget
 {
 	Q_OBJECT
 public:
-	typedef tactile::InputInterface::data_vector data_vector;
+	typedef std::vector<float> TactileData;
 
 	explicit GloveWidget(size_t noTaxels, const QString& sLayout,
 	                     const TaxelMapping& mapping,
@@ -33,7 +33,8 @@ public:
 
 public slots:
 	/// update internal data buffer and trigger updateSVG() on changes
-	void updateData(const data_vector &data);
+	void updateData(const TactileData &data, float fMin, float fMax, ColorMap *colorMap);
+
 	/// reset SVG display
 	void resetData();
 
@@ -72,7 +73,7 @@ private:
 	void mouseDoubleClickEvent(QMouseEvent *event);
 
 	/// look for a peak in accumulated taxel data and signal its index
-	void monitorTaxels(const data_vector &data);
+	void monitorTaxels(const TactileData &data);
 	/// update the SVG with new colors
 	void updateTaxels();
 	/// reload the SVG and update display
@@ -91,7 +92,7 @@ private:
 	QDomDocument  *qDomDocPtr;
 	bool           bDirtyDoc;
 	QSvgRenderer  *qSvgRendererPtr;
-	data_vector    data;
+	TactileData    data;
 	std::vector<unsigned long> accumulated;
 	bool           bMonitorTaxel;
 	bool           bCancelConfigure;
@@ -110,5 +111,6 @@ private:
 	QList<QAction*> _optionActions;
 
 	QTransform     viewTransform;
-	ColorMap       colorMap;
+	ColorMap      *colorMap;
+	float          fMin, fMax;
 };

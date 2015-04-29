@@ -76,6 +76,13 @@
      </widget>
     </item>
     <item>
+     <widget class="QComboBox" name="modeComboBox">
+      <property name="editable">
+       <bool>false</bool>
+      </property>
+     </widget>
+    </item>
+    <item>
      <widget class="QLineEdit" name="inputLineEdit">
       <property name="toolTip">
        <string>serial device name</string>
@@ -158,7 +165,9 @@
   </widget>
   <action name="actionQuit">
    <property name="icon">
-    <iconset theme="exit"/>
+    <iconset theme="exit">
+     <normaloff/>
+    </iconset>
    </property>
    <property name="text">
     <string>&amp;Quit</string>
