@@ -34,7 +34,7 @@ GloveWidget::GloveWidget(size_t noTaxels, const QString &sLayout,
 	QFile file(sLayout);
 	if (!file.exists()) file.setFileName(QString(":%1.svg").arg(sLayout));
 	if (!file.open(QIODevice::ReadOnly))
-		throw std::runtime_error("failed to open sensor layout");
+		throw std::runtime_error("failed to open taxel layout: " + sLayout.toStdString());
 
 	QString errorMsg;
 	if (!qDomDocPtr->setContent(&file, &errorMsg)) {
@@ -213,15 +213,16 @@ bool GloveWidget::canClose()
 
 void GloveWidget::editMapping(QString node, int channel, MappingDialog* dlg)
 {
+	static const QColor highlightColor("blue");
 	if (node.isEmpty()) return;
-	QString oldStyle=highlight(node);
+	QString oldStyle=highlight(node, highlightColor);
 
 	bool bOwnDialog = false;
 	if (!dlg) {
 		dlg = new MappingDialog(this);
 		bOwnDialog = true;
 	}
-	dlg->init(node, channel, data.size());
+	dlg->init(node, channel, data.size(), getUnassignedChannels());
 	connect(this, SIGNAL(pushedTaxel(int)), dlg, SLOT(setChannel(int)));
 	setMonitorEnabled(channel < 0);
 
@@ -382,6 +383,18 @@ int GloveWidget::getTaxelChannel(const QString &sName) const
 	TaxelMap::const_iterator it = taxels.find(sName);
 	if (it == taxels.end()) return -1;
 	return it->channel;
+}
+
+QList<unsigned int> GloveWidget::getUnassignedChannels() const
+{
+	QList<unsigned int> unassigned;
+	for (size_t i=0, end=data.size(); i < end; ++i)
+		unassigned.append(i);
+
+	for (TaxelMap::const_iterator it = taxels.begin(), end = taxels.end();
+	     it != end; ++it)
+		unassigned.removeOne(it->channel);
+	return unassigned;
 }
 
 bool GloveWidget::event(QEvent *event)

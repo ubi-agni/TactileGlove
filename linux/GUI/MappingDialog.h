@@ -1,6 +1,8 @@
 #pragma once
 #include "ui_MappingDialog.h"
+#include <QIntValidator>
 
+class ChannelValidator;
 class MappingDialog : public QDialog, private Ui::MappingDialog
 {
 	Q_OBJECT
@@ -8,7 +10,7 @@ class MappingDialog : public QDialog, private Ui::MappingDialog
 
 public:
 	explicit MappingDialog(QWidget *parent = 0);
-	void init(const QString &sName, int channel, int maxChannel);
+	void init(const QString &sName, int channel, int maxChannel, QList<unsigned int> unAssignedChannels);
 
 	QString name() const;
 	int channel() const;
@@ -16,4 +18,13 @@ public:
 
 public slots:
 	void setChannel(int channel);
+
+private:
+	ChannelValidator *validator;
+};
+
+class ChannelValidator : public QIntValidator {
+public:
+	ChannelValidator(QObject *parent = 0) : QIntValidator(1, 1, parent) {}
+	QValidator::State	validate(QString &input, int &pos) const;
 };

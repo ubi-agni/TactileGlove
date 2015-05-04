@@ -38,7 +38,7 @@ public slots:
 	/// reset SVG display
 	void resetData();
 
-	QString highlight(const QString &sName, const QColor &color=QColor("red"));
+	QString highlight(const QString &sName, const QColor &color);
 	void restore(const QString &sName, const QString &style);
 
 	void saveSVG();
@@ -64,6 +64,7 @@ private:
 	QString pathAt(const QPoint &p);
 	/// find the channel index associated to sName (or -1 if not found)
 	int getTaxelChannel(const QString &sName) const;
+	QList<unsigned int> getUnassignedChannels() const;
 
 	/// establish the mapping from channel idx to taxel sName
 	bool assign(const QString &sName, int idx);

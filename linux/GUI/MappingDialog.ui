@@ -34,9 +34,9 @@
       </widget>
      </item>
      <item row="1" column="1">
-      <widget class="MySpinBox" name="channelSpinBox">
-       <property name="specialValueText">
-        <string>unused</string>
+      <widget class="QComboBox" name="channelComboBox">
+       <property name="editable">
+        <bool>true</bool>
        </property>
       </widget>
      </item>
@@ -54,13 +54,6 @@
    </item>
   </layout>
  </widget>
- <customwidgets>
-  <customwidget>
-   <class>MySpinBox</class>
-   <extends>QSpinBox</extends>
-   <header>MySpinBox.h</header>
-  </customwidget>
- </customwidgets>
  <resources/>
  <connections>
   <connection>

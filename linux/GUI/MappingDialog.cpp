@@ -2,23 +2,51 @@
 #include "GloveWidget.h"
 #include <QPushButton>
 
+static QString unUsed("unused");
+
+QValidator::State ChannelValidator::validate(QString &input, int &pos) const
+{
+	if (input.isEmpty() || input == unUsed)
+		return Acceptable;
+	if (unUsed.startsWith(input)) {
+		input = unUsed;
+		return Intermediate;
+	}
+	return QIntValidator::validate(input, pos);
+}
+
+
+
 MappingDialog::MappingDialog(QWidget *parent) :
    QDialog(parent)
 {
 	setupUi(this);
+	validator = new ChannelValidator(this);
+	channelComboBox->setValidator(validator);
 }
 
-void MappingDialog::init(const QString &sName, int channel, int maxChannel)
+void MappingDialog::init(const QString &sName, int channel, int maxChannel,
+                         QList<unsigned int> unAssignedChannels)
 {
+	validator->setTop(maxChannel);
 	nameEdit->setText(sName);
-	channelSpinBox->setMaximum(maxChannel);
+	channelComboBox->clear();
+	channelComboBox->addItem(unUsed);
+	Q_FOREACH(unsigned int ch, unAssignedChannels) {
+		channelComboBox->addItem(QString::number(ch+1));
+	}
 	setChannel(channel);
-	channelSpinBox->setFocus();
+	channelComboBox->setFocus();
 }
 
 QString MappingDialog::name() const {return nameEdit->text();}
 
-int MappingDialog::channel() const {return channelSpinBox->value()-1;}
+int MappingDialog::channel() const {
+	if (channelComboBox->currentText().isEmpty() ||
+	    channelComboBox->currentText() == unUsed)
+		return -1;
+	return channelComboBox->currentText().toInt() - 1;
+}
 
 QPushButton *MappingDialog::addButton(const QString &label, QDialogButtonBox::ButtonRole role)
 {
@@ -29,5 +57,6 @@ QPushButton *MappingDialog::addButton(const QString &label, QDialogButtonBox::Bu
 
 void MappingDialog::setChannel(int channel)
 {
-	channelSpinBox->setValue(channel+1);
+	if (channel < 0) channelComboBox->setCurrentText(unUsed);
+	else channelComboBox->setCurrentText(QString::number(channel+1));
 }
