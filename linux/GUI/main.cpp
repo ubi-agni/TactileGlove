@@ -27,7 +27,7 @@ void usage(char* argv[]) {
 #define INPUT_ROS        2
 #define INPUT_RANDOM     3
 
-// remove "prefix.layout" options, enabling the one matching sMappingFilter
+// remove "prefix.layout" options, enabling the one with prefix=sMappingFilter
 void filterLayoutOptions(const string &sMappingFilter,
                          std::vector<po::basic_option<char> > &options)
 {
@@ -88,15 +88,15 @@ bool handleCommandline(uint &inputMethod, std::string &sInput,
 	// default input method
 	inputMethod = INPUT_SERIAL;
 	sInput = "/dev/ttyACM0";
-	std::string sConfigFile, sMapping;
+	string sMapping;
 
 	po::options_description options("options");
 	po::options_description config; // config options feasible for both cmdline + file
 	config.add_options()
-		("mapping,m", po::value<string>(&sMapping)->default_value("P2"),
-		 "select a specific mapping from config")
-		("layout,l", po::value<string>(&sLayout),
-		 "glove layout SVG")
+		("mapping,m", po::value<string>(&sMapping),
+		 "name of taxel mapping from config\ne.g. P1, P2, P3l, P3r")
+		("layout,l", po::value<string>(&sLayout)->default_value("P3")->required(),
+		 "glove layout SVG\ne.g. P1, P3, or file name")
 		;
 
 	po::options_description hidden; // hidden positional options
@@ -115,7 +115,7 @@ bool handleCommandline(uint &inputMethod, std::string &sInput,
 
 	cmd.add_options()
 		("help,h", "Display this help message.")
-		("config,c", po::value<string>(&sConfigFile), "config file");
+		("config,c", po::value<string>(), "config file");
 	cmd.add(config);
 	cmd.add(input);
 
@@ -127,25 +127,35 @@ bool handleCommandline(uint &inputMethod, std::string &sInput,
 	          .options(po::options_description().add(cmd).add(hidden))
 	          .positional(pos)
 	          .run(), map);
-	po::notify(map); // assigns variables
 
 	if (map.count("help")) return true;
 
 	TaxelMapping configFileMapping;
 	if (map.count("config")) {
+		// we need to access config and mapping values before we can do notify() below
+		string sConfigFile = map["config"].as<string>();
+		if (map.count("mapping")) sMapping = map["mapping"].as<string>();
+
 		ifstream ifs(sConfigFile.c_str());
 		if (!ifs) throw std::runtime_error("cannot open config file " + sConfigFile);
 		po::options_description fileOpts; fileOpts.add(config).add(input);
 		configFileMapping = mappingFromStream(ifs, sMapping, fileOpts, map);
-		po::notify(map); // fill variables
 	}
 
 	if (map.count("ros") + map.count("serial") + map.count("dummy") > 1)
 		throw std::logic_error("multiple input methods specified");
 
 	// *** merge taxel mapping options ***
+	if (map.count("mapping")) sMapping = map["mapping"].as<string>();
 	mapping = getDefaultMapping(sMapping, config, map); // initialize from defaults
-	po::notify(map); // will copy default "layout" option into sLayout
+
+	// if mapping was provided, but layout stays
+	if (!sMapping.empty() && map.count("layout") == 0)
+		throw runtime_error("unknown mapping " + sMapping);
+
+	// fill variables and issue exceptions on errors
+	// this is only possible here, after having processed configFile and defaultMapping
+	po::notify(map);
 
 	// merge stuff from explicit config file
 	mapping.merge(configFileMapping);
@@ -161,6 +171,8 @@ bool handleCommandline(uint &inputMethod, std::string &sInput,
 		}
 		mapping.merge(cmdlineMapping);
 	}
+	if (!map.count("layout"))
+
 
 	if (map.count("serial")) inputMethod = INPUT_SERIAL;
 	if (map.count("dummy")) inputMethod = INPUT_RANDOM;
