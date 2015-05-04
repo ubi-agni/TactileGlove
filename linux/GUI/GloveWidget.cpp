@@ -269,6 +269,8 @@ void GloveWidget::setMonitorEnabled(bool bEnable)
 void GloveWidget::configureMapping()
 {
 	MappingDialog* dlg = new MappingDialog(this);
+	QPoint         pos;
+
 	bCancelConfigure = false;
 	QPushButton *btn = dlg->addButton(tr("&Abort"), QDialogButtonBox::DestructiveRole);
 	connect(btn, SIGNAL(clicked()), this, SLOT(setCancelConfigure()));
@@ -282,6 +284,9 @@ void GloveWidget::configureMapping()
 		if (getTaxelChannel(it->first) >= 0) continue;
 
 		editMapping(it->first, -1, dlg);
+		pos = dlg->pos();
+		dlg->show();
+		dlg->move(pos);
 	}
 	dlg->deleteLater();
 }
