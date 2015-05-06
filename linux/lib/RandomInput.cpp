@@ -47,12 +47,15 @@ const InputInterface::data_vector& RandomInput::readFrame()
 {
 	if (!connected) throw std::runtime_error("not connected");
 
-	int scale = 1;
-	for (data_vector::iterator it=data.begin(), end=data.end(); it != end; ++it) {
+	size_t idx = 0;
+	for (data_vector::iterator it=data.begin(), end=data.end(); it != end; ++it, ++idx) {
 		long int rndnumber = random();
-		if (rndnumber < (RAND_MAX / 2)) /* only give new value 50% of time */
-			*it = (rndnumber & 0xFFF) / scale;
-		scale = 10; // all but first sample are scaled down
+		if (rndnumber < (RAND_MAX / 2)) { /* only give new value 50% of time */
+			*it = rndnumber & 0xFFF;
+			if (idx != 0) *it /= 10;   // except of first value, all have a rather small stddev
+			if (idx == 1)  *it = std::min(*it + 2048, 0xFFF); // simulate a fixed offset
+			if (idx == 14) *it = std::min(*it + 3700, 0xFFF); // goniometer joint value
+		}
 	}
 	return data;
 }
