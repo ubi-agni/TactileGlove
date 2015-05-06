@@ -80,6 +80,10 @@ private:
 	/// reload the SVG and update display
 	void updateSVG();
 
+	// saving to cfg or xacro
+	void saveMappingCfg(QTextStream &ts);
+	void saveMappingXacro(QTextStream &ts);
+
 private:
 	struct TaxelInfo {
 		TaxelInfo (unsigned short idx, const QDomNode&node);

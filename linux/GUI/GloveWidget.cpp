@@ -155,9 +155,42 @@ void GloveWidget::saveSVG()
 
 void GloveWidget::saveMapping()
 {
+	typedef std::map<QString, std::pair<QString, void (GloveWidget::*)(QTextStream&)> > FilterMap;
+	static FilterMap filterMap;
+	static QString sFilters;
+	static FilterMap::const_iterator defaultFilter;
+	if (filterMap.empty()) {
+		filterMap[tr("mapping configs (*.cfg)")] = make_pair(".cfg", &GloveWidget::saveMappingCfg);
+		defaultFilter = filterMap.begin();
+		filterMap[tr("xacro configs (*.xacro)")] = make_pair(".xacro", &GloveWidget::saveMappingXacro);
+		for (FilterMap::const_iterator it=filterMap.begin(), end=filterMap.end();
+		     it != end; ++it) {
+			if (!sFilters.isEmpty()) sFilters.append(";;");
+			sFilters.append(it->first);
+		}
+	}
+
+	// choose default filter from current file name
+	QString selectedFilter = defaultFilter->first;
+	for (FilterMap::const_iterator it=filterMap.begin(), end=filterMap.end(); it != end; ++it) {
+		if (sMappingFile.endsWith(it->second.first))
+			selectedFilter = it->first;
+	}
+
+	// exec file dialog
 	QString sFileName = QFileDialog::getSaveFileName(0, "save taxel mapping",
-	                                                 sMappingFile, "*.cfg");
+	                                                 sMappingFile, sFilters, &selectedFilter);
 	if (sFileName.isNull()) return;
+
+	// which filter was choosen?
+	FilterMap::const_iterator chosenFilter = filterMap.find(selectedFilter);
+	if (chosenFilter == filterMap.end()) chosenFilter = defaultFilter;
+
+	// append default extension from selected filter
+	QFileInfo fi(sFileName);
+	if (fi.suffix().isEmpty()) sFileName.append(chosenFilter->second.first);
+
+	// save name of mapping file for next saving attempt
 	sMappingFile = sFileName;
 
 	QFile file(sFileName);
@@ -168,16 +201,14 @@ void GloveWidget::saveMapping()
 	}
 
 	QTextStream ts(&file);
-	// nicely sort name=channel pairs by (channel, name)
-	typedef std::set<std::pair<unsigned short, QString> > SortedList;
-	SortedList sorted;
-	for (TaxelMap::const_iterator it=taxels.begin(), end=taxels.end(); it!=end; ++it)
-		sorted.insert(std::make_pair(it->channel, it.key()));
+	(this->*chosenFilter->second.second)(ts);
+}
 
-	// write mapping (sorted)
+void GloveWidget::saveMappingCfg(QTextStream &ts) {
+	// write mapping (sorted by taxel name)
 	unsigned int iWritten=0;
-	for (SortedList::const_iterator it=sorted.begin(), end=sorted.end(); it!=end; ++it) {
-		ts << it->second << "=" << it->first << endl;
+	for (TaxelMap::const_iterator it=taxels.begin(), end=taxels.end(); it!=end; ++it) {
+		ts << it.key() << "=" << it->channel << endl;
 		++iWritten;
 	}
 	bDirtyMapping = false;
@@ -191,6 +222,15 @@ void GloveWidget::saveMapping()
 		if (key.isEmpty() || getTaxelChannel(key) != -1) continue;
 		ts << key << "=" << endl;
 	}
+}
+
+void GloveWidget::saveMappingXacro(QTextStream &ts) {
+	ts << "<tactile_mapping xmlns:xacro=\"http://ros.org/wiki/xacro\">" << endl;
+	ts << "<xacro:property name=\"tactMap\" value=\"{" << endl;
+	for (TaxelMap::const_iterator it=taxels.begin(), end=taxels.end(); it!=end; ++it)
+		ts << "'" << it.key() << "'" << ":" << it->channel << "," << endl;
+	ts << "}\" />" << endl;
+	ts << "</tactile_mapping>" << endl;
 }
 
 bool GloveWidget::canClose()
