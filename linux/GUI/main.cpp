@@ -171,8 +171,8 @@ bool handleCommandline(uint &inputMethod, std::string &sInput,
 		}
 		mapping.merge(cmdlineMapping);
 	}
-	if (!map.count("layout"))
-
+	if (mapping.empty())
+		cerr << "warning: no mapping specified" << endl;
 
 	if (map.count("serial")) inputMethod = INPUT_SERIAL;
 	if (map.count("dummy")) inputMethod = INPUT_RANDOM;
