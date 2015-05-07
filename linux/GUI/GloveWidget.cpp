@@ -316,6 +316,14 @@ void GloveWidget::configureMapping()
 	connect(btn, SIGNAL(clicked()), this, SLOT(setCancelConfigure()));
 	connect(btn, SIGNAL(clicked()), dlg, SLOT(reject()));
 
+	// display channel numbers, but not the names
+	bool bShowChannels = actShowChannels->isChecked();
+	bool bShowNames = actShowIDs->isChecked();
+	bool bShowAllNames = actShowAllIDs->isChecked();
+	actShowAllIDs->setChecked(false);
+	actShowChannels->setChecked(true);
+	actShowIDs->setChecked(false);
+
 	for (PathList::const_iterator it=allNodes.begin(), end=allNodes.end();
 	     !bCancelConfigure && it != end; ++it) {
 		// ignore nodes named path*
@@ -329,6 +337,11 @@ void GloveWidget::configureMapping()
 		dlg->move(pos);
 	}
 	dlg->deleteLater();
+
+	// restore channel/name display
+	actShowChannels->setChecked(bShowChannels);
+	actShowIDs->setChecked(bShowNames);
+	actShowAllIDs->setChecked(bShowAllNames);
 }
 
 void GloveWidget::setCancelConfigure(bool bCancel)
