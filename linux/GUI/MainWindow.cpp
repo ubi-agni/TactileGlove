@@ -1,6 +1,7 @@
 #include "MainWindow.h"
 #include "ui_MainWindow.h"
 #include "GloveWidget.h"
+#include "MappingDialog.h"
 #include "ColorMap.h"
 
 #include "SerialThread.h"
@@ -8,10 +9,17 @@
 #if HAVE_ROS
 #include "ROSInput.h"
 #endif
-#include <math.h>
-#include <boost/bind.hpp>
 #include <QCloseEvent>
 #include <QComboBox>
+#include <QFileDialog>
+#include <QMessageBox>
+#include <QTextStream>
+
+#include <iostream>
+#include <math.h>
+#include <boost/bind.hpp>
+
+using namespace std;
 
 MainWindow::MainWindow(size_t noTaxels, QWidget *parent) :
    QMainWindow(parent), ui(new Ui::MainWindow), iJointIdx(-1),
@@ -28,6 +36,9 @@ MainWindow::MainWindow(size_t noTaxels, QWidget *parent) :
 	ui->toolBar->addWidget(ui->btnDisconnect);
 	ui->btnDisconnect->setEnabled(false);
 	ui->fps->hide();
+
+	connect(ui->actConfMap, SIGNAL(triggered()), this, SLOT(configureMapping()));
+	connect(ui->actSaveMapping, SIGNAL(triggered()), this, SLOT(saveMapping()));
 
 	connect(ui->updateTimeSpinBox, SIGNAL(valueChanged(int)), this, SLOT(setTimer(int)));
 	connect(ui->lambdaSpinBox, SIGNAL(valueChanged(double)), this, SLOT(setLambda(double)));
@@ -92,14 +103,37 @@ void MainWindow::initGloveWidget(const QString &layout, const TaxelMapping &mapp
 		delete gloveWidget;
 		gloveWidget = 0;
 	}
-	gloveWidget = new GloveWidget(data.size(), layout, mapping);
+	gloveWidget = new GloveWidget(layout, this);
 	ui->verticalLayout->insertWidget(0, gloveWidget);
-
-	ui->menuFile->addActions(gloveWidget->fileActions());
-	ui->menuOptions->addActions(gloveWidget->optionActions());
-	ui->menuFile->addAction(ui->actionQuit);
-
+	resetColors();
 	gloveWidget->setFocus();
+
+	connect(ui->actSaveSVG, SIGNAL(triggered()), gloveWidget, SLOT(saveSVG()));
+	connect(gloveWidget, SIGNAL(doubleClickedNode(uint)), this, SLOT(editMapping(uint)));
+	connect(gloveWidget, SIGNAL(unAssignedTaxels(bool)), ui->actConfMap, SLOT(setEnabled(bool)));
+	gloveWidget->setShowChannels(ui->actShowChannels->isChecked());
+	gloveWidget->setShowNames(ui->actShowIDs->isChecked());
+	gloveWidget->setShowAllNames(ui->actShowAllIDs->isChecked());
+	connect(ui->actShowChannels, SIGNAL(toggled(bool)), gloveWidget, SLOT(setShowChannels(bool)));
+	connect(ui->actShowIDs, SIGNAL(toggled(bool)), gloveWidget, SLOT(setShowNames(bool)));
+	connect(ui->actShowAllIDs, SIGNAL(toggled(bool)), gloveWidget, SLOT(setShowAllNames(bool)));
+
+	// initialize TaxelMapping
+	for (TaxelMapping::const_iterator it=mapping.begin(), end=mapping.end();
+	     it!=end; ++it) {
+		if (it->second < 0) continue; // ignore channel indexes
+
+		QString sName = QString::fromStdString(it->first);
+		int nodeIdx = gloveWidget->findPathNodeIndex(sName);
+		if (nodeIdx < 0)
+			cerr << "couldn't find a node named " << it->first << endl;
+
+		gloveWidget->setChannel(nodeIdx, it->second);
+		nodeToData[nodeIdx] = it->second;
+	}
+	bDirtyMapping = false;
+	// TODO
+	//ui->actConfMap->setEnabled(allNodes.size() - numNoTaxelNodes > taxels.size());
 }
 
 void MainWindow::setTimer(int interval)
@@ -159,24 +193,24 @@ void MainWindow::timerEvent(QTimerEvent *event)
 	ColorMap *colorMap;
 	float fMin, fMax;
 	chooseMapping(mode, colorMap, fMin, fMax);
-	gloveWidget->updateData(display, fMin, fMax, colorMap);
+
+	for (NodeToDataMap::const_iterator it = nodeToData.begin(), end = nodeToData.end();
+	     it != end; ++it) {
+		if (highlighted.contains(it.key())) continue;
+		QColor color = colorMap->map(display[it.value()], fMin, fMax);
+		gloveWidget->updateColor(it.key(), color);
+	}
+	gloveWidget->updateSVG();
 
 	if (iJointIdx >= 0) updateJointBar(display[iJointIdx]);
 	if (fps >= 0) ui->fps->setText(QString("%1 fps").arg(fps));
 }
 
-void MainWindow::closeEvent(QCloseEvent *event)
-{
-	if (gloveWidget && !gloveWidget->canClose())
-		event->ignore();
-}
-
-void MainWindow::updateData(const InputInterface::data_vector &taxels) {
-	QMutexLocker lock(&dataMutex);
-	assert(taxels.size() == data.size());
-
-	data.updateValues(taxels.begin(), taxels.end());
-	++frameCount;
+void MainWindow::resetColors(const QColor &color) {
+	for (NodeToDataMap::const_iterator it = nodeToData.begin(), end = nodeToData.end();
+	     it != end; ++it)
+		gloveWidget->updateColor(it.key(), color);
+	gloveWidget->updateSVG();
 }
 
 void MainWindow::updateJointBar(unsigned short value)
@@ -187,6 +221,187 @@ void MainWindow::updateJointBar(unsigned short value)
 	ui->jointBar->setValue(((value-min) * targetRange) / (max-min));
 }
 
+void MainWindow::closeEvent(QCloseEvent *event)
+{
+	if (bDirtyMapping) {
+		QMessageBox::StandardButton result
+		      = QMessageBox::warning(this, "Unsaved taxel mapping",
+		                             "You have unsaved changes to the taxel mapping. Close anyway?",
+		                             QMessageBox::Save | QMessageBox::Ok | QMessageBox::Cancel,
+		                             QMessageBox::Cancel);
+		if (result == QMessageBox::Save) saveMapping();
+		if (result == QMessageBox::Cancel) {
+			event->ignore();
+			return;
+		}
+	}
+
+	if (gloveWidget && !gloveWidget->canClose())
+		event->ignore();
+}
+
+/*** functions for taxel mapping configuration ***/
+void MainWindow::editMapping(unsigned int nodeIdx, MappingDialog* dlg)
+{
+	static const QColor highlightColor("blue");
+	highlighted.insert(nodeIdx);
+	QString oldStyle=gloveWidget->highlight(nodeIdx, highlightColor);
+
+	bool bOwnDialog = false;
+	if (!dlg) {
+		dlg = new MappingDialog(this);
+		bOwnDialog = true;
+	}
+	const QString &oldName = gloveWidget->getNodeName(nodeIdx);
+	const NodeToDataMap::const_iterator node=nodeToData.find(nodeIdx);
+	const int channel = node == nodeToData.end() ? -1 : node.value();
+	dlg->init(oldName, channel, data.size(), getUnassignedChannels());
+
+	int res = dlg->exec();
+	gloveWidget->restore(nodeIdx, oldStyle);
+	highlighted.remove(nodeIdx);
+
+	if (res != QDialog::Accepted) return;
+
+	QString newName = dlg->name().trimmed();
+	if (oldName != dlg->name() && !newName.isEmpty()) {
+		if (gloveWidget->findPathNodeIndex(newName))
+			QMessageBox::warning(this, "Name clash", "Taxel name already in use.", QMessageBox::Ok);
+		else { // change node id in gloveWidget's DOM
+			gloveWidget->setNodeName(nodeIdx, newName);
+			gloveWidget->updateSVG();
+		}
+	}
+	if (dlg->channel() != channel) {
+		bDirtyMapping = true;
+		if (dlg->channel() < 0) nodeToData.remove(nodeIdx);
+		else nodeToData[nodeIdx] = dlg->channel();
+		gloveWidget->setChannel(nodeIdx, dlg->channel());
+	}
+
+	if (bOwnDialog) dlg->deleteLater();
+}
+
+void MainWindow::setCancelConfigure(bool bCancel)
+{
+	bCancelConfigure = bCancel;
+}
+
+void MainWindow::configureMapping()
+{
+	MappingDialog* dlg = new MappingDialog(this);
+	QPoint         pos;
+
+	bCancelConfigure = false;
+	QPushButton *btn = dlg->addButton(tr("&Abort"), QDialogButtonBox::DestructiveRole);
+	connect(btn, SIGNAL(clicked()), this, SLOT(setCancelConfigure()));
+	connect(btn, SIGNAL(clicked()), dlg, SLOT(reject()));
+
+	// display channel numbers, but not the names
+	bool bShowChannels = ui->actShowChannels->isChecked();
+	bool bShowNames = ui->actShowIDs->isChecked();
+	bool bShowAllNames = ui->actShowAllIDs->isChecked();
+	ui->actShowAllIDs->setChecked(false);
+	ui->actShowChannels->setChecked(true);
+	ui->actShowIDs->setChecked(false);
+
+	for (unsigned int nodeIdx = 0, end=gloveWidget->numNodes();
+	     !bCancelConfigure && nodeIdx!=end; ++nodeIdx) {
+		const QString &oldName = gloveWidget->getNodeName(nodeIdx);
+		// ignore nodes named path*
+		if (oldName.startsWith("path")) continue;
+		// and nodes already assigned
+		if (nodeToData.find(nodeIdx) != nodeToData.end()) continue;
+
+		editMapping(nodeIdx, dlg);
+		pos = dlg->pos();
+		dlg->show();
+		dlg->move(pos);
+	}
+	dlg->deleteLater();
+
+	// restore channel/name display
+	ui->actShowChannels->setChecked(bShowChannels);
+	ui->actShowIDs->setChecked(bShowNames);
+	ui->actShowAllIDs->setChecked(bShowAllNames);
+}
+
+QList<unsigned int> MainWindow::getUnassignedChannels() const
+{
+	QList<unsigned int> unassigned;
+	for (size_t i=0, end=data.size(); i < end; ++i)
+		unassigned.append(i);
+
+	for (NodeToDataMap::const_iterator it = nodeToData.begin(), end = nodeToData.end();
+	     it != end; ++it)
+		unassigned.removeOne(it.value());
+	return unassigned;
+}
+
+void MainWindow::saveMapping()
+{
+	typedef std::map<QString, std::pair<QString, void (GloveWidget::*)(QTextStream&)> > FilterMap;
+	static FilterMap filterMap;
+	static QString sFilters;
+	static FilterMap::const_iterator defaultFilter;
+	if (filterMap.empty()) {
+		filterMap[tr("mapping configs (*.cfg)")] = make_pair(".cfg", &GloveWidget::saveMappingCfg);
+		defaultFilter = filterMap.begin();
+		filterMap[tr("xacro configs (*.xacro)")] = make_pair(".xacro", &GloveWidget::saveMappingXacro);
+		for (FilterMap::const_iterator it=filterMap.begin(), end=filterMap.end();
+		     it != end; ++it) {
+			if (!sFilters.isEmpty()) sFilters.append(";;");
+			sFilters.append(it->first);
+		}
+	}
+
+	// choose default filter from current file name
+	QString selectedFilter = defaultFilter->first;
+	for (FilterMap::const_iterator it=filterMap.begin(), end=filterMap.end(); it != end; ++it) {
+		if (sMappingFile.endsWith(it->second.first))
+			selectedFilter = it->first;
+	}
+
+	// exec file dialog
+	QString sFileName = QFileDialog::getSaveFileName(0, "save taxel mapping",
+	                                                 sMappingFile, sFilters, &selectedFilter);
+	if (sFileName.isNull()) return;
+
+	// which filter was choosen?
+	FilterMap::const_iterator chosenFilter = filterMap.find(selectedFilter);
+	for (FilterMap::const_iterator it=filterMap.begin(), end=filterMap.end(); it != end; ++it) {
+		if (sFileName.endsWith(it->second.first))
+			chosenFilter = it;
+	}
+	if (chosenFilter == filterMap.end()) chosenFilter = defaultFilter;
+
+	// append default extension from selected filter
+	QFileInfo fi(sFileName);
+	if (fi.suffix().isEmpty()) sFileName.append(chosenFilter->second.first);
+
+	// save name of mapping file for next saving attempt
+	sMappingFile = sFileName;
+
+	QFile file(sFileName);
+	if (!file.open(QFile::WriteOnly | QFile::Truncate)) {
+		QMessageBox::warning(this, "save taxel mapping",
+		                     QString("Failed to open file for writing:\n%1").arg(sFileName));
+		return;
+	}
+
+	QTextStream ts(&file);
+	(gloveWidget->*chosenFilter->second.second)(ts);
+	bDirtyMapping = false;
+}
+
+/*** functions for connection handling ***/
+void MainWindow::updateData(const InputInterface::data_vector &taxels) {
+	QMutexLocker lock(&dataMutex);
+	assert(taxels.size() == data.size());
+
+	data.updateValues(taxels.begin(), taxels.end());
+	++frameCount;
+}
 
 void MainWindow::configSerial(const QString &sDevice)
 {
@@ -245,8 +460,9 @@ void MainWindow::on_btnDisconnect_clicked()
 	ui->btnDisconnect->setEnabled(false);
 
 	input->disconnect();
-	gloveWidget->resetData();
+	resetColors(QColor("black"));
 	ui->statusBar->showMessage("Disconnected.", 2000);
+	resetColors();
 
 	ui->btnConnect->setEnabled(true);
 	killTimer(timerID); timerID = 0;

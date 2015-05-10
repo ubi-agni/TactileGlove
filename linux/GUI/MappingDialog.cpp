@@ -1,5 +1,7 @@
 #include "MappingDialog.h"
 #include "GloveWidget.h"
+#include "TaxelSelector.h"
+
 #include <QPushButton>
 
 static QString unUsed("unused");
@@ -18,7 +20,7 @@ QValidator::State ChannelValidator::validate(QString &input, int &pos) const
 
 
 MappingDialog::MappingDialog(QWidget *parent) :
-   QDialog(parent)
+   QDialog(parent), taxelSelector(0)
 {
 	setupUi(this);
 	validator = new ChannelValidator(this);
@@ -37,6 +39,14 @@ void MappingDialog::init(const QString &sName, int channel, int maxChannel,
 	}
 	setChannel(channel);
 	channelComboBox->setFocus();
+
+	if (unAssignedChannels.size()) {
+		if (!taxelSelector) taxelSelector = new TaxelSelector(this);
+		taxelSelector->init(unAssignedChannels);
+	} else if (taxelSelector) {
+		delete taxelSelector;
+		taxelSelector = 0;
+	}
 }
 
 QString MappingDialog::name() const {return nameEdit->text();}

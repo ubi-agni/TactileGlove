@@ -3,6 +3,7 @@
 #include <QIntValidator>
 
 class ChannelValidator;
+class TaxelSelector;
 class MappingDialog : public QDialog, private Ui::MappingDialog
 {
 	Q_OBJECT
@@ -21,6 +22,7 @@ public slots:
 
 private:
 	ChannelValidator *validator;
+	TaxelSelector    *taxelSelector;
 };
 
 class ChannelValidator : public QIntValidator {

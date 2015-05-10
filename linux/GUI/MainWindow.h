@@ -3,6 +3,9 @@
 #include <QMainWindow>
 #include <QTime>
 #include <QMutex>
+#include <QMap>
+#include <QSet>
+
 #include "TaxelMapping.h"
 #include "InputInterface.h"
 #include "TactileArray.h"
@@ -12,6 +15,7 @@ class QComboBox;
 class ColorMap;
 
 class GloveWidget;
+class MappingDialog;
 class MainWindow : public QMainWindow
 {
 	Q_OBJECT
@@ -27,14 +31,21 @@ public:
 	void configROS(const QString &sTopic);
 	void configRandom();
 
+public slots:
+	void saveMapping();
+
 private:
 	void initModeComboBox(QComboBox *cb);
 	void chooseMapping(TactileSensor::Mode mode, ColorMap *&colorMap,
 	                   float &fMin, float &fMax);
+	void resetColors(const QColor &color=QColor("black"));
 	void updateData(const InputInterface::data_vector &taxels);
 	void updateJointBar(unsigned short value);
+
 	void timerEvent(QTimerEvent *event);
 	void closeEvent(QCloseEvent *event);
+
+	QList<unsigned int> getUnassignedChannels() const;
 
 private slots:
 	void on_btnConnect_clicked();
@@ -43,6 +54,12 @@ private slots:
 	void setTimer(int interval);
 	void setLambda(double value);
 
+	// display mapping dialog for indexed taxel
+	void editMapping(unsigned int nodeIdx, MappingDialog *dlg=0);
+	/// configure all unassigned taxels
+	void configureMapping();
+	void setCancelConfigure(bool bCancel=true);
+
 private:
 	Ui::MainWindow  *ui;
 	GloveWidget     *gloveWidget;
@@ -50,8 +67,21 @@ private:
 
 	QMutex           dataMutex;
 	TactileArray     data;
-	int              iJointIdx;
 	TactileArray::vector_data display;
+
+	/// mapping from node indeces to data indeces
+	typedef QMap<unsigned int, unsigned int> NodeToDataMap;
+	NodeToDataMap    nodeToData;
+	QString          sMappingFile;
+	bool             bDirtyMapping;
+
+	// stuff needed for taxel mapping configuration
+	QSet<unsigned int>  highlighted; /// highlighted node indeces (to avoid updating them)
+	bool                bCancelConfigure;
+	std::vector<unsigned long> accumulated;
+
+	int              iJointIdx;
+
 	ColorMap        *absColorMap, *relColorMap;
 
 	QTime            lastUpdate;

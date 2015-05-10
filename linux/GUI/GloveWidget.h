@@ -1,15 +1,7 @@
 #pragma once
 
-#include "TaxelMapping.h"
-#include "InputInterface.h"
-#include "ui_GloveWidget.h"
-
 #include <QWidget>
 #include <QDomNode>
-#include <QMutex>
-#include <QVector>
-#include <QMap>
-#include <QSet>
 
 class QDomDocument;
 class QDomNode;
@@ -17,105 +9,84 @@ class QSvgRenderer;
 class MappingDialog;
 class ColorMap;
 
-class GloveWidget : public QWidget, private Ui::GloveWidget
+/** Provides a means to visualize the TactileGlove from an SVG
+ *  and to change coloring of the individual taxels
+ */
+class GloveWidget : public QWidget
 {
 	Q_OBJECT
 public:
-	typedef std::vector<float> TactileData;
-
-	explicit GloveWidget(size_t noTaxels, const QString& sLayout,
-	                     const TaxelMapping& mapping,
-	                     QWidget *parent = 0);
+	explicit GloveWidget(const QString& sLayout, QWidget *parent = 0);
 	QSize sizeHint() const;
 
-	const QList<QAction*>& fileActions() const;
-	const QList<QAction*>& optionActions() const;
-
-public slots:
-	/// update internal data buffer and trigger updateSVG() on changes
-	void updateData(const TactileData &data, float fMin, float fMax, ColorMap *colorMap);
-
-	/// reset SVG display
-	void resetData();
-
-	QString highlight(const QString &sName, const QColor &color);
-	void restore(const QString &sName, const QString &style);
-
-	void saveSVG();
-	void saveMapping();
-	void editMapping(QString node, int channel, MappingDialog *dlg=0);
-	/// enable peak monitoring, see monitorTaxels()
-	void setMonitorEnabled(bool bEnable=true);
-	/// configure all unassigned taxels
-	void configureMapping();
-	void setCancelConfigure(bool bCancel=true);
-	/// do we have changes not yet saved?
-	bool canClose();
-
-signals:
-	void pushedTaxel(int);
-
-private:
+	/// return number of all SVG nodes
+	unsigned int numNodes () const;
 	/// find a path node in allNodes from sName
 	int findPathNodeIndex(const QString &sName) const;
+	/// get name of indexed node
+	const QString &getNodeName(unsigned int nodeIdx) const;
+	/// set name of indexed node
+	void setNodeName(unsigned int nodeIdx, const QString &name);
+	/// establish the mapping from nodeIdx to channelIdx
+	void setChannel(unsigned int nodeIdx, int idx);
+
+	/// highlight indexed node with given color and return previous style string
+	QString highlight(unsigned int nodeIdx, const QColor &color);
+	/// restore style string for indexed node
+	void restore(unsigned int nodeIdx, const QString &style);
+
+	/// update color of indexed node
+	void updateColor(unsigned int nodeIdx, const QColor &color);
+	/// reload the SVG and update display
+	void updateSVG();
+
+	/// saving to cfg or xacro
+	void saveMappingCfg(QTextStream &ts);
+	void saveMappingXacro(QTextStream &ts);
+	/// check for unsaved changes to SVG
+	bool canClose();
+
+public slots:
+	void saveSVG();
+	void setShowChannels(bool bShow);
+	void setShowNames(bool bShow);
+	void setShowAllNames(bool bShow);
+
+signals:
+	void unAssignedTaxels(bool bHaveUnassigned);
+	void doubleClickedNode(unsigned int index);
+
+private:
 	/// find the style attribute node of a path node in allNodes from sName
 	QDomNode findStyleNode(const QString &sName) const;
-	/// find name of path node in allNodes at point (or QString() if not found)
-	QString pathAt(const QPoint &p);
-	/// find the channel index associated to sName (or -1 if not found)
-	int getTaxelChannel(const QString &sName) const;
-	QList<unsigned int> getUnassignedChannels() const;
-
-	/// establish the mapping from channel idx to taxel sName
-	bool assign(const QString &sName, int idx);
+	/// find index of path node in allNodes at point (or -1 if not found)
+	int nodeAt(const QPoint &p);
 
 	bool event(QEvent *event);
 	void paintEvent(QPaintEvent *event);
 	void mouseDoubleClickEvent(QMouseEvent *event);
 
-	/// look for a peak in accumulated taxel data and signal its index
-	void monitorTaxels(const TactileData &data);
-	/// update the SVG with new colors
-	void updateTaxels();
-	/// reload the SVG and update display
-	void updateSVG();
-
-	// saving to cfg or xacro
-	void saveMappingCfg(QTextStream &ts);
-	void saveMappingXacro(QTextStream &ts);
-
 private:
 	struct TaxelInfo {
-		TaxelInfo (unsigned short idx, const QDomNode&node);
+		TaxelInfo (const QString &name, const QDomNode &pathNode, const QDomNode &styleNode);
 
-		unsigned short channel;
+		QDomNode pathNode;
+		QString  name;
 		QDomNode styleNode;
 		QString  styleString;
 		unsigned short iFillStart;
+		short channel; // -1 if unassigned
 	};
 
 	QDomDocument  *qDomDocPtr;
 	bool           bDirtyDoc;
 	QSvgRenderer  *qSvgRendererPtr;
-	TactileData    data;
-	std::vector<unsigned long> accumulated;
-	bool           bMonitorTaxel;
-	bool           bCancelConfigure;
 
-	typedef QMap<QString, TaxelInfo> TaxelMap;
-	TaxelMap       taxels;
-	bool           bDirtyMapping;
-	typedef QList<std::pair<QString, QDomNode> > PathList;
+	// list of all DOM nodes with their name
+	typedef QList<TaxelInfo> PathList;
 	PathList       allNodes;
-	unsigned int   numNoTaxelNodes;
-	QSet<QString>  highlighted;
 
-	QString        sMappingFile;
-
-	QList<QAction*> _fileActions;
-	QList<QAction*> _optionActions;
-
+	unsigned int   numTaxelNodes, numAssigned;
+	bool           bShowChannels, bShowNames, bShowAllNames;
 	QTransform     viewTransform;
-	ColorMap      *colorMap;
-	float          fMin, fMax;
 };
