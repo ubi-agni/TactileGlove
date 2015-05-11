@@ -75,6 +75,7 @@ void SerialInput::connect(const std::string &sDevice)
 	FD_SET (fd,&fdset);
 
 	connected = true;
+	readFrame(); // read eventually incomplete frame
 }
 
 void SerialInput::disconnect()

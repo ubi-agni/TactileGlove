@@ -31,6 +31,9 @@ namespace tactile {
 RandomInput::RandomInput(size_t noTaxels)
    : InputInterface(noTaxels)
 {
+	// initialize smallest values
+	data[1] = 2048;
+	data[14] = 3700;
 }
 
 void RandomInput::connect(const std::string &dummy)
