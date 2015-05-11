@@ -259,6 +259,7 @@ void MainWindow::editMapping(unsigned int nodeIdx)
 	bool bOwnDialog = false;
 	if (!mapDlg) {
 		mapDlg = new MappingDialog(this);
+		connect(mapDlg, SIGNAL(destroyed()), this, SLOT(resetMapDlg()));
 		bOwnDialog = true;
 	}
 	const QString &oldName = gloveWidget->getNodeName(nodeIdx);
@@ -270,28 +271,29 @@ void MainWindow::editMapping(unsigned int nodeIdx)
 	gloveWidget->restore(nodeIdx, oldStyle);
 	highlighted.remove(nodeIdx);
 
-	if (res != QDialog::Accepted) return;
-
-	QString newName = mapDlg->name().trimmed();
-	if (oldName != mapDlg->name() && !newName.isEmpty()) {
-		if (gloveWidget->findPathNodeIndex(newName))
-			QMessageBox::warning(this, "Name clash", "Taxel name already in use.", QMessageBox::Ok);
-		else { // change node id in gloveWidget's DOM
-			gloveWidget->setNodeName(nodeIdx, newName);
-			gloveWidget->updateSVG();
+	if (res == QDialog::Accepted) {
+		QString newName = mapDlg->name().trimmed();
+		if (oldName != mapDlg->name() && !newName.isEmpty()) {
+			if (gloveWidget->findPathNodeIndex(newName))
+				QMessageBox::warning(this, "Name clash", "Taxel name already in use.", QMessageBox::Ok);
+			else { // change node id in gloveWidget's DOM
+				gloveWidget->setNodeName(nodeIdx, newName);
+				gloveWidget->updateSVG();
+			}
+		}
+		if (mapDlg->channel() != channel) {
+			bDirtyMapping = true;
+			if (mapDlg->channel() < 0) nodeToData.remove(nodeIdx);
+			else nodeToData[nodeIdx] = mapDlg->channel();
+			gloveWidget->setChannel(nodeIdx, mapDlg->channel());
 		}
 	}
-	if (mapDlg->channel() != channel) {
-		bDirtyMapping = true;
-		if (mapDlg->channel() < 0) nodeToData.remove(nodeIdx);
-		else nodeToData[nodeIdx] = mapDlg->channel();
-		gloveWidget->setChannel(nodeIdx, mapDlg->channel());
-	}
+	if (bOwnDialog) mapDlg->deleteLater();
+}
 
-	if (bOwnDialog) {
-		mapDlg->deleteLater();
-		mapDlg = 0;
-	}
+void MainWindow::resetMapDlg ()
+{
+	mapDlg = 0;
 }
 
 void MainWindow::setCancelConfigure(bool bCancel)
@@ -302,6 +304,7 @@ void MainWindow::setCancelConfigure(bool bCancel)
 void MainWindow::configureMapping()
 {
 	mapDlg = new MappingDialog(this);
+	connect(mapDlg, SIGNAL(destroyed()), this, SLOT(resetMapDlg()));
 	QPoint         pos;
 
 	bCancelConfigure = false;
@@ -331,7 +334,6 @@ void MainWindow::configureMapping()
 		mapDlg->move(pos);
 	}
 	mapDlg->deleteLater();
-	mapDlg = 0;
 
 	// restore channel/name display
 	ui->actShowChannels->setChecked(bShowChannels);

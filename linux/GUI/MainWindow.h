@@ -54,11 +54,12 @@ private slots:
 	void setTimer(int interval);
 	void setLambda(double value);
 
-	// display mapping dialog for indexed taxel
+	/// display mapping dialog for indexed taxel
 	void editMapping(unsigned int nodeIdx);
 	/// configure all unassigned taxels
 	void configureMapping();
 	void setCancelConfigure(bool bCancel=true);
+	void resetMapDlg();
 
 private:
 	Ui::MainWindow  *ui;
