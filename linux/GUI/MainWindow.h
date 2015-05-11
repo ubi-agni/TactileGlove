@@ -87,6 +87,6 @@ private:
 	ColorMap        *absColorMap, *relColorMap;
 
 	QTime            lastUpdate;
-	uint             frameCount;
+	int              frameCount;
 	int              timerID;
 };

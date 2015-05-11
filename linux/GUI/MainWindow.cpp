@@ -24,7 +24,7 @@ using namespace std;
 MainWindow::MainWindow(size_t noTaxels, QWidget *parent) :
    QMainWindow(parent), ui(new Ui::MainWindow), iJointIdx(-1),
    input(0), data(noTaxels), display(noTaxels),
-   frameCount(0), timerID(0), gloveWidget(0), mapDlg(0),
+   frameCount(-1), timerID(0), gloveWidget(0), mapDlg(0),
    absColorMap(0), relColorMap(0)
 {
 	ui->setupUi(this);
@@ -174,6 +174,7 @@ void MainWindow::chooseMapping(TactileSensor::Mode mode,
 void MainWindow::timerEvent(QTimerEvent *event)
 {
 	if (event->timerId() != timerID) return;
+	if (frameCount < 0) return; // no data received yet
 
 	QMutexLocker lock(&dataMutex);
 	int fps = -1;
@@ -182,7 +183,7 @@ void MainWindow::timerEvent(QTimerEvent *event)
 	data.copyValues(display.begin(), mode);
 
 	if (lastUpdate.elapsed() > 1000) { // update framerate every 1s
-		fps = roundf (float(frameCount * 1000) / lastUpdate.restart());
+		fps = roundf (1000. * frameCount / lastUpdate.restart());
 		frameCount = 0;
 	}
 	if (!gloveWidget) return;
@@ -459,7 +460,7 @@ void MainWindow::on_btnConnect_clicked()
 	ui->statusBar->showMessage (QString ("Connecting..."), 2000);
 
 	if (input->connect(ui->inputLineEdit->text())) {
-		frameCount = 0; lastUpdate.start();
+		frameCount = -1; lastUpdate.start();
 		timerID = startTimer (ui->updateTimeSpinBox->value());
 
 		ui->btnConnect->setEnabled(false);
