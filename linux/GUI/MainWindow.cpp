@@ -24,7 +24,7 @@ using namespace std;
 MainWindow::MainWindow(size_t noTaxels, QWidget *parent) :
    QMainWindow(parent), ui(new Ui::MainWindow), iJointIdx(-1),
    input(0), data(noTaxels), display(noTaxels),
-   frameCount(0), timerID(0), gloveWidget(0),
+   frameCount(0), timerID(0), gloveWidget(0), mapDlg(0),
    absColorMap(0), relColorMap(0)
 {
 	ui->setupUi(this);
@@ -132,8 +132,6 @@ void MainWindow::initGloveWidget(const QString &layout, const TaxelMapping &mapp
 		nodeToData[nodeIdx] = it->second;
 	}
 	bDirtyMapping = false;
-	// TODO
-	//ui->actConfMap->setEnabled(allNodes.size() - numNoTaxelNodes > taxels.size());
 }
 
 void MainWindow::setTimer(int interval)
@@ -202,6 +200,17 @@ void MainWindow::timerEvent(QTimerEvent *event)
 	}
 	gloveWidget->updateSVG();
 
+	// update MappingDialog if present
+	if (mapDlg) {
+		std::vector<float> display(data.size());
+		mode = TactileSensor::absCurrent;
+		chooseMapping(mode, colorMap, fMin, fMax);
+		lock.relock();
+		data.copyValues(display.begin(), mode);
+		lock.unlock();
+		mapDlg->update(display, colorMap, fMin, fMax);
+	}
+
 	if (iJointIdx >= 0) updateJointBar(display[iJointIdx]);
 	if (fps >= 0) ui->fps->setText(QString("%1 fps").arg(fps));
 }
@@ -241,30 +250,30 @@ void MainWindow::closeEvent(QCloseEvent *event)
 }
 
 /*** functions for taxel mapping configuration ***/
-void MainWindow::editMapping(unsigned int nodeIdx, MappingDialog* dlg)
+void MainWindow::editMapping(unsigned int nodeIdx)
 {
 	static const QColor highlightColor("blue");
 	highlighted.insert(nodeIdx);
 	QString oldStyle=gloveWidget->highlight(nodeIdx, highlightColor);
 
 	bool bOwnDialog = false;
-	if (!dlg) {
-		dlg = new MappingDialog(this);
+	if (!mapDlg) {
+		mapDlg = new MappingDialog(this);
 		bOwnDialog = true;
 	}
 	const QString &oldName = gloveWidget->getNodeName(nodeIdx);
 	const NodeToDataMap::const_iterator node=nodeToData.find(nodeIdx);
 	const int channel = node == nodeToData.end() ? -1 : node.value();
-	dlg->init(oldName, channel, data.size(), getUnassignedChannels());
+	mapDlg->init(oldName, channel, data.size(), getUnassignedChannels());
 
-	int res = dlg->exec();
+	int res = mapDlg->exec();
 	gloveWidget->restore(nodeIdx, oldStyle);
 	highlighted.remove(nodeIdx);
 
 	if (res != QDialog::Accepted) return;
 
-	QString newName = dlg->name().trimmed();
-	if (oldName != dlg->name() && !newName.isEmpty()) {
+	QString newName = mapDlg->name().trimmed();
+	if (oldName != mapDlg->name() && !newName.isEmpty()) {
 		if (gloveWidget->findPathNodeIndex(newName))
 			QMessageBox::warning(this, "Name clash", "Taxel name already in use.", QMessageBox::Ok);
 		else { // change node id in gloveWidget's DOM
@@ -272,14 +281,17 @@ void MainWindow::editMapping(unsigned int nodeIdx, MappingDialog* dlg)
 			gloveWidget->updateSVG();
 		}
 	}
-	if (dlg->channel() != channel) {
+	if (mapDlg->channel() != channel) {
 		bDirtyMapping = true;
-		if (dlg->channel() < 0) nodeToData.remove(nodeIdx);
-		else nodeToData[nodeIdx] = dlg->channel();
-		gloveWidget->setChannel(nodeIdx, dlg->channel());
+		if (mapDlg->channel() < 0) nodeToData.remove(nodeIdx);
+		else nodeToData[nodeIdx] = mapDlg->channel();
+		gloveWidget->setChannel(nodeIdx, mapDlg->channel());
 	}
 
-	if (bOwnDialog) dlg->deleteLater();
+	if (bOwnDialog) {
+		mapDlg->deleteLater();
+		mapDlg = 0;
+	}
 }
 
 void MainWindow::setCancelConfigure(bool bCancel)
@@ -289,13 +301,13 @@ void MainWindow::setCancelConfigure(bool bCancel)
 
 void MainWindow::configureMapping()
 {
-	MappingDialog* dlg = new MappingDialog(this);
+	mapDlg = new MappingDialog(this);
 	QPoint         pos;
 
 	bCancelConfigure = false;
-	QPushButton *btn = dlg->addButton(tr("&Abort"), QDialogButtonBox::DestructiveRole);
+	QPushButton *btn = mapDlg->addButton(tr("&Abort"), QDialogButtonBox::DestructiveRole);
 	connect(btn, SIGNAL(clicked()), this, SLOT(setCancelConfigure()));
-	connect(btn, SIGNAL(clicked()), dlg, SLOT(reject()));
+	connect(btn, SIGNAL(clicked()), mapDlg, SLOT(reject()));
 
 	// display channel numbers, but not the names
 	bool bShowChannels = ui->actShowChannels->isChecked();
@@ -313,12 +325,13 @@ void MainWindow::configureMapping()
 		// and nodes already assigned
 		if (nodeToData.find(nodeIdx) != nodeToData.end()) continue;
 
-		editMapping(nodeIdx, dlg);
-		pos = dlg->pos();
-		dlg->show();
-		dlg->move(pos);
+		editMapping(nodeIdx);
+		pos = mapDlg->pos();
+		mapDlg->show();
+		mapDlg->move(pos);
 	}
-	dlg->deleteLater();
+	mapDlg->deleteLater();
+	mapDlg = 0;
 
 	// restore channel/name display
 	ui->actShowChannels->setChecked(bShowChannels);

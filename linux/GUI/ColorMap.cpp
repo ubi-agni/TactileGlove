@@ -45,7 +45,7 @@ void ColorMap::append(const QStringList &names)
 		colors.append(QColor(*it));
 }
 
-QColor ColorMap::map(float value, float min, float max)
+QColor ColorMap::map(float value, float min, float max) const
 {
 	assert(colors.size() > 1);
 	float ratio = (value-min) / (max-min) * (colors.size()-1);

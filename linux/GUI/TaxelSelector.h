@@ -23,15 +23,27 @@
  * ============================================================ */
 #pragma once
 #include <QWidget>
+#include <QColor>
 
+class ColorMap;
 class TaxelSelector : public QWidget
 {
 	Q_OBJECT
 public:
 	explicit TaxelSelector(QWidget *parent = 0);
 	void init(const QList<unsigned int> &unassigned);
+	void update(const std::vector<float> &data, const ColorMap *colorMap, float fMin, float fMax);
 
 signals:
+	void selectedChannel(int);
 
-public slots:
+private:
+	QSize minimumSizeHint() const;
+	void paintEvent(QPaintEvent *);
+	void mousePressEvent(QMouseEvent *);
+
+private:
+	QList<unsigned int> unassigned;
+	QList<QColor>       colors;
+	int                 cellWidth;
 };

@@ -41,8 +41,12 @@ void MappingDialog::init(const QString &sName, int channel, int maxChannel,
 	channelComboBox->setFocus();
 
 	if (unAssignedChannels.size()) {
-		if (!taxelSelector) taxelSelector = new TaxelSelector(this);
+		if (!taxelSelector) {
+			taxelSelector = new TaxelSelector(this);
+			connect(taxelSelector, SIGNAL(selectedChannel(int)), this, SLOT(setChannel(int)));
+		}
 		taxelSelector->init(unAssignedChannels);
+		verticalLayout->addWidget(taxelSelector);
 	} else if (taxelSelector) {
 		delete taxelSelector;
 		taxelSelector = 0;
@@ -58,6 +62,12 @@ int MappingDialog::channel() const {
 	return channelComboBox->currentText().toInt() - 1;
 }
 
+void MappingDialog::setChannel(int channel)
+{
+	if (channel < 0) channelComboBox->setCurrentText(unUsed);
+	else channelComboBox->setCurrentText(QString::number(channel+1));
+}
+
 QPushButton *MappingDialog::addButton(const QString &label, QDialogButtonBox::ButtonRole role)
 {
 	QPushButton* b = new QPushButton(label);
@@ -65,8 +75,7 @@ QPushButton *MappingDialog::addButton(const QString &label, QDialogButtonBox::Bu
 	return b;
 }
 
-void MappingDialog::setChannel(int channel)
+void MappingDialog::update(const std::vector<float> &data, const ColorMap *colorMap, float fMin, float fMax)
 {
-	if (channel < 0) channelComboBox->setCurrentText(unUsed);
-	else channelComboBox->setCurrentText(QString::number(channel+1));
+	if (taxelSelector) taxelSelector->update(data, colorMap, fMin, fMax);
 }

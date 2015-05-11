@@ -55,7 +55,7 @@ private slots:
 	void setLambda(double value);
 
 	// display mapping dialog for indexed taxel
-	void editMapping(unsigned int nodeIdx, MappingDialog *dlg=0);
+	void editMapping(unsigned int nodeIdx);
 	/// configure all unassigned taxels
 	void configureMapping();
 	void setCancelConfigure(bool bCancel=true);
@@ -76,6 +76,7 @@ private:
 	bool             bDirtyMapping;
 
 	// stuff needed for taxel mapping configuration
+	MappingDialog      *mapDlg;
 	QSet<unsigned int>  highlighted; /// highlighted node indeces (to avoid updating them)
 	bool                bCancelConfigure;
 	std::vector<unsigned long> accumulated;

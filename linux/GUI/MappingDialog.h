@@ -4,6 +4,7 @@
 
 class ChannelValidator;
 class TaxelSelector;
+class ColorMap;
 class MappingDialog : public QDialog, private Ui::MappingDialog
 {
 	Q_OBJECT
@@ -16,6 +17,8 @@ public:
 	QString name() const;
 	int channel() const;
 	QPushButton* addButton(const QString& label, QDialogButtonBox::ButtonRole role);
+
+	void update(const std::vector<float> &data, const ColorMap *colorMap, float fMin, float fMax);
 
 public slots:
 	void setChannel(int channel);
