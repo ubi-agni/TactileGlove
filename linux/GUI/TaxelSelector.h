@@ -31,7 +31,7 @@ class TaxelSelector : public QWidget
 	Q_OBJECT
 public:
 	explicit TaxelSelector(QWidget *parent = 0);
-	void init(const QList<unsigned int> &unassigned);
+	void init(const QList<unsigned int> &unassigned, bool bMonitor);
 	void update(const std::vector<float> &data, const ColorMap *colorMap, float fMin, float fMax);
 
 signals:
@@ -39,6 +39,8 @@ signals:
 	void doubleClicked();
 
 private:
+	void doMonitor(const std::vector<float> &data);
+
 	QSize minimumSizeHint() const;
 	void paintEvent(QPaintEvent *);
 	void mousePressEvent(QMouseEvent *);
@@ -48,4 +50,7 @@ private:
 	QList<unsigned int> unassigned;
 	QList<QColor>       colors;
 	int                 cellWidth;
+
+	QList<float>        accumulated;
+	bool                bMonitor;
 };
