@@ -99,3 +99,9 @@ void TaxelSelector::mousePressEvent(QMouseEvent *event)
 	else
 		emit selectedChannel(-1);
 }
+
+void TaxelSelector::mouseDoubleClickEvent(QMouseEvent *event)
+{
+	if (event->button() == Qt::LeftButton)
+		emit doubleClicked();
+}

@@ -44,6 +44,7 @@ void MappingDialog::init(const QString &sName, int channel, int maxChannel,
 		if (!taxelSelector) {
 			taxelSelector = new TaxelSelector(this);
 			connect(taxelSelector, SIGNAL(selectedChannel(int)), this, SLOT(setChannel(int)));
+			connect(taxelSelector, SIGNAL(doubleClicked()), this, SLOT(accept()));
 		}
 		taxelSelector->init(unAssignedChannels);
 		verticalLayout->addWidget(taxelSelector);

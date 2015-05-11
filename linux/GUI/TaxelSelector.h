@@ -36,11 +36,13 @@ public:
 
 signals:
 	void selectedChannel(int);
+	void doubleClicked();
 
 private:
 	QSize minimumSizeHint() const;
 	void paintEvent(QPaintEvent *);
 	void mousePressEvent(QMouseEvent *);
+	void mouseDoubleClickEvent(QMouseEvent *event);
 
 private:
 	QList<unsigned int> unassigned;
