@@ -48,6 +48,10 @@ MainWindow::MainWindow(size_t noTaxels, QWidget *parent) :
 	data.setReleaseDecay(0.1);
 	initModeComboBox(ui->modeComboBox);
 
+	// init upper ranges
+	for (TactileArray::iterator it=data.begin(), end=data.end(); it!=end; ++it)
+		it->init(FLT_MAX, 4095);
+
 	// init color maps
 	QStringList colorNames;
 	absColorMap = new ColorMap;
@@ -64,7 +68,7 @@ void MainWindow::initModeComboBox(QComboBox *cb) {
 	for (unsigned int m=0, e=TactileSensor::lastMode; m!=e; ++m)
 		items << TactileSensor::getModeName((TactileSensor::Mode)m).c_str();
 	cb->addItems(items);
-	cb->setCurrentIndex (TactileSensor::relCurrent);
+	cb->setCurrentIndex (TactileSensor::getModeID("default"));
 }
 
 MainWindow::~MainWindow()
@@ -151,20 +155,20 @@ void MainWindow::chooseMapping(TactileSensor::Mode mode,
 	switch (mode) {
 	case TactileSensor::rawCurrent:
 	case TactileSensor::rawMean:
-	case TactileSensor::absCurrent:
-	case TactileSensor::absMean:
 		fMin=0; fMax=4095;
 		colorMap = absColorMap;
 		break;
 
-	case TactileSensor::relCurrent:
-	case TactileSensor::relMean:
+	case TactileSensor::absCurrent:
+	case TactileSensor::absMean:
+	case TactileSensor::dynCurrent:
+	case TactileSensor::dynMean:
 		fMin=0; fMax=1;
 		colorMap = absColorMap;
 		break;
 
-	case TactileSensor::relCurrentRelease:
-	case TactileSensor::relMeanRelease:
+	case TactileSensor::dynCurrentRelease:
+	case TactileSensor::dynMeanRelease:
 		fMin=-1; fMax=1;
 		colorMap = relColorMap;
 		break;

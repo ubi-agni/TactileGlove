@@ -8,15 +8,15 @@ TactileSensor::TactileSensor ()
 }
 
 char TactileSensor::getModeID (const std::string& sName) {
-	if (sName == "default") return relCurrentRelease;
+	if (sName == "default") return absCurrent;
 	else if (sName == "rawCurrent") return rawCurrent;
 	else if (sName == "rawMean") return rawMean;
 	else if (sName == "absCurrent") return absCurrent;
 	else if (sName == "absMean") return absMean;
-	else if (sName == "relCurrent") return relCurrent;
-	else if (sName == "relMean") return relMean;
-	else if (sName == "relCurrentRelease") return relCurrentRelease;
-	else if (sName == "relMeanRelease") return relMeanRelease;
+	else if (sName == "dynCurrent") return dynCurrent;
+	else if (sName == "dynMean") return dynMean;
+	else if (sName == "dynCurrentRelease") return dynCurrentRelease;
+	else if (sName == "dynMeanRelease") return dynMeanRelease;
 	return -1;
 }
 std::string TactileSensor::getModeName (Mode m) {
@@ -25,18 +25,18 @@ std::string TactileSensor::getModeName (Mode m) {
 		case rawMean: return "rawMean";
 		case absCurrent: return "absCurrent";
 		case absMean: return "absMean";
-		case relCurrent: return "relCurrent";
-		case relMean: return "relMean";
-		case relCurrentRelease: return "relCurrentRelease";
-		case relMeanRelease: return "relMeanRelease";
+		case dynCurrent: return "dynCurrent";
+		case dynMean: return "dynMean";
+		case dynCurrentRelease: return "dynCurrentRelease";
+		case dynMeanRelease: return "dynMeanRelease";
 		default: return "";
 	}
 }
 
-Range TactileSensor::range() const {
-	float fMin=rDynRange.min();
-	float fRange=std::max(rDynRange.range(), 0.1f*rAbsRange.range());
-	return Range (fMin, fMin+fRange);
+void TactileSensor::init(float fMin, float fMax)
+{
+	rAbsRange.min() = fMin;
+	rAbsRange.max() = fMax;
 }
 
 void TactileSensor::update (float fNew) {
@@ -75,34 +75,29 @@ float TactileSensor::value (Mode mode, float range) const {
 	if (mode == rawCurrent) return fCur;
 	if (mode == rawMean) return fMean;
 
-	if (mode == absCurrent) return fCur - rAbsRange.min();
-	if (mode == absMean) return fMean - rAbsRange.min();
+	float fRange = rAbsRange.range();
+	if (fRange < FLT_EPSILON)
+		return 0; // do not divide by zero
+	float fMin = rAbsRange.min();
+	if (mode == absCurrent) return (fCur - fMin) / fRange;
+	if (mode == absMean) return (fMean - fMin) / fRange;
 
-	return value (mode, std::max<float>(range, rDynRange.range()), 
-					  rDynRange.min());
-}
+	fRange = rDynRange.range();
+	if (fRange < FLT_EPSILON) return 0; // do not divide by zero
+	fMin = rDynRange.min();
 
-float TactileSensor::value (Mode mode, float fMinRange, float fRelMin) const {
-	if (mode == rawCurrent) return fCur;
-	if (mode == rawMean) return fMean;
-
-	if (mode == absCurrent) return fCur - rAbsRange.min();
-	if (mode == absMean) return fMean - rAbsRange.min();
-
-	const float fRange = std::max<float>(fMinRange, 0.1 * rAbsRange.range());
-	if (fabs(fRange) < FLT_EPSILON) return 0; // do not divide by zero
-
-	if (mode >= relCurrentRelease && fReleased != FLT_MAX)
-		return - (fReleased - fRelMin) / fRange;
+	// if release mode is active:
+	if (mode >= dynCurrentRelease && fReleased != FLT_MAX)
+		return - (fReleased - fMin) / fRange;
 
 	switch (mode) {
-		case relCurrent: 
-		case relCurrentRelease:
-			return (fCur - fRelMin) / fRange;
+		case dynCurrent:
+		case dynCurrentRelease:
+			return (fCur - fMin) / fRange;
 
-		case relMean: 
-		case relMeanRelease:
-			return (fMean - fRelMin) / fRange;
+		case dynMean:
+		case dynMeanRelease:
+			return (fMean - fMin) / fRange;
 
 		default: return 0; // should not happen
 	}

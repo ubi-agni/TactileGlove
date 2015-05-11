@@ -75,14 +75,14 @@ void TactileArray::updateValues(T v, T end) {
 	iterator it=this->begin(), e=this->end();
 	// update values and compute new minimum / maximum
 	it->update(*v); // first value
-	const Range& r = it->range(); 
+	const Range& r = it->absRange();
 	fMin=r.min(); fMax=r.max();
 
 	if (end-v > 1) {
 		// consider all remaining elements
 		for (++it, ++v; v != end; ++it, ++v) {
 			it->update(*v);
-			const Range& r = it->range(); 
+			const Range& r = it->absRange();
 			fMin = std::min(fMin, r.min());
 			fMax = std::max(fMax, r.max());
 		}

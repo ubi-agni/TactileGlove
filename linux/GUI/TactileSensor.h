@@ -35,21 +35,20 @@ public:
 		        rawMean, // averaged raw value
 		        absCurrent,  // raw value - min value
 		        absMean, // averaged absCurrent
-		        relCurrent,  // relative value (0-1) within min-max range
-		        relMean, // averaged relCurrent
-		        relCurrentRelease, // like relCurrent, but negative values indicate difference force to recently released grasp
-		        relMeanRelease, // averaged relMeanRelease
+		        dynCurrent,  // relative value (0-1) within min-max range
+		        dynMean, // averaged dynCurrent
+		        dynCurrentRelease, // like dynCurrent, but negative values indicate difference force to recently released grasp
+		        dynMeanRelease, // averaged dynMeanRelease
 		        lastMode};
 	TactileSensor ();
 
 	static char getModeID (const std::string& sName);
 	static std::string getModeName (Mode m);
 
-	void  update (float fNew);
+	void init (float fMin, float fMax);
+	void update (float fNew);
 	// normalize according to internal dynamic range for relative modes
 	float value (Mode mode, float range=0.0) const;
-	// considering given fRelMin as lower boundary for relative modes
-	float value (Mode mode, float fMinRange, float fRelMin) const;
 	// return sliding mean
 	float mean () const {return fMean;}
 
@@ -63,7 +62,6 @@ public:
 
 	const Range& absRange () const {return rAbsRange;}
 	const Range& dynRange () const {return rDynRange;}
-	Range range () const;
 
 protected:
 	float fMeanLambda, fRangeLambda, fReleaseDecay;
