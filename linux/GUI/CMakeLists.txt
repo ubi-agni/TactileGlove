@@ -33,3 +33,6 @@ target_link_libraries(${PROG_NAME}
    ${roscpp_LIBRARIES})
 
 install(TARGETS ${PROG_NAME} RUNTIME DESTINATION bin)
+if(catkin_FOUND)
+  install(TARGETS ${PROG_NAME} RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
+endif()
