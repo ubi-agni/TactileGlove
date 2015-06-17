@@ -176,15 +176,11 @@ void GloveWidget::saveMappingCfg(QTextStream &ts) {
 	}
 }
 
-void GloveWidget::saveMappingXacro(QTextStream &ts) {
-	ts << "<tactile_mapping xmlns:xacro=\"http://ros.org/wiki/xacro\">" << endl;
-	ts << "<xacro:property name=\"tactMap\" value=\"{" << endl;
+void GloveWidget::saveMappingYAML(QTextStream &ts) {
 	for (PathList::const_iterator it=allNodes.begin(), end=allNodes.end(); it!=end; ++it) {
 		if (it->channel < 0) continue;
-		ts << "'" << it->name << "'" << ":" << it->channel << "," << endl;
+		ts << it->name << ":" << it->channel << endl;
 	}
-	ts << "}\" />" << endl;
-	ts << "</tactile_mapping>" << endl;
 }
 
 bool GloveWidget::canClose()

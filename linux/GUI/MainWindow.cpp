@@ -367,7 +367,7 @@ void MainWindow::saveMapping()
 	if (filterMap.empty()) {
 		filterMap[tr("mapping configs (*.cfg)")] = make_pair(".cfg", &GloveWidget::saveMappingCfg);
 		defaultFilter = filterMap.begin();
-		filterMap[tr("xacro configs (*.xacro)")] = make_pair(".xacro", &GloveWidget::saveMappingXacro);
+		filterMap[tr("xacro configs (*.yaml)")] = make_pair(".yaml", &GloveWidget::saveMappingYAML);
 		for (FilterMap::const_iterator it=filterMap.begin(), end=filterMap.end();
 		     it != end; ++it) {
 			if (!sFilters.isEmpty()) sFilters.append(";;");

@@ -42,7 +42,7 @@ public:
 
 	/// saving to cfg or xacro
 	void saveMappingCfg(QTextStream &ts);
-	void saveMappingXacro(QTextStream &ts);
+	void saveMappingYAML(QTextStream &ts);
 	/// check for unsaved changes to SVG
 	bool canClose();
 
