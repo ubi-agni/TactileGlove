@@ -8,7 +8,7 @@
 
 #include "TaxelMapping.h"
 #include "InputInterface.h"
-#include "TactileArray.h"
+#include <tactile_filters/TactileValueArray.h>
 
 namespace Ui {class MainWindow;}
 class QComboBox;
@@ -36,7 +36,7 @@ public slots:
 
 private:
 	void initModeComboBox(QComboBox *cb);
-	void chooseMapping(TactileSensor::Mode mode, ColorMap *&colorMap,
+	void chooseMapping(tactile::TactileValue::Mode mode, ColorMap *&colorMap,
 	                   float &fMin, float &fMax);
 	void resetColors(const QColor &color=QColor("black"));
 	void updateData(const InputInterface::data_vector &taxels);
@@ -67,8 +67,8 @@ private:
 	InputInterface  *input;
 
 	QMutex           dataMutex;
-	TactileArray     data;
-	TactileArray::vector_data display;
+	tactile::TactileValueArray     data;
+	tactile::TactileValueArray::vector_data display;
 
 	/// mapping from node indeces to data indeces
 	typedef QMap<unsigned int, unsigned int> NodeToDataMap;

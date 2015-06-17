@@ -3,6 +3,7 @@ cmake_minimum_required(VERSION 2.6)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}")
 find_package(Qt54 REQUIRED COMPONENTS Core Gui Svg Xml)
 find_package(Boost 1.38 REQUIRED COMPONENTS thread program_options regex)
+find_package(tactile_filters)
 
 set(CMAKE_AUTOMOC ON)
 
@@ -19,9 +20,10 @@ else()
 endif()
 
 add_definitions(${QT_DEFINITIONS})
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}
-                    ${CMAKE_CURRENT_BINARY_DIR}
-                    ${QT_INCLUDES})
+include_directories(${CMAKE_CURRENT_BINARY_DIR}
+                    ${QT_INCLUDES}
+                    ${catkin_INCLUDE_DIRS}
+                    ${tactile_filters_INCLUDE_DIRS})
 
 set(PROG_NAME GloveViz)
 add_executable(${PROG_NAME} ${SOURCES} ${FORM_SRC} ${RESOURCES})
@@ -30,7 +32,8 @@ target_link_libraries(${PROG_NAME}
    ${QT_LIBRARIES}
    ${Boost_PROGRAM_OPTIONS_LIBRARY_RELEASE}
    ${Boost_REGEX_LIBRARY_RELEASE}
-   ${roscpp_LIBRARIES})
+   ${roscpp_LIBRARIES}
+   ${tactile_filters_LIBRARIES})
 
 install(TARGETS ${PROG_NAME} RUNTIME DESTINATION bin)
 if(catkin_FOUND)

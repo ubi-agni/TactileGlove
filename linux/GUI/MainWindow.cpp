@@ -20,6 +20,8 @@
 #include <boost/bind.hpp>
 
 using namespace std;
+using tactile::TactileValue;
+using tactile::TactileValueArray;
 
 MainWindow::MainWindow(size_t noTaxels, QWidget *parent) :
    QMainWindow(parent), ui(new Ui::MainWindow), iJointIdx(-1),
@@ -49,7 +51,7 @@ MainWindow::MainWindow(size_t noTaxels, QWidget *parent) :
 	initModeComboBox(ui->modeComboBox);
 
 	// init upper ranges
-	for (TactileArray::iterator it=data.begin(), end=data.end(); it!=end; ++it)
+	for (TactileValueArray::iterator it=data.begin(), end=data.end(); it!=end; ++it)
 		it->init(FLT_MAX, 4095);
 
 	// init color maps
@@ -65,10 +67,10 @@ MainWindow::MainWindow(size_t noTaxels, QWidget *parent) :
 
 void MainWindow::initModeComboBox(QComboBox *cb) {
 	QStringList items;
-	for (unsigned int m=0, e=TactileSensor::lastMode; m!=e; ++m)
-		items << TactileSensor::getModeName((TactileSensor::Mode)m).c_str();
+	for (unsigned int m=0, e=TactileValue::lastMode; m!=e; ++m)
+		items << TactileValue::getModeName((TactileValue::Mode)m).c_str();
 	cb->addItems(items);
-	cb->setCurrentIndex (TactileSensor::getModeID("default"));
+	cb->setCurrentIndex (TactileValue::getMode("default"));
 }
 
 MainWindow::~MainWindow()
@@ -150,25 +152,25 @@ void MainWindow::setLambda(double value)
 	data.setMeanLambda(value);
 }
 
-void MainWindow::chooseMapping(TactileSensor::Mode mode,
+void MainWindow::chooseMapping(TactileValue::Mode mode,
                                ColorMap *&colorMap, float &fMin, float &fMax) {
 	switch (mode) {
-	case TactileSensor::rawCurrent:
-	case TactileSensor::rawMean:
+	case TactileValue::rawCurrent:
+	case TactileValue::rawMean:
 		fMin=0; fMax=4095;
 		colorMap = absColorMap;
 		break;
 
-	case TactileSensor::absCurrent:
-	case TactileSensor::absMean:
-	case TactileSensor::dynCurrent:
-	case TactileSensor::dynMean:
+	case TactileValue::absCurrent:
+	case TactileValue::absMean:
+	case TactileValue::dynCurrent:
+	case TactileValue::dynMean:
 		fMin=0; fMax=1;
 		colorMap = absColorMap;
 		break;
 
-	case TactileSensor::dynCurrentRelease:
-	case TactileSensor::dynMeanRelease:
+	case TactileValue::dynCurrentRelease:
+	case TactileValue::dynMeanRelease:
 		fMin=-1; fMax=1;
 		colorMap = relColorMap;
 		break;
@@ -183,8 +185,8 @@ void MainWindow::timerEvent(QTimerEvent *event)
 	QMutexLocker lock(&dataMutex);
 	int fps = -1;
 
-	TactileSensor::Mode mode = (TactileSensor::Mode) ui->modeComboBox->currentIndex();
-	data.copyValues(display.begin(), mode);
+	TactileValue::Mode mode = (TactileValue::Mode) ui->modeComboBox->currentIndex();
+	data.getValues(mode, display);
 
 	if (lastUpdate.elapsed() > 1000) { // update framerate every 1s
 		fps = roundf (1000. * frameCount / lastUpdate.restart());
@@ -208,10 +210,10 @@ void MainWindow::timerEvent(QTimerEvent *event)
 	// update MappingDialog if present
 	if (mapDlg) {
 		std::vector<float> display(data.size());
-		mode = TactileSensor::absCurrent;
+		mode = TactileValue::absCurrent;
 		chooseMapping(mode, colorMap, fMin, fMax);
 		lock.relock();
-		data.copyValues(display.begin(), mode);
+		data.getValues(mode, display);
 		lock.unlock();
 		mapDlg->update(display, colorMap, fMin, fMax);
 	}
