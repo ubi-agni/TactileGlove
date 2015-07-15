@@ -82,7 +82,8 @@ TaxelMapping getDefaultMapping(const std::string &sMappingFilter,
 
 
 bool handleCommandline(uint &inputMethod, std::string &sInput,
-                       std::string &sLayout, TaxelMapping &mapping,
+                       std::string &sLayout, std::string &sCalib,
+                       TaxelMapping &mapping,
                        int argc, char *argv[])
 {
 	// default input method
@@ -97,6 +98,7 @@ bool handleCommandline(uint &inputMethod, std::string &sInput,
 		 "name of taxel mapping from config\ne.g. P1, P2, P3l, P3r")
 		("layout,l", po::value<string>(&sLayout)->default_value("P3")->required(),
 		 "glove layout SVG\ne.g. P1, P3, or file name")
+		("calib,c", po::value<string>(&sCalib), "calibration map")
 		;
 
 	po::options_description hidden; // hidden positional options
@@ -115,7 +117,7 @@ bool handleCommandline(uint &inputMethod, std::string &sInput,
 
 	cmd.add_options()
 		("help,h", "Display this help message.")
-		("config,c", po::value<string>(), "config file");
+		("file,f", po::value<string>(), "config file");
 	cmd.add(config);
 	cmd.add(input);
 
@@ -131,9 +133,9 @@ bool handleCommandline(uint &inputMethod, std::string &sInput,
 	if (map.count("help")) return true;
 
 	TaxelMapping configFileMapping;
-	if (map.count("config")) {
+	if (map.count("file")) {
 		// we need to access config and mapping values before we can do notify() below
-		string sConfigFile = map["config"].as<string>();
+		string sConfigFile = map["file"].as<string>();
 		if (map.count("mapping")) sMapping = map["mapping"].as<string>();
 
 		ifstream ifs(sConfigFile.c_str());
@@ -189,10 +191,10 @@ void mySigIntHandler(int sig) {
 int main(int argc, char *argv[])
 {
 	uint inputMethod;
-	std::string sInput, sLayout;
+	std::string sInput, sLayout, sCalib;
 	TaxelMapping mapping;
 	try {
-		if (handleCommandline(inputMethod, sInput, sLayout, mapping, argc, argv)) {
+		if (handleCommandline(inputMethod, sInput, sLayout, sCalib, mapping, argc, argv)) {
 			usage(argv);
 			return EXIT_SUCCESS;
 		}
@@ -206,6 +208,7 @@ int main(int argc, char *argv[])
 	MainWindow w(64);
 	try {
 		w.initGloveWidget(QString::fromStdString(sLayout), mapping);
+		if (!sCalib.empty()) w.setCalibration(sCalib);
 	} catch (const std::exception &e) {
 		cerr << e.what() << endl;
 		return EXIT_FAILURE;

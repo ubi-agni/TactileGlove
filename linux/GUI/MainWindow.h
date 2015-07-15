@@ -9,6 +9,7 @@
 #include "TaxelMapping.h"
 #include "InputInterface.h"
 #include <tactile_filters/TactileValueArray.h>
+#include <tactile_filters/Calibration.h>
 
 namespace Ui {class MainWindow;}
 class QComboBox;
@@ -24,6 +25,7 @@ public:
 	explicit MainWindow(size_t noTaxels, QWidget *parent = 0);
 	~MainWindow();
 
+	void setCalibration(const std::string &sCalibFile);
 	void initJointBar(TaxelMapping &mapping);
 	void initGloveWidget(const QString &layout, const TaxelMapping& mapping);
 
@@ -36,7 +38,9 @@ public slots:
 
 private:
 	void initModeComboBox(QComboBox *cb);
-	void chooseMapping(tactile::TactileValue::Mode mode, ColorMap *&colorMap,
+	void chooseMapping(tactile::TactileValue::Mode mode,
+	                   const std::shared_ptr<tactile::Calibration> &calib,
+	                   ColorMap *&colorMap,
 	                   float &fMin, float &fMax);
 	void resetColors(const QColor &color=QColor("black"));
 	void updateData(const InputInterface::data_vector &taxels);
@@ -67,8 +71,9 @@ private:
 	InputInterface  *input;
 
 	QMutex           dataMutex;
-	tactile::TactileValueArray     data;
+	tactile::TactileValueArray data;
 	tactile::TactileValueArray::vector_data display;
+	std::shared_ptr<tactile::Calibration> calib;
 
 	/// mapping from node indices to data indices
 	typedef QMap<unsigned int, unsigned int> NodeToDataMap;

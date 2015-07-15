@@ -9,6 +9,8 @@
 #if HAVE_ROS
 #include "ROSInput.h"
 #endif
+
+#include "tactile_filters/PieceWiseLinearCalib.h"
 #include <QCloseEvent>
 #include <QComboBox>
 #include <QFileDialog>
@@ -22,6 +24,7 @@
 using namespace std;
 using tactile::TactileValue;
 using tactile::TactileValueArray;
+using tactile::PieceWiseLinearCalib;
 
 MainWindow::MainWindow(size_t noTaxels, QWidget *parent) :
    QMainWindow(parent), ui(new Ui::MainWindow), iJointIdx(-1),
@@ -71,6 +74,15 @@ void MainWindow::initModeComboBox(QComboBox *cb) {
 		items << TactileValue::getModeName((TactileValue::Mode)m).c_str();
 	cb->addItems(items);
 	cb->setCurrentIndex (TactileValue::getMode("default"));
+}
+
+void MainWindow::setCalibration(const std::string &sCalibFile) {
+	QMutexLocker lock(&dataMutex);
+	calib.reset (new PieceWiseLinearCalib(PieceWiseLinearCalib::load(sCalibFile)));
+	for (NodeToDataMap::const_iterator it = nodeToData.begin(), end = nodeToData.end();
+	     it != end; ++it) {
+		data[*it].setCalibration(calib);
+	}
 }
 
 MainWindow::~MainWindow()
@@ -153,11 +165,17 @@ void MainWindow::setLambda(double value)
 }
 
 void MainWindow::chooseMapping(TactileValue::Mode mode,
+                               const std::shared_ptr<tactile::Calibration> &calib,
                                ColorMap *&colorMap, float &fMin, float &fMax) {
 	switch (mode) {
 	case TactileValue::rawCurrent:
 	case TactileValue::rawMean:
-		fMin=0; fMax=4095;
+		if (calib) {
+			tactile::Range r = calib->output_range();
+			fMin=r.min(); fMax=r.max();
+		} else {
+			fMin=0; fMax=4095;
+		}
 		colorMap = absColorMap;
 		break;
 
@@ -197,7 +215,7 @@ void MainWindow::timerEvent(QTimerEvent *event)
 
 	ColorMap *colorMap;
 	float fMin, fMax;
-	chooseMapping(mode, colorMap, fMin, fMax);
+	chooseMapping(mode, calib, colorMap, fMin, fMax);
 
 	for (NodeToDataMap::const_iterator it = nodeToData.begin(), end = nodeToData.end();
 	     it != end; ++it) {
@@ -211,7 +229,7 @@ void MainWindow::timerEvent(QTimerEvent *event)
 	if (mapDlg) {
 		std::vector<float> display(data.size());
 		mode = TactileValue::absCurrent;
-		chooseMapping(mode, colorMap, fMin, fMax);
+		chooseMapping(mode, calib, colorMap, fMin, fMax);
 		lock.relock();
 		data.getValues(mode, display);
 		lock.unlock();
