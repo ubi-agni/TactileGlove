@@ -7,6 +7,7 @@
 #include <boost/program_options.hpp>
 #include <iostream>
 #include <memory>
+#include <functional>
 
 #if HAVE_CURSES
 #include <ncurses.h>  // For text display
@@ -14,21 +15,26 @@
 #if HAVE_ROS
 #include <ros/ros.h>
 #include <std_msgs/UInt16MultiArray.h>
+#include <std_msgs/Float32MultiArray.h>
 #endif
 
 #include "../lib/RandomInput.h"
 #include "../lib/SerialInput.h"
+#include "tactile_filters/PieceWiseLinearCalib.h"
 
 #define NO_TAXELS         64
 #define OUTPUT_CURSES     (1 << 0)
 #define OUTPUT_ROS        (1 << 1)
 
-void initCurses();  // Setup text terminal display
-void printCurses(const tactile::InputInterface::data_vector &data);
-void publishToROS(const tactile::InputInterface::data_vector &data);
-
 using namespace std;
+using namespace tactile;
 namespace po=boost::program_options;
+
+void initCurses();  // Setup text terminal display
+void printCurses(const tactile::InputInterface::data_vector &data, const PieceWiseLinearCalib *calib);
+void publishToROS(const tactile::InputInterface::data_vector &data);
+void publishToROS(const tactile::InputInterface::data_vector &data, const PieceWiseLinearCalib *calib);
+
 std::string sTopic;
 uint        nErrors=0;
 
@@ -39,7 +45,7 @@ void usage(char* argv[]) {
 }
 
 bool handleCommandline(uint &outflags,
-                       std::string &device, std::string &sTopic,
+                       string &device, string &sTopic, string &sCalib,
                        int argc, char *argv[]) {
 	// default input device
 	device = "/dev/ttyACM0";
@@ -60,7 +66,8 @@ bool handleCommandline(uint &outflags,
 #endif
 		;
 	options.add_options()
-		("help,h", "Display this help message.");
+		("help,h", "Display this help message.")
+		("calib,c", po::value<string>(&sCalib), "calibration map");
 	options.add(inputs).add(outputs);
 
 	po::variables_map map;
@@ -98,16 +105,22 @@ int main(int argc, char **argv)
 {
 	uint outflags;
 	std::string sDevice;
+	std::string sCalib;
 	std::auto_ptr<tactile::InputInterface> input;
+	PieceWiseLinearCalib *calib=0;
 
 	try {
-		if (handleCommandline(outflags, sDevice, sTopic, argc, argv)) {
+		if (handleCommandline(outflags, sDevice, sTopic, sCalib, argc, argv)) {
 			usage(argv);
 			return EXIT_SUCCESS;
 		}
 		if (sDevice == "") input.reset(new tactile::RandomInput(NO_TAXELS));
 		else input.reset(new tactile::SerialInput(NO_TAXELS));
 		input->connect(sDevice);
+
+		if (!sCalib.empty()) {
+			calib = new PieceWiseLinearCalib(PieceWiseLinearCalib::load(sCalib));
+		}
 	} catch (const exception& e) {
 		cerr << e.what() << endl;
 		usage(argv);
@@ -132,8 +145,11 @@ int main(int argc, char **argv)
 	{
 		try {
 			const tactile::InputInterface::data_vector &frame = input->readFrame();
-			if (outflags & OUTPUT_CURSES) printCurses(frame);
-			if (outflags & OUTPUT_ROS) publishToROS(frame);
+			if (outflags & OUTPUT_CURSES) printCurses(frame, calib);
+			if (outflags & OUTPUT_ROS) {
+				publishToROS(frame);
+				if (calib) publishToROS(frame, calib);
+			}
 		} catch (const std::exception &e) {
 			if (bRun) sErr = e.what(); // not Ctrl-C stopped
 			break;
@@ -153,6 +169,7 @@ int main(int argc, char **argv)
 		cerr << sErr << endl;
 		return (EXIT_FAILURE);
 	}
+	if (!calib) delete calib;
 	return EXIT_SUCCESS;
 }
 
@@ -170,7 +187,8 @@ void initCurses()
 }
 
 // Pretty print the data
-void printCurses(const tactile::InputInterface::data_vector &data)
+void printCurses(const tactile::InputInterface::data_vector &data,
+                 const PieceWiseLinearCalib *calib)
 {
 #if HAVE_CURSES
 	static unsigned int frames=0, fps;
@@ -195,7 +213,10 @@ void printCurses(const tactile::InputInterface::data_vector &data)
 			clrtoeol();
 			printw("\n");
 		}
-		printw("%2d: %4d    ", x+1, data[x]);
+		if (calib)
+			printw("%2d: %.4f    ", x+1, calib->map(data[x]));
+		else
+			printw("%2d: %4d    ", x+1, data[x]);
 	}
 
 	refresh(); 
@@ -209,6 +230,8 @@ void publishToROS(const tactile::InputInterface::data_vector &data) {
 	static ros::Publisher    rosPublisher;  //< publisher
 	static std_msgs::UInt16MultiArray msg;
 
+
+
 	if (!bInitialized) {
 		rosPublisher = rosNodeHandle.advertise<std_msgs::UInt16MultiArray>(sTopic, 1);
 		msg.layout.dim.resize(1);
@@ -219,6 +242,30 @@ void publishToROS(const tactile::InputInterface::data_vector &data) {
 	}
 
 	msg.data = data;
+	rosPublisher.publish(msg);
+	ros::spinOnce();
+#endif
+}
+
+void publishToROS(const tactile::InputInterface::data_vector &data,
+                  const PieceWiseLinearCalib *calib) {
+#if HAVE_ROS
+	static bool bInitialized = false;
+	static ros::NodeHandle   rosNodeHandle; //< node handle
+	static ros::Publisher    rosPublisher;  //< publisher
+	static std_msgs::Float32MultiArray msg;
+
+	if (!bInitialized) {
+		rosPublisher = rosNodeHandle.advertise<std_msgs::Float32MultiArray>(sTopic+"/calibrated", 1);
+		msg.layout.dim.resize(1);
+		msg.layout.dim[0].label = "tactile data";
+		msg.layout.dim[0].size  = data.size();
+		msg.data.resize(data.size());
+		bInitialized = true;
+	}
+
+	std::transform(data.begin(), data.end(), msg.data.begin(),
+	               std::bind(&PieceWiseLinearCalib::map, calib, std::placeholders::_1));
 	rosPublisher.publish(msg);
 	ros::spinOnce();
 #endif

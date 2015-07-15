@@ -6,6 +6,7 @@ project (tactile_glove)
 ## is used, also find other catkin packages
 find_package(catkin QUIET COMPONENTS roscpp std_msgs)
 find_package(Boost 1.38 REQUIRED COMPONENTS thread program_options)
+find_package(tactile_filters)
 
 if(catkin_FOUND)
   # declare this as a catkin package

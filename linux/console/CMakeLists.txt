@@ -8,7 +8,10 @@ if(catkin_FOUND)
    add_definitions(-DHAVE_ROS=1)
 endif()
 
-include_directories(${CURSES_INCLUDE_PATH} ${Boost_INCLUDE_DIRS})
+include_directories(
+   ${CURSES_INCLUDE_PATH}
+   ${Boost_INCLUDE_DIRS}
+   ${tactile_filters_INCLUDE_DIRS})
 
 set(PROG_NAME gloveConsole)
 add_executable(${PROG_NAME} main.cpp)
@@ -16,7 +19,8 @@ target_link_libraries(${PROG_NAME}
    ${PROJECT_NAME}
    ${CURSES_NCURSES_LIBRARY}
    ${Boost_PROGRAM_OPTIONS_LIBRARY_RELEASE}
-   ${roscpp_LIBRARIES})
+   ${roscpp_LIBRARIES}
+   ${tactile_filters_LIBRARIES})
 
 install(TARGETS ${PROG_NAME} RUNTIME DESTINATION bin)
 if(catkin_FOUND)
