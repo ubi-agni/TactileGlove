@@ -70,7 +70,7 @@ private:
 	tactile::TactileValueArray     data;
 	tactile::TactileValueArray::vector_data display;
 
-	/// mapping from node indeces to data indeces
+	/// mapping from node indices to data indices
 	typedef QMap<unsigned int, unsigned int> NodeToDataMap;
 	NodeToDataMap    nodeToData;
 	QString          sMappingFile;

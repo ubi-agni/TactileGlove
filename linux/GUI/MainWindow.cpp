@@ -218,7 +218,7 @@ void MainWindow::timerEvent(QTimerEvent *event)
 		mapDlg->update(display, colorMap, fMin, fMax);
 	}
 
-	if (iJointIdx >= 0) updateJointBar(display[iJointIdx]);
+	if (iJointIdx >= 0) updateJointBar(data[iJointIdx].value(TactileValue::rawCurrent));
 	if (fps >= 0) ui->fps->setText(QString("%1 fps").arg(fps));
 }
 
