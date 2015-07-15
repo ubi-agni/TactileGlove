@@ -35,7 +35,7 @@ void filterLayoutOptions(const string &sMappingFilter,
 	const string sMatchKey = sMappingFilter + "." + sLayoutKey;
 
 	for (std::vector<po::basic_option<char> >::iterator
-	     it=options.begin(), end=options.end(); it!=end;) {
+	     it=options.begin(); it!=options.end();) {
 		if (it->unregistered && boost::ends_with(it->string_key, sLayoutKey)) {
 			if (it->string_key == sMatchKey) {
 				// turn option into recognized one
