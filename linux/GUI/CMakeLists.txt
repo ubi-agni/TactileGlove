@@ -24,6 +24,8 @@ include_directories(${CMAKE_CURRENT_BINARY_DIR}
                     ${catkin_INCLUDE_DIRS}
                     ${tactile_filters_INCLUDE_DIRS})
 
+list(APPEND CMAKE_INSTALL_RPATH ${tactile_filters_DIR}/../lib)
+
 set(PROG_NAME GloveViz)
 add_executable(${PROG_NAME} ${SOURCES} ${FORM_SRC} ${RESOURCES})
 target_link_libraries(${PROG_NAME}

@@ -13,6 +13,8 @@ include_directories(
    ${Boost_INCLUDE_DIRS}
    ${tactile_filters_INCLUDE_DIRS})
 
+list(APPEND CMAKE_INSTALL_RPATH ${tactile_filters_DIR}/../lib)
+
 set(PROG_NAME gloveConsole)
 add_executable(${PROG_NAME} main.cpp)
 target_link_libraries(${PROG_NAME}
