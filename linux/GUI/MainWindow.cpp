@@ -10,7 +10,7 @@
 #include "ROSInput.h"
 #endif
 
-#include "tactile_filters/PieceWiseLinearCalib.h"
+#include <tactile_filters/PieceWiseLinearCalib.h>
 #include <QCloseEvent>
 #include <QComboBox>
 #include <QFileDialog>

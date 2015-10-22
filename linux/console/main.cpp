@@ -20,7 +20,7 @@
 
 #include "../lib/RandomInput.h"
 #include "../lib/SerialInput.h"
-#include "tactile_filters/PieceWiseLinearCalib.h"
+#include <tactile_filters/PieceWiseLinearCalib.h>
 
 #define NO_TAXELS         64
 #define OUTPUT_CURSES     (1 << 0)
