@@ -20,6 +20,7 @@
 
 #include "../lib/RandomInput.h"
 #include "../lib/SerialInput.h"
+#include "../lib/FileInput.h"
 #include <tactile_filters/PieceWiseLinearCalib.h>
 
 #define NO_TAXELS         64
@@ -45,7 +46,9 @@ void usage(char* argv[]) {
 }
 
 bool handleCommandline(uint &outflags,
-                       string &device, string &sTopic, string &sCalib,
+                       string &device, string &filename,
+                       bool &bLoop, float &fSpeedFactor,
+                       string &sTopic, string &sCalib,
                        int argc, char *argv[]) {
 	// default input device
 	device = "/dev/ttyACM0";
@@ -54,6 +57,7 @@ bool handleCommandline(uint &outflags,
 	po::options_description inputs("input options");
 	inputs.add_options()
 		("serial,s", po::value<string>(&device)->implicit_value(device), "serial input device")
+		("file,f", po::value<string>(&filename)->implicit_value(filename), "csv file input filename")
 		("dummy,d", "use random dummy input");
 	po::options_description outputs("output options");
 	outputs.add_options()
@@ -67,7 +71,9 @@ bool handleCommandline(uint &outflags,
 		;
 	options.add_options()
 		("help,h", "Display this help message.")
-		("calib,c", po::value<string>(&sCalib), "calibration map");
+		("calib,c", po::value<string>(&sCalib), "calibration map")
+		("loop,l", "Loop at the end of the file")
+		("multiplier,m", po::value<float>(&fSpeedFactor), "File read speed multiplier (>1 is faster)");
 	options.add(inputs).add(outputs);
 
 	po::variables_map map;
@@ -78,13 +84,15 @@ bool handleCommandline(uint &outflags,
 	if (map.count("help")) return true;
 	po::notify(map);
 
-	if (map.count("serial") + map.count("dummy") > 1)
+	if (map.count("serial") + map.count("dummy") + map.count("file") > 1)
 		throw std::logic_error("multiple input methods specified");
-	if (map.count("dummy")) device = "";
+	if (map.count("dummy") || map.count("file")) device = "";
 
 	outflags = 0;
 	if (map.count("console")) outflags |= OUTPUT_CURSES;
 	if (map.count("ros")) outflags |= OUTPUT_ROS;
+ 
+	if (map.count("loop")) bLoop = true; else bLoop = false;
 #if HAVE_CURSES
 	if (!outflags) outflags |= OUTPUT_CURSES;
 #endif
@@ -105,18 +113,33 @@ int main(int argc, char **argv)
 {
 	uint outflags;
 	std::string sDevice;
+	std::string sFilename;
 	std::string sCalib;
+	float fSpeedFactor = 1.0;
+	bool bLoop = false;
 	std::auto_ptr<tactile::InputInterface> input;
 	PieceWiseLinearCalib *calib=0;
 
 	try {
-		if (handleCommandline(outflags, sDevice, sTopic, sCalib, argc, argv)) {
+		if (handleCommandline(outflags, sDevice, sFilename, bLoop, fSpeedFactor, sTopic, sCalib, argc, argv)) {
 			usage(argv);
 			return EXIT_SUCCESS;
 		}
-		if (sDevice == "") input.reset(new tactile::RandomInput(NO_TAXELS));
-		else input.reset(new tactile::SerialInput(NO_TAXELS));
-		input->connect(sDevice);
+		if (sDevice == "") {
+			if (sFilename == "") {
+				input.reset(new tactile::RandomInput(NO_TAXELS));
+				input->connect(sDevice);
+			}	
+			else {
+				input.reset(new tactile::FileInput(NO_TAXELS, fSpeedFactor, bLoop));
+				input->connect(sFilename);
+			}
+		}
+		else
+		{
+			input.reset(new tactile::SerialInput(NO_TAXELS));
+			input->connect(sDevice);
+		}
 
 		if (!sCalib.empty()) {
 			calib = new PieceWiseLinearCalib(PieceWiseLinearCalib::load(sCalib));
