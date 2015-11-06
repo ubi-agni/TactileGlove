@@ -5,11 +5,22 @@ find_package(Qt54 REQUIRED COMPONENTS Core Gui Svg Xml)
 find_package(Boost 1.38 REQUIRED COMPONENTS thread program_options regex)
 
 set(CMAKE_AUTOMOC ON)
+set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
-file(GLOB SOURCES "RandomInput.*" "SerialThread.*" "ROSInput.*" "*.h" "*.cpp")
-file(GLOB ROS_SRC "ROSInput.*")
-file(GLOB FORMS "*.ui")
-qt_wrap_ui(FORM_SRC ${FORMS})
+set(SOURCES
+  ColorMap.cpp ColorMap.h
+  GloveWidget.cpp GloveWidget.h
+  InputInterface.h
+  main.cpp
+  MainWindow.cpp MainWindow.h
+  MappingDialog.cpp MappingDialog.h
+  RandomInput.cpp RandomInput.h
+  ROSInput.cpp ROSInput.h
+  SerialThread.cpp SerialThread.h
+  TaxelMapping.cpp TaxelMapping.h
+  TaxelSelector.cpp TaxelSelector.h)
+set(ROS_SRC ROSInput.cpp ROSInput.h)
+qt_wrap_ui(FORM_SRC MainWindow.ui MappingDialog.ui)
 qt_add_resources(RESOURCES resources.qrc)
 
 if(catkin_FOUND)
