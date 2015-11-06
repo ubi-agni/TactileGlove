@@ -83,6 +83,11 @@ void MainWindow::setCalibration(const std::string &sCalibFile) {
 	     it != end; ++it) {
 		data[*it].setCalibration(calib);
 	}
+
+	// init upper ranges
+	float fMax = calib->output_range().max();
+	for (TactileValueArray::iterator it=data.begin(), end=data.end(); it!=end; ++it)
+		it->init(FLT_MAX, fMax);
 }
 
 MainWindow::~MainWindow()
