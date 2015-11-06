@@ -117,7 +117,7 @@ bool handleCommandline(uint &inputMethod, std::string &sInput,
 
 	cmd.add_options()
 		("help,h", "Display this help message.")
-		("file,f", po::value<string>(), "config file");
+		("file,f", po::value<string>(), "config file: specify options and mapping(s)");
 	cmd.add(config);
 	cmd.add(input);
 
@@ -151,7 +151,7 @@ bool handleCommandline(uint &inputMethod, std::string &sInput,
 	if (map.count("mapping")) sMapping = map["mapping"].as<string>();
 	mapping = getDefaultMapping(sMapping, config, map); // initialize from defaults
 
-	// if mapping was provided, but layout stays
+	// if mapping was provided, but layout is still undefined -> complain
 	if (!sMapping.empty() && map.count("layout") == 0)
 		throw runtime_error("unknown mapping " + sMapping);
 

@@ -13,7 +13,7 @@
 ** Usage
 The software is split in two parts: a console program and a GUI program (in corresponding sub dirs).
 
-*** console
+*** gloveConsole
 The console program supports two output modes
 - console
 - ROS topic /TactileGlove
@@ -41,4 +41,15 @@ each referencing the corresponding layout. Hence, on the command line, you shoul
 your glove version with option =-m version=.
 
 However, you can also specify your own or modify the existing mapping on the commandline,
-either loading an own mapping file with option =-c mapping.ini= or specifying individual mapping like so: =name=channel=.
+either loading an own mapping file with option =-f mapping.ini= or specifying individual mapping like so: =name=channel=.
+
+** Calibration
+Both programs, gloveConsole and GloveViz, can use a calibration to map raw sensor readings
+(in the range of 0-4095) to real forces. An example calibration file for P2 layout is provided
+in =console/P2.calib.yaml=.
+gloveConsole will publish to the topic /TactileGlove/calibrated in this case.
+
+You shouldn't use calibration for gloveConsole if you plan to visualize the data using
+GloveViz or rviz/[[https://github.com/ubi-agni/tactile_marker_publisher][tactile_marker_publisher]]. In this case, the calibration should be done
+in the visualization tool.
+GloveViz maps the output range of the calibration (or 0..4095) onto colors black ... green ... yellow ... red.
