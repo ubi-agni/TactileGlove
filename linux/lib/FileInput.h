@@ -35,7 +35,7 @@ public:
 	FileInput(size_t noTaxels, double speed_factor=1.0, bool startover=false);
 	void connect(const std::string &dummy);
 	void disconnect();
-	const data_vector& readFrame ();
+	const data_vector& readFrame();
 private:
   FILE *fd;
   bool loop;

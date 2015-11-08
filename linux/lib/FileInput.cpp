@@ -39,7 +39,7 @@ FileInput::FileInput(size_t noTaxels, double factor, bool startover)
 	if(factor > 0)
 		speed_factor = factor;
 	else
-	  speed_factor = 1.0;
+		speed_factor = 1.0;
 }
 
 void FileInput::connect(const std::string &filename)
@@ -67,8 +67,7 @@ void FileInput::connect(const std::string &filename)
 
 void FileInput::disconnect()
 {
-	if (fd != NULL)
-	{
+	if (fd != NULL) {
 		fclose(fd);
 		fd = NULL;
 	}
@@ -90,24 +89,22 @@ const FileInput::data_vector& FileInput::readFrame()
 	short unsigned int val;
 	if (feof(fd))
 	{
-		if (loop)
-		{
+		if (loop) {
 			fsetpos(fd, &startpos);
 			prev_timestamp = 0;
 			printf("loop\n");
 		}
-		else
-		{
+		else {
 			throw std::runtime_error("end of data");
 		}
 	}
 	if (!feof(fd))
 	{
 		// jump comment lines
-		while(comment_chars && !feof(fd))
-		{
+		while(comment_chars && !feof(fd)) {
 			comment_chars = fscanf(fd,"# %s\n", buf);
 		}
+
 		// read timestamp
 		if (fscanf(fd,"%d", &timestamp) == 1)
 		{
@@ -116,8 +113,8 @@ const FileInput::data_vector& FileInput::readFrame()
 				double diff_timestamp = (timestamp - prev_timestamp);
 				if (diff_timestamp >= 0 && diff_timestamp < 2000)
 				{
-					if (time_diff_ms < diff_timestamp * 1 / speed_factor)
-						usleep(diff_timestamp * 1 / speed_factor * 1000);
+					if (time_diff_ms < diff_timestamp / speed_factor)
+						usleep(1000 * diff_timestamp / speed_factor);
 					prev_timestamp = timestamp;
 				}
 				else
@@ -136,8 +133,7 @@ const FileInput::data_vector& FileInput::readFrame()
 						fscanf(fd,"\n");
 					break;
 				}
-				else
-				{
+				else {
 					*it = val;
 				}
 			}
