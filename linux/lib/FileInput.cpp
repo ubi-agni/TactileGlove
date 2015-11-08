@@ -32,10 +32,6 @@ namespace tactile {
 FileInput::FileInput(size_t noTaxels, double factor, bool startover)
    : InputInterface(noTaxels), loop(startover)
 {
-	// initialize smallest values
-	data[1] = 2048;
-	data[14] = 3700;
-	
 	if(factor > 0)
 		speed_factor = factor;
 	else
@@ -48,21 +44,18 @@ void FileInput::connect(const std::string &filename)
 	char buf[256];
 	if (fd == NULL)
 		throw std::runtime_error("cannot open file");
-	else
-	{
-		// jump header
-		while (fgets(buf, sizeof buf, fd)) {
-			if (*buf == '#') continue; /* ignore comment line */
-			if (*buf == '\n') break;
-		}
-		if (*buf == '\n')
-		{
-			fgetpos(fd, &startpos);
-			connected = true;
-			prev_timestamp = 0;
-			time(&prev_time);
-		}
-	}
+
+	// skip header
+	do {
+		fgetpos(fd, &startpos);
+		if (!fgets(buf, sizeof(buf), fd))
+			throw std::runtime_error("unexpected end of file");
+	} while (*buf == '#' || isspace(*buf));
+
+	fsetpos(fd, &startpos);
+	connected = true;
+	prev_timestamp = 0;
+	time(&prev_time);
 }
 
 void FileInput::disconnect()
@@ -129,8 +122,7 @@ const FileInput::data_vector& FileInput::readFrame()
 
 			for (data_vector::iterator it=data.begin(), end=data.end(); it != end; ++it, ++idx) {
 				if(fscanf(fd,";%hu", &val) != 1) {
-					if(!feof(fd))
-						fscanf(fd,"\n");
+					fgets(buf, sizeof(buf), fd); // read rest of line
 					break;
 				}
 				else {
