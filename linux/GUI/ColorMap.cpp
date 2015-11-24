@@ -47,7 +47,10 @@ void ColorMap::append(const QStringList &names)
 
 QColor ColorMap::map(float value, float min, float max) const
 {
+	static const QColor errColor("cyan");
 	assert(colors.size() > 1);
+	if (isnan(value)) return errColor;
+
 	float ratio = (value-min) / (max-min) * (colors.size()-1);
 	if (ratio < 0) return colors[0];
 	int   idx = ratio;
