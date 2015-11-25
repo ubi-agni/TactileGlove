@@ -80,8 +80,40 @@ TaxelMapping getDefaultMapping(const std::string &sMappingFilter,
 	return mappingFromStream(iss, sMappingFilter, opts, optsMap);
 }
 
+std::map<std::string, unsigned int>
+findGroups (const po::parsed_options &parsed)
+{
+	std::map<std::string, unsigned int> groups;
+	for (auto it = parsed.options.begin(), end = parsed.options.end(); it != end; ++it) {
+		string::size_type dot_pos = it->string_key.find(".");
+		if (it->unregistered && dot_pos != string::npos) {
+			groups[it->string_key.substr(0, dot_pos)]++;
+		}
+	}
+	return groups;
+}
 
-bool handleCommandline(uint &inputMethod, std::string &sInput,
+std::map<std::string, unsigned int>
+getAvailableMappings(const po::options_description &opts, const std::string &sConfigFile)
+{
+	QResource res(":taxel.cfg");
+	QByteArray data = res.isCompressed() ? qUncompress(res.data(), res.size())
+	                                     : QByteArray((const char*) res.data(), res.size());
+	istringstream iss(data.constData());
+
+	std::map<std::string, unsigned int> groups;
+	// find groups in sConfigFile
+	ifstream ifs(sConfigFile.c_str());
+	if (ifs) groups = findGroups(po::parse_config_file(ifs, opts, true));
+	// find groups in builtin taxel.cfg
+	const std::map<std::string, unsigned int> &builtin
+	      = findGroups(po::parse_config_file(iss, opts, true));
+	// merge
+	groups.insert(builtin.begin(), builtin.end());
+	return groups;
+}
+
+void handleCommandline(uint &inputMethod, std::string &sInput,
                        std::string &sLayout, std::string &sCalib,
                        TaxelMapping &mapping,
                        int argc, char *argv[])
@@ -95,7 +127,7 @@ bool handleCommandline(uint &inputMethod, std::string &sInput,
 	po::options_description config; // config options feasible for both cmdline + file
 	config.add_options()
 		("mapping,m", po::value<string>(&sMapping),
-		 "name of taxel mapping from config\ne.g. P1, P2, P3l, P3r")
+		 "name of taxel mapping from config\ne.g. P1, P2, use --list for full list")
 		("layout,l", po::value<string>(&sLayout)->default_value("P3")->required(),
 		 "glove layout SVG\ne.g. P1, P3, or file name")
 		("calib,c", po::value<string>(&sCalib), "calibration map")
@@ -117,6 +149,7 @@ bool handleCommandline(uint &inputMethod, std::string &sInput,
 
 	cmd.add_options()
 		("help,h", "Display this help message.")
+		("list", "List available mappings")
 		("file,f", po::value<string>(), "config file: specify options and mapping(s)");
 	cmd.add(config);
 	cmd.add(input);
@@ -130,7 +163,22 @@ bool handleCommandline(uint &inputMethod, std::string &sInput,
 	          .positional(pos)
 	          .run(), map);
 
-	if (map.count("help")) return true;
+	if (map.count("help")) {
+		usage(argv);
+		exit(EXIT_SUCCESS);
+	}
+
+	if (map.count("list")) {
+		auto groups = getAvailableMappings(config, map.count("file") ? map["file"].as<string>() : string());
+		if (groups.size() > 0) std::cout << "available mappings: " << std::endl;
+		else std::cout << "no mappings available" << std::endl;
+
+		for (auto it = groups.begin(), end = groups.end(); it != end; ++it) {
+			if (it->second < 10) continue; // only list groups with more than 10 mappings
+			std::cout << it->first << std::endl;
+		}
+		exit(EXIT_SUCCESS);
+	}
 
 	TaxelMapping configFileMapping;
 	if (map.count("file")) {
@@ -179,8 +227,6 @@ bool handleCommandline(uint &inputMethod, std::string &sInput,
 	if (map.count("serial")) inputMethod = INPUT_SERIAL;
 	if (map.count("dummy")) inputMethod = INPUT_RANDOM;
 	if (map.count("ros")) inputMethod = INPUT_ROS;
-
-	return false;
 }
 
 QApplication *pApp;
@@ -194,10 +240,7 @@ int main(int argc, char *argv[])
 	std::string sInput, sLayout, sCalib;
 	TaxelMapping mapping;
 	try {
-		if (handleCommandline(inputMethod, sInput, sLayout, sCalib, mapping, argc, argv)) {
-			usage(argv);
-			return EXIT_SUCCESS;
-		}
+		handleCommandline(inputMethod, sInput, sLayout, sCalib, mapping, argc, argv);
 	} catch (const exception& e) {
 		cerr << e.what() << endl;
 		usage(argv);

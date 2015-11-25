@@ -26,7 +26,7 @@ TaxelMapping &TaxelMapping::merge(const TaxelMapping &other, const string &sMapp
 		string key=it->first;
 		size_t dot = key.rfind('.');
 		if (dot != string::npos) {
-			// ignore entries for other layouts than sLayout
+			// ignore entries for other mappings than sMapping
 			if (sMapping.empty() || key.substr(0,dot) != sMapping) continue;
 			key = key.substr(dot+1);
 		}
