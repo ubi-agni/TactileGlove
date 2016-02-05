@@ -158,10 +158,9 @@ void handleCommandline(uint &inputMethod, std::string &sInput,
 	pos.add("taxelmap", -1);
 
 	po::variables_map map;
+	po::options_description cmdl_opts; cmdl_opts.add(cmd).add(hidden);
 	po::store(po::command_line_parser(argc, argv)
-	          .options(po::options_description().add(cmd).add(hidden))
-	          .positional(pos)
-	          .run(), map);
+	          .options(cmdl_opts).positional(pos).run(), map);
 
 	if (map.count("help")) {
 		usage(argv);
