@@ -128,8 +128,8 @@ void handleCommandline(uint &inputMethod, std::string &sInput,
 	config.add_options()
 		("mapping,m", po::value<string>(&sMapping),
 		 "name of taxel mapping from config\ne.g. P1, P2, use --list for full list")
-		("layout,l", po::value<string>(&sLayout)->default_value("P3")->required(),
-		 "glove layout SVG\ne.g. P1, P3, or file name")
+		("layout,l", po::value<string>(&sLayout)->required(),
+		 "glove layout SVG\ne.g. L1, L2, ..., or file name")
 		("calib,c", po::value<string>(&sCalib), "calibration map")
 		;
 
@@ -144,7 +144,7 @@ void handleCommandline(uint &inputMethod, std::string &sInput,
 #if HAVE_ROS
 		("ros,r", po::value<string>(&sInput)->implicit_value("TactileGlove"),
 		 "use ros input")
-		#endif
+#endif
 		("dummy,d", "use random dummy input");
 
 	cmd.add_options()
@@ -201,6 +201,8 @@ void handleCommandline(uint &inputMethod, std::string &sInput,
 	// if mapping was provided, but layout is still undefined -> complain
 	if (!sMapping.empty() && map.count("layout") == 0)
 		throw runtime_error("unknown mapping " + sMapping);
+	if (map.count("layout") == 0)
+		throw runtime_error("please provide a taxel mapping (-m) or at least a layout (-l)");
 
 	// fill variables and issue exceptions on errors
 	// this is only possible here, after having processed configFile and defaultMapping

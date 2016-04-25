@@ -1,7 +1,8 @@
 <RCC>
     <qresource prefix="/">
-        <file alias="P1.svg">SensorlayoutP1.svg</file>
-        <file alias="P3.svg">SensorlayoutP3.svg</file>
+        <file alias="L1.svg">SensorlayoutL1.svg</file>
+        <file alias="L2.svg">SensorlayoutL2.svg</file>
+        <file alias="L3.svg">SensorlayoutL3.svg</file>
         <file>taxel.cfg</file>
     </qresource>
 </RCC>
