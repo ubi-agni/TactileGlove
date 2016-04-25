@@ -15,7 +15,7 @@
 #if HAVE_ROS
 #include <ros/ros.h>
 #include <std_msgs/UInt16MultiArray.h>
-#include <std_msgs/Float32MultiArray.h>
+#include <tactile_msgs/TactileState.h>
 #endif
 
 #include "../lib/RandomInput.h"
@@ -253,8 +253,6 @@ void publishToROS(const tactile::InputInterface::data_vector &data) {
 	static ros::Publisher    rosPublisher;  //< publisher
 	static std_msgs::UInt16MultiArray msg;
 
-
-
 	if (!bInitialized) {
 		rosPublisher = rosNodeHandle.advertise<std_msgs::UInt16MultiArray>(sTopic, 1);
 		msg.layout.dim.resize(1);
@@ -276,19 +274,22 @@ void publishToROS(const tactile::InputInterface::data_vector &data,
 	static bool bInitialized = false;
 	static ros::NodeHandle   rosNodeHandle; //< node handle
 	static ros::Publisher    rosPublisher;  //< publisher
-	static std_msgs::Float32MultiArray msg;
+	static tactile_msgs::TactileState msg;
 
 	if (!bInitialized) {
-		rosPublisher = rosNodeHandle.advertise<std_msgs::Float32MultiArray>(sTopic+"/calibrated", 1);
-		msg.layout.dim.resize(1);
-		msg.layout.dim[0].label = "tactile data";
-		msg.layout.dim[0].size  = data.size();
-		msg.data.resize(data.size());
+		rosPublisher = rosNodeHandle.advertise<tactile_msgs::TactileState>(sTopic + "/calibrated", 1);
+		::sensor_msgs::ChannelFloat32 channel;
+		channel.name = "tactile";
+		channel.values.resize(data.size());
+		msg.sensors.push_back(channel);
 		bInitialized = true;
 	}
 
-	std::transform(data.begin(), data.end(), msg.data.begin(),
+	std::transform(data.begin(), data.end(), msg.sensors[0].values.begin(),
 	               std::bind(&PieceWiseLinearCalib::map, calib, std::placeholders::_1));
+
+	msg.header.stamp = ros::Time::now();
+	++msg.header.seq;
 	rosPublisher.publish(msg);
 	ros::spinOnce();
 #endif
