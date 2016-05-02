@@ -16,7 +16,7 @@ class GloveWidget : public QWidget
 {
 	Q_OBJECT
 public:
-	explicit GloveWidget(const QString& sLayout, QWidget *parent = 0);
+	explicit GloveWidget(const QString& sLayout, bool bMirror=false, QWidget *parent = 0);
 	QSize sizeHint() const;
 
 	/// return number of all SVG nodes
@@ -88,5 +88,6 @@ private:
 
 	unsigned int   numTaxelNodes, numAssigned;
 	bool           bShowChannels, bShowNames, bShowAllNames;
-	QTransform     viewTransform;
+	QTransform     viewTransform; // painter's transform, used for mouse mapping
+	bool           bMirror;
 };

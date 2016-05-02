@@ -9,6 +9,7 @@
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/regex.hpp>
 #include <boost/foreach.hpp>
+#include <boost/assign/list_of.hpp>
 #include <signal.h>
 #if HAVE_ROS
 #include <ros/ros.h>
@@ -27,24 +28,32 @@ void usage(char* argv[]) {
 #define INPUT_ROS        2
 #define INPUT_RANDOM     3
 
-// remove "prefix.layout" options, enabling the one with prefix=sMappingFilter
-void filterLayoutOptions(const string &sMappingFilter,
+// remove options of form "prefix.layout" or "prefix.handedness"
+// enabling those with prefix=sMappingFilter
+void filterOptions(const string &sMappingFilter,
                          std::vector<po::basic_option<char> > &options)
 {
-	const string sLayoutKey ("layout");
-	const string sMatchKey = sMappingFilter + "." + sLayoutKey;
-
 	for (std::vector<po::basic_option<char> >::iterator
 	     it=options.begin(); it!=options.end();) {
-		if (it->unregistered && boost::ends_with(it->string_key, sLayoutKey)) {
-			if (it->string_key == sMatchKey) {
-				// turn option into recognized one
-				it->unregistered = false;
-				it->string_key = sLayoutKey;
-			} else {
-				// remove this entry
-				it = options.erase(it); // returns next iterator
-				continue; // do not ++it again
+		if (it->unregistered) {
+			const static std::vector<std::string> vFilters = boost::assign::list_of("layout")("handedness");
+			std::vector<std::string>::const_iterator sFilterKey = vFilters.end();
+			for (auto fit = vFilters.begin(), end = vFilters.end(); fit != end; ++fit) {
+				if (boost::ends_with(it->string_key, *fit)) {
+					sFilterKey = fit;
+					break;
+				}
+			}
+			if (sFilterKey != vFilters.end()) {
+				if(it->string_key == sMappingFilter + "." + *sFilterKey) {
+					// turn option into recognized one
+					it->unregistered = false;
+					it->string_key = *sFilterKey;
+				} else {
+					// remove this entry
+					it = options.erase(it); // returns next iterator
+					continue; // do not ++it again
+				}
 			}
 		}
 		++it;
@@ -59,7 +68,7 @@ TaxelMapping mappingFromStream(istream &is,
                                po::variables_map &optsMap)
 {
 	po::parsed_options parsed = po::parse_config_file(is, opts, true);
-	filterLayoutOptions(sMappingFilter, parsed.options);
+	filterOptions(sMappingFilter, parsed.options);
 	po::store(parsed, optsMap); // store known options
 
 	TaxelMapping all(parsed.options); // mapping from all unknown options
@@ -114,14 +123,15 @@ getAvailableMappings(const po::options_description &opts, const std::string &sCo
 }
 
 void handleCommandline(uint &inputMethod, std::string &sInput,
-                       std::string &sLayout, std::string &sCalib,
-                       TaxelMapping &mapping,
+                       std::string &sLayout, bool &bMirror,
+                       std::string &sCalib, TaxelMapping &mapping,
                        int argc, char *argv[])
 {
 	// default input method
 	inputMethod = INPUT_SERIAL;
 	sInput = "/dev/ttyACM0";
 	string sMapping;
+	string sHandedness;
 
 	po::options_description options("options");
 	po::options_description config; // config options feasible for both cmdline + file
@@ -130,6 +140,8 @@ void handleCommandline(uint &inputMethod, std::string &sInput,
 		 "name of taxel mapping from config\ne.g. P1, P2, use --list for full list")
 		("layout,l", po::value<string>(&sLayout)->required(),
 		 "glove layout SVG\ne.g. L1, L2, ..., or file name")
+		("handedness", po::value<string>(&sHandedness)->default_value("right"),
+		 "right | left")
 		("calib,c", po::value<string>(&sCalib), "calibration map")
 		;
 
@@ -228,6 +240,7 @@ void handleCommandline(uint &inputMethod, std::string &sInput,
 	if (map.count("serial")) inputMethod = INPUT_SERIAL;
 	if (map.count("dummy")) inputMethod = INPUT_RANDOM;
 	if (map.count("ros")) inputMethod = INPUT_ROS;
+	bMirror = (map["handedness"].as<string>() == string("left"));
 }
 
 QApplication *pApp;
@@ -239,9 +252,10 @@ int main(int argc, char *argv[])
 {
 	uint inputMethod;
 	std::string sInput, sLayout, sCalib;
+	bool bMirror;
 	TaxelMapping mapping;
 	try {
-		handleCommandline(inputMethod, sInput, sLayout, sCalib, mapping, argc, argv);
+		handleCommandline(inputMethod, sInput, sLayout, bMirror, sCalib, mapping, argc, argv);
 	} catch (const exception& e) {
 		cerr << e.what() << endl;
 		usage(argv);
@@ -251,7 +265,7 @@ int main(int argc, char *argv[])
 	QApplication app(argc, argv);
 	MainWindow w(64);
 	try {
-		w.initGloveWidget(QString::fromStdString(sLayout), mapping);
+		w.initGloveWidget(QString::fromStdString(sLayout), bMirror, mapping);
 		if (!sCalib.empty()) w.setCalibration(sCalib);
 	} catch (const std::exception &e) {
 		cerr << e.what() << endl;

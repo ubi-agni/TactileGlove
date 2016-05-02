@@ -115,7 +115,7 @@ void MainWindow::initJointBar(TaxelMapping &mapping) {
 	} else ui->jointBar->show();
 }
 
-void MainWindow::initGloveWidget(const QString &layout, const TaxelMapping &mapping) {
+void MainWindow::initGloveWidget(const QString &layout, bool bMirror, const TaxelMapping &mapping) {
 	// do before creating the GloveWidget to allow for removing of the bar mapping
 	initJointBar(const_cast<TaxelMapping&>(mapping));
 
@@ -126,7 +126,7 @@ void MainWindow::initGloveWidget(const QString &layout, const TaxelMapping &mapp
 		delete gloveWidget;
 		gloveWidget = 0;
 	}
-	gloveWidget = new GloveWidget(layout, this);
+	gloveWidget = new GloveWidget(layout, bMirror, this);
 	ui->verticalLayout->insertWidget(0, gloveWidget);
 	resetColors();
 	gloveWidget->setFocus();

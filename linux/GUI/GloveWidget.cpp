@@ -16,9 +16,9 @@ static QString getLabel(int channel, const QString &id, bool showChannel=true, b
 	return result;
 }
 
-GloveWidget::GloveWidget(const QString &sLayout, QWidget *parent)
+GloveWidget::GloveWidget(const QString &sLayout, bool bMirror, QWidget *parent)
    : QWidget(parent), bDirtyDoc(false), numTaxelNodes(0), numAssigned(0),
-     bShowChannels(false), bShowNames(false), bShowAllNames(false)
+     bShowChannels(false), bShowNames(false), bShowAllNames(false), bMirror(bMirror)
 {
 	qDomDocPtr = new QDomDocument (sLayout);
 	QFile file(sLayout);
@@ -214,17 +214,26 @@ void GloveWidget::paintEvent(QPaintEvent * /*event*/)
 	renderSize.scale(painter.viewport().size(), Qt::KeepAspectRatio);
 	painter.setWindow(0,0, svgSize.width(), svgSize.height()); // logical coordinates are fixed
 	painter.setViewport(0,0, renderSize.width(), renderSize.height());
-	viewTransform = painter.combinedTransform();
 
+	// flipping transform for SVG drawing
+	QMatrix tf;
+	if (bMirror) {
+		tf.translate(svgSize.width(), 0);
+		tf.scale(-1, 1);
+	}
+	painter.setMatrix(tf);
+	viewTransform = painter.combinedTransform();
 	qSvgRendererPtr->render(&painter, painter.window());
 
 	QFont font = painter.font(); font.setPointSize(8);
 	painter.setFont(font);
 
+	// reset transform for text drawing
+	painter.setMatrix(QMatrix());
 	// show IDs/channels of taxels
 	for (PathList::const_iterator it=allNodes.begin(), end=allNodes.end(); it!=end; ++it) {
 		if (!bShowAllNames && it->channel < 0) continue;
-		QMatrix m = qSvgRendererPtr->matrixForElement(it->name);
+		QMatrix m = qSvgRendererPtr->matrixForElement(it->name) * tf;
 		QRectF bounds = m.mapRect(qSvgRendererPtr->boundsOnElement(it->name));
 		QString label = getLabel(it->channel, it->name,
 		                         bShowChannels && !bShowAllNames,

@@ -27,7 +27,7 @@ public:
 
 	void setCalibration(const std::string &sCalibFile);
 	void initJointBar(TaxelMapping &mapping);
-	void initGloveWidget(const QString &layout, const TaxelMapping& mapping);
+	void initGloveWidget(const QString &layout, bool bMirror, const TaxelMapping& mapping);
 
 	void configSerial(const QString &sDevice);
 	void configROS(const QString &sTopic);
