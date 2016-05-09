@@ -1,15 +1,10 @@
 #include "MainWindow.h"
+#include "TaxelMappingTools.h"
 
-#include <iostream>
-#include <fstream>
-#include <cstdio>
-#include <QResource>
 #include <QApplication>
-#include <boost/program_options.hpp>
-#include <boost/algorithm/string/predicate.hpp>
+#include <fstream>
 #include <boost/regex.hpp>
 #include <boost/foreach.hpp>
-#include <boost/assign/list_of.hpp>
 #include <signal.h>
 #if HAVE_ROS
 #include <ros/ros.h>
@@ -27,100 +22,6 @@ void usage(char* argv[]) {
 #define INPUT_SERIAL     1
 #define INPUT_ROS        2
 #define INPUT_RANDOM     3
-
-// remove options of form "prefix.layout" or "prefix.handedness"
-// enabling those with prefix=sMappingFilter
-void filterOptions(const string &sMappingFilter,
-                         std::vector<po::basic_option<char> > &options)
-{
-	for (std::vector<po::basic_option<char> >::iterator
-	     it=options.begin(); it!=options.end();) {
-		if (it->unregistered) {
-			const static std::vector<std::string> vFilters = boost::assign::list_of("layout")("handedness");
-			std::vector<std::string>::const_iterator sFilterKey = vFilters.end();
-			for (auto fit = vFilters.begin(), end = vFilters.end(); fit != end; ++fit) {
-				if (boost::ends_with(it->string_key, *fit)) {
-					sFilterKey = fit;
-					break;
-				}
-			}
-			if (sFilterKey != vFilters.end()) {
-				if(it->string_key == sMappingFilter + "." + *sFilterKey) {
-					// turn option into recognized one
-					it->unregistered = false;
-					it->string_key = *sFilterKey;
-				} else {
-					// remove this entry
-					it = options.erase(it); // returns next iterator
-					continue; // do not ++it again
-				}
-			}
-		}
-		++it;
-	}
-}
-
-// load mapping for sMappingFilter from is and store option "layout" in map
-// also consider declard options opts
-TaxelMapping mappingFromStream(istream &is,
-                               const string &sMappingFilter,
-                               const po::options_description &opts,
-                               po::variables_map &optsMap)
-{
-	po::parsed_options parsed = po::parse_config_file(is, opts, true);
-	filterOptions(sMappingFilter, parsed.options);
-	po::store(parsed, optsMap); // store known options
-
-	TaxelMapping all(parsed.options); // mapping from all unknown options
-	return TaxelMapping().merge(all, sMappingFilter); // filter by sMappingFilter
-}
-
-// load default mapping for sMappingFilter and store option "layout" in map
-TaxelMapping getDefaultMapping(const std::string &sMappingFilter,
-                               const po::options_description &opts,
-                               po::variables_map &optsMap)
-{
-	if (sMappingFilter.empty()) return TaxelMapping();
-
-	QResource res(":taxel.cfg");
-	QByteArray data = res.isCompressed() ? qUncompress(res.data(), res.size())
-	                                     : QByteArray((const char*) res.data(), res.size());
-	istringstream iss(data.constData());
-	return mappingFromStream(iss, sMappingFilter, opts, optsMap);
-}
-
-std::map<std::string, unsigned int>
-findGroups (const po::parsed_options &parsed)
-{
-	std::map<std::string, unsigned int> groups;
-	for (auto it = parsed.options.begin(), end = parsed.options.end(); it != end; ++it) {
-		string::size_type dot_pos = it->string_key.find(".");
-		if (it->unregistered && dot_pos != string::npos) {
-			groups[it->string_key.substr(0, dot_pos)]++;
-		}
-	}
-	return groups;
-}
-
-std::map<std::string, unsigned int>
-getAvailableMappings(const po::options_description &opts, const std::string &sConfigFile)
-{
-	QResource res(":taxel.cfg");
-	QByteArray data = res.isCompressed() ? qUncompress(res.data(), res.size())
-	                                     : QByteArray((const char*) res.data(), res.size());
-	istringstream iss(data.constData());
-
-	std::map<std::string, unsigned int> groups;
-	// find groups in sConfigFile
-	ifstream ifs(sConfigFile.c_str());
-	if (ifs) groups = findGroups(po::parse_config_file(ifs, opts, true));
-	// find groups in builtin taxel.cfg
-	const std::map<std::string, unsigned int> &builtin
-	      = findGroups(po::parse_config_file(iss, opts, true));
-	// merge
-	groups.insert(builtin.begin(), builtin.end());
-	return groups;
-}
 
 void handleCommandline(uint &inputMethod, std::string &sInput,
                        std::string &sLayout, bool &bMirror,
@@ -180,14 +81,12 @@ void handleCommandline(uint &inputMethod, std::string &sInput,
 	}
 
 	if (map.count("list")) {
-		auto groups = getAvailableMappings(config, map.count("file") ? map["file"].as<string>() : string());
-		if (groups.size() > 0) std::cout << "available mappings: " << std::endl;
+		auto mappings = getAvailableMappings(map.count("file") ? map["file"].as<string>() : string());
+		if (mappings.size() > 0) std::cout << "available mappings: " << std::endl;
 		else std::cout << "no mappings available" << std::endl;
 
-		for (auto it = groups.begin(), end = groups.end(); it != end; ++it) {
-			if (it->second < 10) continue; // only list groups with more than 10 mappings
-			std::cout << it->first << std::endl;
-		}
+		for (auto it = mappings.begin(), end = mappings.end(); it != end; ++it)
+			std::cout << *it << std::endl;
 		exit(EXIT_SUCCESS);
 	}
 
@@ -200,7 +99,7 @@ void handleCommandline(uint &inputMethod, std::string &sInput,
 		ifstream ifs(sConfigFile.c_str());
 		if (!ifs) throw std::runtime_error("cannot open config file " + sConfigFile);
 		po::options_description fileOpts; fileOpts.add(config).add(input);
-		configFileMapping = mappingFromStream(ifs, sMapping, fileOpts, map);
+		configFileMapping = getMapping(ifs, sMapping, map, fileOpts);
 	}
 
 	if (map.count("ros") + map.count("serial") + map.count("dummy") > 1)
@@ -208,7 +107,7 @@ void handleCommandline(uint &inputMethod, std::string &sInput,
 
 	// *** merge taxel mapping options ***
 	if (map.count("mapping")) sMapping = map["mapping"].as<string>();
-	mapping = getDefaultMapping(sMapping, config, map); // initialize from defaults
+	mapping = getMapping(sMapping, map, config); // initialize from defaults
 
 	// if mapping was provided, but layout is still undefined -> complain
 	if (!sMapping.empty() && map.count("layout") == 0)
@@ -219,6 +118,7 @@ void handleCommandline(uint &inputMethod, std::string &sInput,
 	// fill variables and issue exceptions on errors
 	// this is only possible here, after having processed configFile and defaultMapping
 	po::notify(map);
+	sLayout = map["layout"].as<string>();
 
 	// merge stuff from explicit config file
 	mapping.merge(configFileMapping);

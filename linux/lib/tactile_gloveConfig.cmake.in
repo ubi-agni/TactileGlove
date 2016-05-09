@@ -1,0 +1,14 @@
+# cmake config file for the @PROJECT_NAME@ package
+# It defines the following variables
+#  @PROJECT_NAME@_FOUND        - if package was found
+#  @PROJECT_NAME@_INCLUDE_DIRS - include directories for FooBar
+#  @PROJECT_NAME@_LIBRARIES    - libraries to link against
+
+get_filename_component(@PROJECT_NAME@_CMAKE_DIR ${CMAKE_CURRENT_LIST_FILE} PATH)
+set(@PROJECT_NAME@_INCLUDE_DIRS ${@PROJECT_NAME@_CMAKE_DIR}/../include)
+set(@PROJECT_NAME@_LIBRARIES @CMAKE_INSTALL_PREFIX@/lib/lib@PROJECT_NAME@.so)
+
+set(@PROJECT_NAME@_FOUND TRUE)
+if(NOT @PROJECT_NAME@_FIND_QUIETLY)
+  message(STATUS "Found @PROJECT_NAME@: ${@PROJECT_NAME@_CMAKE_DIR}")
+endif()

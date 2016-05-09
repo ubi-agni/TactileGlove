@@ -1,0 +1,9 @@
+prefix=@CMAKE_INSTALL_PREFIX@
+libdir=${prefix}/lib
+includedir=${prefix}/include
+
+Name: @PROJECT_NAME@
+Description: filters and calibration methods for tactile sensors
+Version: @LIB_VERSION@
+Libs: -L${libdir} -l@PROJECT_NAME@
+Cflags: -std=c++11 -I${includedir}
