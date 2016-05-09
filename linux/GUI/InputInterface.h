@@ -24,7 +24,7 @@
 #pragma once
 
 #include <boost/function.hpp>
-#include "../lib/InputInterface.h"
+#include "../libio/InputInterface.h"
 class QString;
 
 class InputInterface {

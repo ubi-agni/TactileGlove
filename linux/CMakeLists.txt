@@ -5,8 +5,11 @@ project (tactile_glove)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin QUIET COMPONENTS roscpp std_msgs tactile_msgs)
-find_package(Boost 1.38 REQUIRED COMPONENTS thread program_options)
+find_package(Boost 1.38 REQUIRED COMPONENTS thread program_options regex)
 find_package(tactile_filters REQUIRED)
+
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}")
+find_package(Qt54 COMPONENTS Core Gui Svg Xml)
 
 if(catkin_FOUND)
   # declare this as a catkin package, allows to rosrun our applications
@@ -16,6 +19,9 @@ else()
 endif()
 
 # add sub libraries *after* calling catking_package()
-add_subdirectory (lib)
+add_subdirectory (libio)
 add_subdirectory (console)
-add_subdirectory (GUI)
+if(QT_FOUND)
+  add_subdirectory (lib)
+  add_subdirectory (GUI)
+endif()

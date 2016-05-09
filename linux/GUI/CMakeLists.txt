@@ -1,36 +1,25 @@
 cmake_minimum_required(VERSION 2.6)
 
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}")
-find_package(Qt54 REQUIRED COMPONENTS Core Gui Svg Xml)
-find_package(Boost 1.38 REQUIRED COMPONENTS thread program_options regex)
-
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
 set(SOURCES
-  ColorMap.cpp ColorMap.h
-  GloveWidget.cpp GloveWidget.h
   InputInterface.h
   main.cpp
   MainWindow.cpp MainWindow.h
   MappingDialog.cpp MappingDialog.h
   RandomInput.cpp RandomInput.h
-  ROSInput.cpp ROSInput.h
   SerialThread.cpp SerialThread.h
-  TaxelMapping.cpp TaxelMapping.h
   TaxelSelector.cpp TaxelSelector.h)
-set(ROS_SRC ROSInput.cpp ROSInput.h)
 qt_wrap_ui(FORM_SRC MainWindow.ui MappingDialog.ui)
-qt_add_resources(RESOURCES resources.qrc)
 
 if(catkin_FOUND)
-   add_definitions(-DHAVE_ROS=1)
-else()
-   list(REMOVE_ITEM SOURCES ${ROS_SRC})
+  add_definitions(-DHAVE_ROS=1)
+  list(APPEND SOURCES ROSInput.cpp ROSInput.h)
 endif()
 
 add_definitions(${QT_DEFINITIONS})
-include_directories(${CMAKE_CURRENT_BINARY_DIR}
+include_directories(../lib
                     ${QT_INCLUDES}
                     ${catkin_INCLUDE_DIRS}
                     ${tactile_filters_INCLUDE_DIRS})
@@ -38,9 +27,9 @@ include_directories(${CMAKE_CURRENT_BINARY_DIR}
 list(APPEND CMAKE_INSTALL_RPATH ${tactile_filters_DIR}/../lib)
 
 set(PROG_NAME GloveViz)
-add_executable(${PROG_NAME} ${SOURCES} ${FORM_SRC} ${RESOURCES})
+add_executable(${PROG_NAME} ${SOURCES} ${FORM_SRC})
 target_link_libraries(${PROG_NAME}
-   ${PROJECT_NAME}
+   ${PROJECT_NAME}_io ${PROJECT_NAME}
    ${QT_LIBRARIES}
    ${Boost_PROGRAM_OPTIONS_LIBRARY_RELEASE}
    ${Boost_REGEX_LIBRARY_RELEASE}

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "InputInterface.h"
-#include "../lib/SerialInput.h"
+#include "../libio/SerialInput.h"
 #include <QThread>
 
 class SerialThread : public QThread, public InputInterface

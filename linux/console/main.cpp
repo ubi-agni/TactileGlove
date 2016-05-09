@@ -18,9 +18,9 @@
 #include <tactile_msgs/TactileState.h>
 #endif
 
-#include "../lib/RandomInput.h"
-#include "../lib/SerialInput.h"
-#include "../lib/FileInput.h"
+#include <RandomInput.h>
+#include <SerialInput.h>
+#include <FileInput.h>
 #include <tactile_filters/PieceWiseLinearCalib.h>
 
 #define NO_TAXELS         64

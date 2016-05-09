@@ -26,7 +26,7 @@
 #pragma once
 
 #include "InputInterface.h"
-#include "../lib/RandomInput.h"
+#include "../libio/RandomInput.h"
 #include <QObject>
 
 class RandomInput : public QObject, public InputInterface
