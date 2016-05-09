@@ -12,8 +12,13 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}")
 find_package(Qt54 COMPONENTS Core Gui Svg Xml)
 
 if(catkin_FOUND)
-  # declare this as a catkin package, allows to rosrun our applications
-  catkin_package()
+	# declare this as a catkin package, allows to rosrun our applications
+	# installs package.xml, *Config.cmake, and *.pc files
+	# defines catkin_destinations()
+	catkin_package(
+		SKIP_CMAKE_CONFIG_GENERATION
+		SKIP_PKG_CONFIG_GENERATION
+	)
 else()
   message(WARNING "ROS catkin not found, building without ROS support")
 endif()
@@ -22,6 +27,6 @@ endif()
 add_subdirectory (libio)
 add_subdirectory (console)
 if(QT_FOUND)
-  add_subdirectory (lib)
-  add_subdirectory (GUI)
+	add_subdirectory (lib)
+	add_subdirectory (GUI)
 endif()

@@ -14,7 +14,7 @@ add_definitions(${QT_DEFINITIONS})
 include_directories(${QT_INCLUDES}
                     ${tactile_filters_INCLUDE_DIRS})
 
-add_library(${PROJECT_NAME} ${SOURCES})
+add_library(${PROJECT_NAME} SHARED ${SOURCES})
 target_link_libraries(${PROJECT_NAME}
   ${QT_LIBRARIES}
 )
@@ -24,7 +24,7 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
 
 install(TARGETS ${PROJECT_NAME}
   EXPORT ${PROJECT_NAME}Targets
-  LIBRARY DESTINATION bin
+  LIBRARY DESTINATION lib
   PUBLIC_HEADER DESTINATION include/${PROJECT_NAME}
 )
 
@@ -36,6 +36,7 @@ export(TARGETS ${PROJECT_NAME}
 configure_file(${PROJECT_NAME}Config.cmake.in
                ${CMAKE_BINARY_DIR}/${PROJECT_NAME}Config.cmake
                @ONLY)
+
 configure_file(${PROJECT_NAME}ConfigVersion.cmake.in
                ${CMAKE_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake
                @ONLY)
@@ -43,11 +44,11 @@ configure_file(${PROJECT_NAME}ConfigVersion.cmake.in
 install(FILES
   ${CMAKE_BINARY_DIR}/${PROJECT_NAME}Config.cmake
   ${CMAKE_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake
-  DESTINATION share)
+  DESTINATION share/${PROJECT_NAME}/cmake)
 
 # install the export set for use with the install-tree
 install(EXPORT ${PROJECT_NAME}Targets
-  DESTINATION share)
+  DESTINATION share/${PROJECT_NAME}/cmake)
 
 ## pkgconfig file
 configure_file(${PROJECT_NAME}.pc.in ${PROJECT_NAME}.pc @ONLY)
