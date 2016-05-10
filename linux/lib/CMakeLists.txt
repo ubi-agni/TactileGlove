@@ -7,14 +7,15 @@ set(SOURCES
   GloveWidget.cpp GloveWidget.h
   TaxelMapping.cpp TaxelMapping.h
   TaxelMappingTools.cpp TaxelMappingTools.h
-  resources.qrc)
+)
+qt_add_resources(RESOURCES resources.qrc)
 
 add_definitions(${QT_DEFINITIONS})
 
 include_directories(${QT_INCLUDES}
                     ${tactile_filters_INCLUDE_DIRS})
 
-add_library(${PROJECT_NAME} SHARED ${SOURCES})
+add_library(${PROJECT_NAME} SHARED ${SOURCES} ${RESOURCES})
 target_link_libraries(${PROJECT_NAME}
   ${QT_LIBRARIES}
 )
