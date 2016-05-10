@@ -18,6 +18,7 @@ include_directories(${QT_INCLUDES}
 add_library(${PROJECT_NAME} SHARED ${SOURCES} ${RESOURCES})
 target_link_libraries(${PROJECT_NAME}
   ${QT_LIBRARIES}
+  ${Boost_PROGRAM_OPTIONS_LIBRARY}
 )
 set_target_properties(${PROJECT_NAME} PROPERTIES
   PUBLIC_HEADER "ColorMap.h;GloveWidget.h;TaxelMapping.h;TaxelMappingTools.h"
