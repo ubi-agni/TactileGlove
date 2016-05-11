@@ -12,6 +12,7 @@ set(SOURCES
 qt_add_resources(RESOURCES resources.qrc)
 
 add_definitions(${QT_DEFINITIONS})
+add_definitions(-std=c++11)
 
 include_directories(${QT_INCLUDES}
                     ${tactile_filters_INCLUDE_DIRS})

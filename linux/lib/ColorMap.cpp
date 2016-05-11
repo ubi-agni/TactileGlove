@@ -24,6 +24,7 @@
 
 #include "ColorMap.h"
 #include <assert.h>
+#include <cmath>
 
 ColorMap::ColorMap()
 {
