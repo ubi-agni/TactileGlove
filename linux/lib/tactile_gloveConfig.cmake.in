@@ -1,13 +1,13 @@
-# cmake config file for the @PROJECT_NAME@ package
-# It defines the following variables
-#  @PROJECT_NAME@_FOUND        - if package was found
-#  @PROJECT_NAME@_INCLUDE_DIRS - include directories for FooBar
-#  @PROJECT_NAME@_LIBRARIES    - libraries to link against
+# export all targets from the @PROJECT_NAME@ package
+include("${CMAKE_CURRENT_LIST_DIR}/@PROJECT_NAME@Targets.cmake")
 
-set(@PROJECT_NAME@_INCLUDE_DIRS ${@PROJECT_NAME@_DIR}/../../../include)
-set(@PROJECT_NAME@_LIBRARIES @CMAKE_INSTALL_PREFIX@/lib/@CMAKE_SHARED_LIBRARY_PREFIX@@PROJECT_NAME@@CMAKE_SHARED_LIBRARY_SUFFIX@)
+# For compatibility also define some standard variables:
+# @PROJECT_NAME@_INCLUDE_DIRS - required include directories
+# @PROJECT_NAME@_LIBRARIES    - required libraries
 
-set(@PROJECT_NAME@_FOUND TRUE)
+get_target_property(@PROJECT_NAME@_INCLUDE_DIRS @PROJECT_NAME@ INTERFACE_INCLUDE_DIRECTORIES)
+get_target_property(@PROJECT_NAME@_LIBRARIES @PROJECT_NAME@ LOCATION)
+
 if(NOT @PROJECT_NAME@_FIND_QUIETLY)
   message(STATUS "Found @PROJECT_NAME@: ${@PROJECT_NAME@_DIR}")
 endif()
