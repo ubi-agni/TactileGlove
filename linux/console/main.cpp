@@ -62,7 +62,7 @@ bool handleCommandline(uint &outflags,
 	po::options_description outputs("output options");
 	outputs.add_options()
 #if HAVE_CURSES
-		("console,c", "enable console output (default)")
+		("console,p", "enable console print output (default)")
 #endif
 #if HAVE_ROS
 		("ros,r", po::value<string>(&sTopic)->implicit_value("TactileGlove"),
