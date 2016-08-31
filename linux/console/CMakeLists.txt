@@ -5,6 +5,7 @@ if(CURSES_FOUND)
    add_definitions(-DHAVE_CURSES=1)
 endif()
 if(catkin_FOUND)
+   include_directories(${catkin_INCLUDE_DIRS})
    add_definitions(-DHAVE_ROS=1)
 endif()
 
