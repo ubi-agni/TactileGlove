@@ -3,7 +3,7 @@
 - boost::program_options
 - boost::thread
 - boost::regex
-- [[https://github.com/ubi-agni/tactile_filters][tactile_filters]]
+- [[https://github.com/ubi-agni/tactile_filters][tactile_filters]] (define =CMAKE_PREFIX_PATH= to point to installation directory)
 
 ** optional dependencies
 - Qt4 or Qt5 with QtSVG (for visualization)
