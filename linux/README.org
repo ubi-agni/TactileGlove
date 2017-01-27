@@ -8,7 +8,7 @@
 ** optional dependencies
 - Qt4 or Qt5 with QtSVG (for visualization)
 - ncurses (for nice console output)
-- ROS (for ROS publish/receive)
+- package =tactile_msgs= from [[https://github.com/ubi-agni/tactile_toolbox][tactile_toolbox]] for ROS publisher support
 
 ** Usage
 The software is split in two parts: a console program and a GUI program (in corresponding sub dirs).
