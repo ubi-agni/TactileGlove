@@ -48,6 +48,9 @@ public:
 	const data_vector& readFrame ();
 
 private:
+	void sync(unsigned char buf[]) const;
+
+private:
 	struct termios oldtio,newtio;
 	struct timespec timeout;
 	int    fd;

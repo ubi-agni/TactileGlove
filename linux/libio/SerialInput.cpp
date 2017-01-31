@@ -116,11 +116,25 @@ const InputInterface::data_vector& SerialInput::readFrame()
 				data[index] = 4095-value;
 				// got full frame ?
 				if (index==data.size()-1) return data;
-			}
+			} else sync(buf);
 		} else throw std::runtime_error ("failed to read from serial input");
 	}
 
 	return data;
+}
+
+inline bool valid(const unsigned char buf[PACKET_SIZE_BYTES], unsigned int o)
+{
+	return buf[o % PACKET_SIZE_BYTES] >= 0x3C &&
+	       buf[(1+o) % PACKET_SIZE_BYTES] == 0x01 &&
+	       buf[(4+o) % PACKET_SIZE_BYTES] == 0x00;
+}
+
+void SerialInput::sync(unsigned char buf[PACKET_SIZE_BYTES]) const {
+	unsigned int offset = 1;
+	for (; offset < PACKET_SIZE_BYTES; ++offset)
+		if (valid(buf, offset)) break;
+	read(fd, buf, PACKET_SIZE_BYTES-offset);
 }
 
 }
