@@ -63,8 +63,7 @@ void SerialInput::connect(const std::string &sDevice)
 		throw std::runtime_error(string("Connection failed: ") + strerror(errno));
 
 	tcgetattr(fd,&oldtio); /* save current port settings */
-
-	memcpy(&newtio, &oldtio, sizeof(newtio));
+	bzero(&newtio, sizeof(newtio));
 
 	cfsetospeed (&newtio, B115200);
 	cfsetispeed (&newtio, B115200);
