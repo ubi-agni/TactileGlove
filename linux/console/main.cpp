@@ -117,7 +117,7 @@ int main(int argc, char **argv)
 	std::string sCalib;
 	float fSpeedFactor = 1.0;
 	bool bLoop = false;
-	std::auto_ptr<tactile::InputInterface> input;
+	std::unique_ptr<tactile::InputInterface> input;
 	PieceWiseLinearCalib *calib=0;
 
 	try {
