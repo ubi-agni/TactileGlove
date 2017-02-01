@@ -64,12 +64,40 @@ void SerialInput::connect(const std::string &sDevice)
 
 	tcgetattr(fd,&oldtio); /* save current port settings */
 
-	bzero(&newtio, sizeof(newtio));
-	newtio.c_cc[VTIME]    = 0;   /* inter-character timer unused */
-	newtio.c_cc[VMIN]     = PACKET_SIZE_BYTES;   /* blocking read until 5 chars received */
+	memcpy(&newtio, &oldtio, sizeof(newtio));
 
-	tcflush(fd, TCIFLUSH);
+	cfsetospeed (&newtio, B115200);
+	cfsetispeed (&newtio, B115200);
+
+	// set up raw mode / no echo / binary
+	newtio.c_cflag |= (tcflag_t)  (CLOCAL | CREAD);
+	newtio.c_lflag &= (tcflag_t) ~(ICANON | ECHO | ECHOE | ECHOK | ECHONL | ISIG | IEXTEN); //|ECHOPRT
+
+	newtio.c_oflag &= (tcflag_t) ~(OPOST);
+	newtio.c_iflag &= (tcflag_t) ~(INLCR | IGNCR | ICRNL | IGNBRK);
+#ifdef IUCLC
+	newtio.c_iflag &= (tcflag_t) ~IUCLC;
+#endif
+#ifdef PARMRK
+	newtio.c_iflag &= (tcflag_t) ~PARMRK;
+#endif
+
+	// setup char len = CS8
+	newtio.c_cflag |= CS8;
+	// setup one stopbit
+	newtio.c_cflag &= (tcflag_t) ~(CSTOPB);
+	// setup parity: no parity
+	newtio.c_iflag &= (tcflag_t) ~(INPCK | ISTRIP);
+	newtio.c_cflag &= (tcflag_t) ~(PARENB | PARODD);
+	// setup flow control: none
+	newtio.c_iflag &= (tcflag_t) ~(IXON | IXOFF | IXANY);
+	newtio.c_cflag &= (tcflag_t) ~(CRTSCTS);
+
+	newtio.c_cc[VTIME]    = 0;   /* inter-character timer unused */
+	newtio.c_cc[VMIN]     = 0;   /* no minimum chars to be read */
+
 	tcsetattr(fd,TCSANOW,&newtio);
+	tcflush(fd, TCIFLUSH);
 
 	FD_ZERO (&fdset);
 	FD_SET (fd,&fdset);
