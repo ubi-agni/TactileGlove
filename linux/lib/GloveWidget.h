@@ -41,8 +41,8 @@ public:
 	void updateSVG();
 
 	/// saving to cfg or xacro
-	void saveMappingCfg(QTextStream &ts);
-	void saveMappingYAML(QTextStream &ts);
+	bool saveMappingCfg(const QString &sFileName, const QString &sMappingName = QString());
+	bool saveMappingYAML(const QString &sFileName, const QString &sMappingName = QString());
 	/// check for unsaved changes to SVG
 	bool canClose();
 

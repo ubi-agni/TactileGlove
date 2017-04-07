@@ -8,10 +8,11 @@ set(SOURCES
   main.cpp
   MainWindow.cpp MainWindow.h
   MappingDialog.cpp MappingDialog.h
+  FileExistsDialog.cpp FileExistsDialog.h
   RandomInput.cpp RandomInput.h
   SerialThread.cpp SerialThread.h
   TaxelSelector.cpp TaxelSelector.h)
-qt_wrap_ui(FORM_SRC MainWindow.ui MappingDialog.ui)
+qt_wrap_ui(FORM_SRC MainWindow.ui MappingDialog.ui FileExistsDialog.ui)
 
 if(catkin_FOUND)
   add_definitions(-DHAVE_ROS=1)

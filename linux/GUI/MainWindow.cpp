@@ -2,6 +2,7 @@
 #include "ui_MainWindow.h"
 #include "GloveWidget.h"
 #include "MappingDialog.h"
+#include "FileExistsDialog.h"
 #include "ColorMap.h"
 
 #include "SerialThread.h"
@@ -385,7 +386,7 @@ QList<unsigned int> MainWindow::getUnassignedChannels() const
 
 void MainWindow::saveMapping()
 {
-	typedef std::map<QString, std::pair<QString, void (GloveWidget::*)(QTextStream&)> > FilterMap;
+	typedef std::map<QString, std::pair<QString, bool (GloveWidget::*)(const QString&, const QString&)> > FilterMap;
 	static FilterMap filterMap;
 	static QString sFilters;
 	static FilterMap::const_iterator defaultFilter;
@@ -408,35 +409,54 @@ void MainWindow::saveMapping()
 	}
 
 	// exec file dialog
-	QString sFileName = QFileDialog::getSaveFileName(0, "save taxel mapping",
-	                                                 sMappingFile, sFilters, &selectedFilter);
-	if (sFileName.isNull()) return;
+	QFileDialog dlg(this, "save taxel mapping", sMappingFile, sFilters);
+	dlg.setFileMode(QFileDialog::AnyFile);
+	dlg.selectNameFilter(selectedFilter);
+	dlg.selectFile(sMappingFile);
+	dlg.setLabelText(QFileDialog::Accept, tr("Save"));
+	QString sFileName;
+	QString mapping_name;
+	FilterMap::const_iterator chosenFilter = filterMap.end();
+	while (true) {
+		if (dlg.exec() == QDialog::Rejected)
+			return;
 
-	// which filter was choosen?
-	FilterMap::const_iterator chosenFilter = filterMap.find(selectedFilter);
-	for (FilterMap::const_iterator it=filterMap.begin(), end=filterMap.end(); it != end; ++it) {
-		if (sFileName.endsWith(it->second.first))
-			chosenFilter = it;
+		selectedFilter = dlg.selectedNameFilter();
+		sFileName = dlg.selectedFiles().first();
+
+		// which filter was choosen?
+		chosenFilter = filterMap.find(selectedFilter);
+		// file suffix superseeds chosen filter
+		for (FilterMap::const_iterator it=filterMap.begin(), end=filterMap.end(); it != end; ++it) {
+			if (sFileName.endsWith(it->second.first))
+				chosenFilter = it;
+		}
+		if (chosenFilter == filterMap.end()) chosenFilter = defaultFilter;
+
+		// append default extension from selected filter
+		QFileInfo fi(sFileName);
+		if (fi.suffix().isEmpty()) sFileName.append(chosenFilter->second.first);
+
+		if (fi.exists()) {
+			FileExistsDialog msg(sFileName, chosenFilter->second.second == &GloveWidget::saveMappingCfg, this);
+			int result = msg.exec();
+			if (result == QDialog::Rejected)
+				continue;
+			if (result == QDialogButtonBox::YesRole)
+				QFile(sFileName).remove();
+			mapping_name = msg.mappingName();
+		}
+		break;
 	}
-	if (chosenFilter == filterMap.end()) chosenFilter = defaultFilter;
-
-	// append default extension from selected filter
-	QFileInfo fi(sFileName);
-	if (fi.suffix().isEmpty()) sFileName.append(chosenFilter->second.first);
 
 	// save name of mapping file for next saving attempt
 	sMappingFile = sFileName;
 
-	QFile file(sFileName);
-	if (!file.open(QFile::WriteOnly | QFile::Truncate)) {
-		QMessageBox::warning(this, "save taxel mapping",
+	if ((gloveWidget->*chosenFilter->second.second)(sFileName, mapping_name))
+		bDirtyMapping = false;
+	else
+		QMessageBox::warning(this, "Save taxel mapping",
 		                     QString("Failed to open file for writing:\n%1").arg(sFileName));
-		return;
-	}
-
-	QTextStream ts(&file);
-	(gloveWidget->*chosenFilter->second.second)(ts);
-	bDirtyMapping = false;
 }
 
 /*** functions for connection handling ***/

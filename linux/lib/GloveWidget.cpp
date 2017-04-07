@@ -170,19 +170,32 @@ void GloveWidget::setShowAllNames(bool bShow)
 	update();
 }
 
-void GloveWidget::saveMappingCfg(QTextStream &ts) {
-	// write mapping (sorted by taxel name)
+bool GloveWidget::saveMappingCfg(const QString &sFileName, const QString &sMappingName) {
+	QSettings ini(sFileName, QSettings::IniFormat);
+
+	if (!sMappingName.isEmpty())
+		ini.beginGroup(sMappingName);
+	ini.remove(""); // remove all keys in current group
+
 	for (PathList::const_iterator it=allNodes.begin(), end=allNodes.end(); it!=end; ++it) {
 		if (it->channel < 0) continue;
-		ts << it->name << "=" << it->channel << endl;
+		ini.setValue(it->name, it->channel);
 	}
+	ini.sync();
+	return true;
 }
 
-void GloveWidget::saveMappingYAML(QTextStream &ts) {
+bool GloveWidget::saveMappingYAML(const QString &sFileName, const QString &sMappingName) {
+	QFile file(sFileName);
+	if (!file.open(QFile::WriteOnly | QFile::Truncate))
+		return false;
+
+	QTextStream ts(&file);
 	for (PathList::const_iterator it=allNodes.begin(), end=allNodes.end(); it!=end; ++it) {
 		if (it->channel < 0) continue;
 		ts << it->name << ":" << it->channel << endl;
 	}
+	return true;
 }
 
 bool GloveWidget::canClose()
