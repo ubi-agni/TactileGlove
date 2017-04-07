@@ -45,6 +45,8 @@ GloveWidget::GloveWidget(const QString &sLayout, bool bMirror, QWidget *parent)
 		if (!name.startsWith("path")) ++numTaxelNodes;
 		allNodes.push_front(TaxelInfo(name, path, sn));
 	}
+	std::sort(allNodes.begin(), allNodes.end(),
+	          [](const TaxelInfo& l, const TaxelInfo&r) {return l.name < r.name;});
 	emit unAssignedTaxels(numAssigned < numTaxelNodes);
 
 	qSvgRendererPtr = new QSvgRenderer (this);
