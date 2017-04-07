@@ -110,6 +110,7 @@ void SerialInput::disconnect()
 	if (!connected) return;
 	connected = false;
 	tcsetattr(fd,TCSANOW,&oldtio);
+	tcflush(fd, TCIOFLUSH);
 	close(fd);
 }
 
