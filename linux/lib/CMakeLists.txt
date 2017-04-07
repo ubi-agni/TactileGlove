@@ -1,6 +1,7 @@
 set(CMAKE_AUTOMOC ON)
 # set(CMAKE_AUTORCC ON) # only works with cmake 3.x
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
+set(CMAKE_CXX_STANDARD 11)
 
 set(SOURCES
   ColorMap.cpp ColorMap.h
@@ -12,7 +13,6 @@ set(SOURCES
 qt_add_resources(RESOURCES resources.qrc)
 
 add_definitions(${QT_DEFINITIONS})
-add_definitions(-std=c++11)
 
 include_directories(${QT_INCLUDES}
                     ${tactile_filters_INCLUDE_DIRS})
