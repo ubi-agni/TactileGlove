@@ -2,9 +2,10 @@
 #include <iostream>
 #include <fstream>
 #include <cstdio>
-#include <QResource>
+#include <QFile>
 #include <boost/assign/list_of.hpp>
 #include <boost/algorithm/string/predicate.hpp>
+#include <algorithm>
 
 namespace po=boost::program_options;
 using namespace std;
@@ -72,10 +73,8 @@ TaxelMapping getMapping(const std::string &sMappingFilter,
 {
 	if (sMappingFilter.empty()) return TaxelMapping();
 
-	QResource res(":taxel.cfg");
-	QByteArray data = res.isCompressed() ? qUncompress(res.data(), res.size())
-		: QByteArray((const char*) res.data(), res.size());
-	istringstream iss(data.constData());
+	QFile cfg(":taxel.cfg"); cfg.open(QIODevice::ReadOnly);
+	istringstream iss(cfg.readAll().constData());
 	return getMapping(iss, sMappingFilter, optsMap);
 }
 
@@ -112,13 +111,14 @@ getAvailableMappings(const std::string &sConfigFile)
 	if (ifs) groups = getAvailableMappings(ifs);
 
 	// find groups in builtin taxel.cfg
-	QResource res(":taxel.cfg");
-	QByteArray data = res.isCompressed() ? qUncompress(res.data(), res.size())
-		: QByteArray((const char*) res.data(), res.size());
-	istringstream iss(data.constData());
+	QFile cfg(":taxel.cfg"); cfg.open(QIODevice::ReadOnly);
+	istringstream iss(cfg.readAll().constData());
 	const std::vector<std::string> &builtin = getAvailableMappings(iss);
 
 	// merge
-	std::copy(builtin.begin(), builtin.end(), std::back_inserter(groups));
+	for (const auto &name : builtin) {
+		if (std::find(groups.begin(), groups.end(), name) == groups.end())
+			groups.push_back(name);
+	}
 	return groups;
 }
