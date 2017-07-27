@@ -28,6 +28,7 @@
 #include "InputInterface.h"
 #include "../libio/RandomInput.h"
 #include <QObject>
+#include <boost/function.hpp>
 
 class RandomInput : public QObject, public InputInterface
 {
@@ -40,8 +41,13 @@ public:
 	bool connect(const QString &dummy);
 	bool disconnect();
 
+	typedef tactile::InputInterface::data_vector data_vector;
+	typedef boost::function<void(const data_vector&)> UpdateFunction;
+	void setUpdateFunction(const UpdateFunction &f) {updateFunc = f;}
+
 private:
 	tactile::RandomInput input;
+	UpdateFunction updateFunc;
 	void timerEvent(QTimerEvent *event);
 	int timerID;
 };

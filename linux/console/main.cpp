@@ -1,6 +1,3 @@
-// Test program for left tactile dataglove v1
-// Outputs all sensor values on console
-// Linear, unmodified output
 #include <signal.h>
 #include <string.h>
 #include <boost/thread/thread_time.hpp>
@@ -14,7 +11,6 @@
 #endif
 #if HAVE_ROS
 #include <ros/ros.h>
-#include <std_msgs/UInt16MultiArray.h>
 #include <tactile_msgs/TactileState.h>
 #endif
 
@@ -169,10 +165,7 @@ int main(int argc, char **argv)
 		try {
 			const tactile::InputInterface::data_vector &frame = input->readFrame();
 			if (outflags & OUTPUT_CURSES) printCurses(frame, calib);
-			if (outflags & OUTPUT_ROS) {
-				publishToROS(frame);
-				if (calib) publishToROS(frame, calib);
-			}
+			if (outflags & OUTPUT_ROS) publishToROS(frame, calib);
 		} catch (const std::exception &e) {
 			if (bRun) sErr = e.what(); // not Ctrl-C stopped
 			break;
@@ -246,28 +239,6 @@ void printCurses(const tactile::InputInterface::data_vector &data,
 #endif
 }
 
-void publishToROS(const tactile::InputInterface::data_vector &data) {
-#if HAVE_ROS
-	static bool bInitialized = false;
-	static ros::NodeHandle   rosNodeHandle; //< node handle
-	static ros::Publisher    rosPublisher;  //< publisher
-	static std_msgs::UInt16MultiArray msg;
-
-	if (!bInitialized) {
-		rosPublisher = rosNodeHandle.advertise<std_msgs::UInt16MultiArray>(sTopic, 1);
-		msg.layout.dim.resize(1);
-		msg.layout.dim[0].label = "tactile data";
-		msg.layout.dim[0].size  = data.size();
-		msg.data.resize(data.size());
-		bInitialized = true;
-	}
-
-	msg.data = data;
-	rosPublisher.publish(msg);
-	ros::spinOnce();
-#endif
-}
-
 void publishToROS(const tactile::InputInterface::data_vector &data,
                   const PieceWiseLinearCalib *calib) {
 #if HAVE_ROS
@@ -277,16 +248,19 @@ void publishToROS(const tactile::InputInterface::data_vector &data,
 	static tactile_msgs::TactileState msg;
 
 	if (!bInitialized) {
-		rosPublisher = rosNodeHandle.advertise<tactile_msgs::TactileState>(sTopic + "/calibrated", 1);
+		rosPublisher = rosNodeHandle.advertise<tactile_msgs::TactileState>(sTopic, 1);
 		::sensor_msgs::ChannelFloat32 channel;
-		channel.name = "tactile";
+		channel.name = "tactile glove";
 		channel.values.resize(data.size());
 		msg.sensors.push_back(channel);
 		bInitialized = true;
 	}
 
-	std::transform(data.begin(), data.end(), msg.sensors[0].values.begin(),
-	               std::bind(&PieceWiseLinearCalib::map, calib, std::placeholders::_1));
+	if (calib)
+		std::transform(data.begin(), data.end(), msg.sensors[0].values.begin(),
+		      std::bind(&PieceWiseLinearCalib::map, calib, std::placeholders::_1));
+	else
+		std::copy(data.begin(), data.end(), msg.sensors[0].values.begin());
 
 	msg.header.stamp = ros::Time::now();
 	++msg.header.seq;

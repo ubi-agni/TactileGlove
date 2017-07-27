@@ -2,8 +2,9 @@
 
 #include "InputInterface.h"
 #include <QObject>
+#include <boost/function.hpp>
 #include <ros/ros.h>
-#include <std_msgs/UInt16MultiArray.h>
+#include <tactile_msgs/TactileState.h>
 
 namespace ros {class Subscriber;}
 
@@ -19,10 +20,14 @@ public:
 	bool connect(const QString &sTopic);
 	bool disconnect();
 
-private:
-	void receiveCallback(const std_msgs::UInt16MultiArray& msg);
+	typedef boost::function<void(const std::vector<float>&)> UpdateFunction;
+	void setUpdateFunction(const UpdateFunction &f) {updateFunc = f;}
 
 private:
+	void receiveCallback(const tactile_msgs::TactileState& msg);
+
+private:
+	UpdateFunction    updateFunc;
 	size_t            noTaxels;
 	ros::NodeHandle   nh;
 	ros::AsyncSpinner spinner;

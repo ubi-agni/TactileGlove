@@ -460,11 +460,11 @@ void MainWindow::saveMapping()
 }
 
 /*** functions for connection handling ***/
-void MainWindow::updateData(const InputInterface::data_vector &taxels) {
+template<typename value_type>
+void MainWindow::updateData(const std::vector<value_type> &frame) {
 	QMutexLocker lock(&dataMutex);
-	assert(taxels.size() == data.size());
-
-	data.updateValues(taxels.begin(), taxels.end());
+	assert(frame.size() == data.size());
+	data.updateValues(frame.begin(), frame.end());
 	++frameCount;
 }
 
@@ -474,7 +474,7 @@ void MainWindow::configSerial(const QString &sDevice)
 	ui->inputLineEdit->setToolTip("serial device name");
 
 	SerialThread *serial = new SerialThread(data.size());
-	serial->setUpdateFunction(boost::bind(&MainWindow::updateData, this, _1));
+	serial->setUpdateFunction(boost::bind(&MainWindow::updateData<tactile::InputInterface::data_type>, this, _1));
 	connect(serial, SIGNAL(statusMessage(QString,int)),
 	        ui->statusBar, SLOT(showMessage(QString,int)));
 	input = serial;
@@ -487,7 +487,7 @@ void MainWindow::configROS(const QString &sTopic)
 	ui->inputLineEdit->setToolTip("ROS topic");
 
 	ROSInput *rosInput = new ROSInput(data.size());
-	rosInput->setUpdateFunction(boost::bind(&MainWindow::updateData, this, _1));
+	rosInput->setUpdateFunction(boost::bind(&MainWindow::updateData<float>, this, _1));
 	connect(rosInput, SIGNAL(statusMessage(QString,int)),
 	        ui->statusBar, SLOT(showMessage(QString,int)));
 	input = rosInput;
@@ -500,8 +500,9 @@ void MainWindow::configRandom()
 {
 	ui->verticalLayout->addWidget(ui->inputLineEdit);
 	ui->inputLineEdit->hide();
-	input = new RandomInput(data.size());
-	input->setUpdateFunction(boost::bind(&MainWindow::updateData, this, _1));
+	RandomInput *random = new RandomInput(data.size());
+	random->setUpdateFunction(boost::bind(&MainWindow::updateData<tactile::InputInterface::data_type>, this, _1));
+	input = random;
 }
 
 void MainWindow::on_btnConnect_clicked()

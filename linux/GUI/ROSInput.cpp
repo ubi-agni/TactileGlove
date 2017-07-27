@@ -33,8 +33,9 @@ bool ROSInput::disconnect()
 	return true;
 }
 
-void ROSInput::receiveCallback(const std_msgs::UInt16MultiArray &msg)
+void ROSInput::receiveCallback(const tactile_msgs::TactileState &msg)
 {
-	assert(msg.layout.dim[0].size == 64);
-	updateFunc(msg.data);
+	assert(msg.sensors.size() == 1);
+	assert(msg.sensors[0].values.size() == 64);
+	updateFunc(msg.sensors[0].values);
 }

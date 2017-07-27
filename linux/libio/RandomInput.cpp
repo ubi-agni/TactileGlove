@@ -56,8 +56,8 @@ const InputInterface::data_vector& RandomInput::readFrame()
 		if (rndnumber < (RAND_MAX / 2)) { /* only give new value 50% of time */
 			*it = rndnumber & 0xFFF;
 			if (idx != 0) *it /= 10;   // except of first value, all have a rather small stddev
-			if (idx == 1)  *it = std::min(*it + 2048, 0xFFF); // simulate a fixed offset
-			if (idx == 14) *it = std::min(*it + 3700, 0xFFF); // goniometer joint value
+			if (idx == 1)  *it = std::min<data_type>(*it + 2048, 0xFFF); // simulate a fixed offset
+			if (idx == 14) *it = std::min<data_type>(*it + 3700, 0xFFF); // goniometer joint value
 		}
 	}
 	return data;

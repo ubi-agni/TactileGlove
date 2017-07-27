@@ -23,20 +23,13 @@
  * ============================================================ */
 #pragma once
 
-#include <boost/function.hpp>
 #include "../libio/InputInterface.h"
 class QString;
 
 class InputInterface {
 public:
-	typedef tactile::InputInterface::data_vector data_vector;
-	typedef boost::function<void(const data_vector&)> UpdateFunction;
 	virtual ~InputInterface() {}
 
 	virtual bool connect(const QString &sInput) = 0;
 	virtual bool disconnect() = 0;
-	void setUpdateFunction(const UpdateFunction &f) {updateFunc = f;}
-
-protected:
-	UpdateFunction updateFunc;
 };

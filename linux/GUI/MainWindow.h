@@ -7,7 +7,6 @@
 #include <QSet>
 
 #include "TaxelMapping.h"
-#include "InputInterface.h"
 #include <tactile_filters/TactileValueArray.h>
 #include <tactile_filters/Calibration.h>
 
@@ -17,6 +16,7 @@ class ColorMap;
 
 class GloveWidget;
 class MappingDialog;
+class InputInterface;
 class MainWindow : public QMainWindow
 {
 	Q_OBJECT
@@ -43,7 +43,8 @@ private:
 	                   ColorMap *&colorMap,
 	                   float &fMin, float &fMax);
 	void resetColors(const QColor &color=QColor("black"));
-	void updateData(const InputInterface::data_vector &taxels);
+	template<typename value_type>
+	void updateData(const std::vector<value_type> &frame);
 	void updateJointBar(unsigned short value);
 
 	void timerEvent(QTimerEvent *event);
