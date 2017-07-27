@@ -74,7 +74,7 @@ private:
 		QString  name;
 		QDomNode styleNode;
 		QString  styleString;
-		unsigned short iFillStart;
+		int      iFillStart;
 		short channel; // -1 if unassigned
 	};
 

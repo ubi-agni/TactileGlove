@@ -55,6 +55,7 @@ private:
 private slots:
 	void on_btnConnect_clicked();
 	void on_btnDisconnect_clicked();
+	void onSerialError(const QString &reason);
 
 	void setTimer(int interval);
 	void setLambda(double value);

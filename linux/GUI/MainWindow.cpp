@@ -5,7 +5,7 @@
 #include "FileExistsDialog.h"
 #include "ColorMap.h"
 
-#include "SerialThread.h"
+#include "SerialInput.h"
 #include "RandomInput.h"
 #if HAVE_ROS
 #include "ROSInput.h"
@@ -20,6 +20,7 @@
 
 #include <iostream>
 #include <math.h>
+#include <qtimer.h>
 #include <boost/bind.hpp>
 
 using namespace std;
@@ -473,11 +474,19 @@ void MainWindow::configSerial(const QString &sDevice)
 	ui->inputLineEdit->setText(sDevice);
 	ui->inputLineEdit->setToolTip("serial device name");
 
-	SerialThread *serial = new SerialThread(data.size());
+	SerialInput *serial = new SerialInput(data.size());
 	serial->setUpdateFunction(boost::bind(&MainWindow::updateData<tactile::InputInterface::data_type>, this, _1));
 	connect(serial, SIGNAL(statusMessage(QString,int)),
 	        ui->statusBar, SLOT(showMessage(QString,int)));
+	connect(serial, SIGNAL(disconnected(QString)), this, SLOT(onSerialError(QString)));
 	input = serial;
+}
+void MainWindow::onSerialError(const QString &reason)
+{
+	if (!reason.isEmpty()) {
+		QTimer::singleShot(50, this, SLOT(on_btnDisconnect_clicked()));
+		statusBar()->showMessage(reason, 5000);
+	}
 }
 
 void MainWindow::configROS(const QString &sTopic)
@@ -507,27 +516,24 @@ void MainWindow::configRandom()
 
 void MainWindow::on_btnConnect_clicked()
 {
-	ui->statusBar->showMessage (QString ("Connecting..."), 2000);
-
 	if (input->connect(ui->inputLineEdit->text())) {
+		ui->statusBar->showMessage("Successfully connected.", 2000);
 		frameCount = -1; lastUpdate.start();
 		timerID = startTimer (ui->updateTimeSpinBox->value());
 
 		ui->btnConnect->setEnabled(false);
 		ui->btnDisconnect->setEnabled(true);
 		ui->fps->show(); ui->toolBar->addWidget(ui->fps);
-		ui->statusBar->showMessage("Successfully connected.", 2000);
 	}
 }
 
 void MainWindow::on_btnDisconnect_clicked()
 {
-	ui->statusBar->showMessage("Disconnecting...",2000);
 	ui->btnDisconnect->setEnabled(false);
 
 	input->disconnect();
-	resetColors(QColor("black"));
-	ui->statusBar->showMessage("Disconnected.", 2000);
+	if (ui->statusBar->currentMessage().isEmpty())
+		ui->statusBar->showMessage("Disconnected.", 2000);
 	resetColors();
 
 	ui->btnConnect->setEnabled(true);

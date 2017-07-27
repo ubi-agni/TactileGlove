@@ -9,7 +9,7 @@ find_package(Boost 1.38 REQUIRED COMPONENTS thread program_options regex)
 find_package(tactile_filters REQUIRED)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}")
-find_package(Qt54 COMPONENTS Core Gui Svg Xml)
+find_package(Qt54 COMPONENTS Core Gui Svg Xml SerialPort)
 
 if(catkin_FOUND)
 	# declare this as a catkin package, allows to rosrun our applications
