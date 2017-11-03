@@ -29,8 +29,12 @@ namespace po=boost::program_options;
 
 void initCurses();  // Setup text terminal display
 void printCurses(const tactile::InputInterface::data_vector &data, const PieceWiseLinearCalib *calib);
-void publishToROS(const tactile::InputInterface::data_vector &data);
-void publishToROS(const tactile::InputInterface::data_vector &data, const PieceWiseLinearCalib *calib);
+#if HAVE_ROS
+void publishToROS(const tactile::InputInterface::data_vector &data, ros::Publisher &pub,
+                  const ros::Time &stamp, const PieceWiseLinearCalib *calib);
+static ros::Publisher    rosRawPublisher;
+static ros::Publisher    rosCalibPublisher;
+#endif
 
 std::string sTopic;
 uint        nErrors=0;
@@ -88,7 +92,7 @@ bool handleCommandline(uint &outflags,
 	if (map.count("console")) outflags |= OUTPUT_CURSES;
 	if (map.count("ros")) outflags |= OUTPUT_ROS;
  
-	if (map.count("loop")) bLoop = true; else bLoop = false;
+	bLoop = (map.count("loop") > 0);
 #if HAVE_CURSES
 	if (!outflags) outflags |= OUTPUT_CURSES;
 #endif
@@ -148,10 +152,14 @@ int main(int argc, char **argv)
 
 	// initialize ouput
 #if HAVE_ROS
-	if (outflags & OUTPUT_ROS)
+	ros::NodeHandle *rosNodeHandle = 0;
+	if (outflags & OUTPUT_ROS) {
 		ros::init (argc, argv, "tactile_glove", ros::init_options::NoSigintHandler);
-	ros::Time::init();
-	ros::Rate r(1000); // desired rate [Hz]
+		rosNodeHandle = new ros::NodeHandle();
+		rosRawPublisher = rosNodeHandle->advertise<tactile_msgs::TactileState>(sTopic, 1);
+		if (calib)
+			rosCalibPublisher = rosNodeHandle->advertise<tactile_msgs::TactileState>(sTopic + "/calibrated", 1);
+	}
 #endif
 	if (outflags & OUTPUT_CURSES) initCurses();
 
@@ -165,20 +173,27 @@ int main(int argc, char **argv)
 		try {
 			const tactile::InputInterface::data_vector &frame = input->readFrame();
 			if (outflags & OUTPUT_CURSES) printCurses(frame, calib);
-			if (outflags & OUTPUT_ROS) publishToROS(frame, calib);
+#if HAVE_ROS
+			if (outflags & OUTPUT_ROS) {
+				ros::Time stamp = ros::Time::now();
+				publishToROS(frame, rosRawPublisher, stamp, NULL);
+				if (calib) publishToROS(frame, rosCalibPublisher, stamp, calib);
+				ros::spinOnce();
+			}
+#endif
 		} catch (const std::exception &e) {
 			if (bRun) sErr = e.what(); // not Ctrl-C stopped
 			break;
 		}
 
 		ch = getch();
-#if HAVE_ROS
-		r.sleep();
-#endif
 	}
 
 #if HAVE_CURSES
 	endwin(); // ncurses cleanup
+#endif
+#if HAVE_ROS
+	if (rosNodeHandle) delete rosNodeHandle;
 #endif
 
 	if (!sErr.empty()) {
@@ -239,22 +254,21 @@ void printCurses(const tactile::InputInterface::data_vector &data,
 #endif
 }
 
-void publishToROS(const tactile::InputInterface::data_vector &data,
-                  const PieceWiseLinearCalib *calib) {
 #if HAVE_ROS
+void publishToROS(const tactile::InputInterface::data_vector &data,
+                  ros::Publisher &pub, const ros::Time &stamp,
+                  const PieceWiseLinearCalib *calib) {
 	static bool bInitialized = false;
-	static ros::NodeHandle   rosNodeHandle; //< node handle
-	static ros::Publisher    rosPublisher;  //< publisher
 	static tactile_msgs::TactileState msg;
 
 	if (!bInitialized) {
-		rosPublisher = rosNodeHandle.advertise<tactile_msgs::TactileState>(sTopic, 1);
+		bInitialized = true;
 		::sensor_msgs::ChannelFloat32 channel;
 		channel.name = "tactile glove";
 		channel.values.resize(data.size());
 		msg.sensors.push_back(channel);
-		bInitialized = true;
 	}
+	assert(data.size() == msg.sensors[0].values.size());
 
 	if (calib)
 		std::transform(data.begin(), data.end(), msg.sensors[0].values.begin(),
@@ -262,9 +276,8 @@ void publishToROS(const tactile::InputInterface::data_vector &data,
 	else
 		std::copy(data.begin(), data.end(), msg.sensors[0].values.begin());
 
-	msg.header.stamp = ros::Time::now();
+	msg.header.stamp = stamp;
 	++msg.header.seq;
-	rosPublisher.publish(msg);
-	ros::spinOnce();
-#endif
+	pub.publish(msg);
 }
+#endif
