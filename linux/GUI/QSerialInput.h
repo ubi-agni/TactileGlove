@@ -6,7 +6,7 @@
 #include <boost/function.hpp>
 
 class QSerialPort;
-class SerialInput : public QObject, public InputInterface
+class QSerialInput : public QObject, public InputInterface
 {
 	Q_OBJECT
 
@@ -18,7 +18,7 @@ private:
 	void sync(unsigned char buf[]) const;
 
 public:
-	SerialInput(size_t noTaxels);
+	QSerialInput(size_t noTaxels);
 	bool connect(const QString &sDevice) Q_DECL_OVERRIDE;
 	bool disconnect() Q_DECL_OVERRIDE;
 

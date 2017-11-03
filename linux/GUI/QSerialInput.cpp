@@ -1,9 +1,9 @@
-#include "SerialInput.h"
+#include "QSerialInput.h"
 #include <qtimer.h>
 #include <qdebug.h>
 #include <QtSerialPort/qserialport.h>
 
-SerialInput::SerialInput(size_t noTaxels)
+QSerialInput::QSerialInput(size_t noTaxels)
    : serial(0), frame(noTaxels)
 {
 	serial = new QSerialPort(this);
@@ -17,7 +17,7 @@ SerialInput::SerialInput(size_t noTaxels)
 	QObject::connect(serial, SIGNAL(error(QSerialPort::SerialPortError)), this, SLOT(onError()));
 }
 
-bool SerialInput::connect(const QString &sDevice)
+bool QSerialInput::connect(const QString &sDevice)
 {
 	if (serial->isOpen())
 		return true;
@@ -29,7 +29,7 @@ bool SerialInput::connect(const QString &sDevice)
 	return serial->isOpen();
 }
 
-bool SerialInput::disconnect()
+bool QSerialInput::disconnect()
 {
 	if (!serial->isOpen()) return true;
 	serial->close();
@@ -37,7 +37,7 @@ bool SerialInput::disconnect()
 	return true;
 }
 
-void SerialInput::onError()
+void QSerialInput::onError()
 {
 	switch (serial->error()) {
 	case QSerialPort::NoError:
@@ -54,7 +54,7 @@ void SerialInput::onError()
 
 static const size_t PACKET_SIZE_BYTES = 5;
 
-void SerialInput::readData()
+void QSerialInput::readData()
 {
 	unsigned char buf[PACKET_SIZE_BYTES];
 	size_t index, max_index = frame.size()-1;
@@ -82,7 +82,7 @@ inline bool valid(const unsigned char buf[PACKET_SIZE_BYTES], unsigned int o)
 	       buf[(4+o) % PACKET_SIZE_BYTES] == 0x00;
 }
 
-void SerialInput::sync(unsigned char buf[PACKET_SIZE_BYTES]) const {
+void QSerialInput::sync(unsigned char buf[PACKET_SIZE_BYTES]) const {
 	unsigned int offset = 1;
 	for (; offset < PACKET_SIZE_BYTES; ++offset)
 		if (valid(buf, offset)) break;

@@ -5,7 +5,7 @@
 #include "FileExistsDialog.h"
 #include "ColorMap.h"
 
-#include "SerialInput.h"
+#include "QSerialInput.h"
 #include "RandomInput.h"
 #if HAVE_ROS
 #include "ROSInput.h"
@@ -474,7 +474,7 @@ void MainWindow::configSerial(const QString &sDevice)
 	ui->inputLineEdit->setText(sDevice);
 	ui->inputLineEdit->setToolTip("serial device name");
 
-	SerialInput *serial = new SerialInput(data.size());
+	QSerialInput *serial = new QSerialInput(data.size());
 	serial->setUpdateFunction(boost::bind(&MainWindow::updateData<tactile::InputInterface::data_type>, this, _1));
 	connect(serial, SIGNAL(statusMessage(QString,int)),
 	        ui->statusBar, SLOT(showMessage(QString,int)));

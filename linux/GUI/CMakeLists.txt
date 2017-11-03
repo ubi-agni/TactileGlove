@@ -10,7 +10,7 @@ set(SOURCES
   MappingDialog.cpp MappingDialog.h
   FileExistsDialog.cpp FileExistsDialog.h
   RandomInput.cpp RandomInput.h
-  SerialInput.cpp SerialInput.h
+  QSerialInput.cpp QSerialInput.h
   TaxelSelector.cpp TaxelSelector.h)
 qt_wrap_ui(FORM_SRC MainWindow.ui MappingDialog.ui FileExistsDialog.ui)
 
