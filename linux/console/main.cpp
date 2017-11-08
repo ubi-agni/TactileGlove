@@ -1,5 +1,6 @@
 #include <signal.h>
 #include <string.h>
+#include <boost/shared_ptr.hpp>
 #include <boost/thread/thread_time.hpp>
 #include <boost/program_options.hpp>
 #include <iostream>
@@ -32,8 +33,6 @@ void printCurses(const tactile::InputInterface::data_vector &data, const PieceWi
 #if HAVE_ROS
 void publishToROS(const tactile::InputInterface::data_vector &data, ros::Publisher &pub,
                   const ros::Time &stamp, const PieceWiseLinearCalib *calib);
-static ros::Publisher    rosRawPublisher;
-static ros::Publisher    rosCalibPublisher;
 #endif
 
 std::string sTopic;
@@ -152,14 +151,17 @@ int main(int argc, char **argv)
 
 	// initialize ouput
 #if HAVE_ROS
-	ros::NodeHandle *rosNodeHandle = 0;
+	boost::shared_ptr<ros::NodeHandle> rosNodeHandle;
+	ros::Publisher rosRawPublisher;
+	ros::Publisher rosCalibPublisher;
 	if (outflags & OUTPUT_ROS) {
 		ros::init (argc, argv, "tactile_glove", ros::init_options::NoSigintHandler);
-		rosNodeHandle = new ros::NodeHandle();
+		rosNodeHandle.reset(new ros::NodeHandle());
 		rosRawPublisher = rosNodeHandle->advertise<tactile_msgs::TactileState>(sTopic, 1);
 		if (calib)
 			rosCalibPublisher = rosNodeHandle->advertise<tactile_msgs::TactileState>(sTopic + "/calibrated", 1);
 	}
+	std::cout << "publishing to " << rosRawPublisher.getTopic() <<std::endl;
 #endif
 	if (outflags & OUTPUT_CURSES) initCurses();
 
@@ -191,9 +193,6 @@ int main(int argc, char **argv)
 
 #if HAVE_CURSES
 	endwin(); // ncurses cleanup
-#endif
-#if HAVE_ROS
-	if (rosNodeHandle) delete rosNodeHandle;
 #endif
 
 	if (!sErr.empty()) {
