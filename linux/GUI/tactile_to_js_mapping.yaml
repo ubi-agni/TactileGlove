@@ -1,9 +1,5 @@
 tactile_to_js_mapping:
-  synergy1: 
-    idx: 0
-    range_in: [0,4095]
-    range_out: [0, 1.5707]
-  synergy2: 
-    idx: 5
-    range_in: [0,1024]
-    range_out: [0, 0.78]
+  goniometer: 
+    idx: 14
+    range_in: [4095,0]
+    range_out: [0, 1.0]

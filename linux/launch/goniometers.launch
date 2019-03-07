@@ -4,6 +4,8 @@
   <node name="goniometer_to_js" pkg="tactile_glove" type="tactile_to_js.py" respawn="false" output="screen" >
    <rosparam file="$(find tactile_glove)/GUI/tactile_to_js_mapping.yaml">
    </rosparam>
+   <remap from ="/tactile_states" to="/TactileGlove" />
+   <remap from ="/joint_states" to="/goniometer_states" />
   </node>
   
 </launch>
