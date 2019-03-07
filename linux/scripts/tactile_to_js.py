@@ -35,38 +35,41 @@
 import sys
 import rospy
 import thread
-from sensor_msgs.msg import JointState 
-from std_msgs.msg import UInt16MultiArray
-
+from sensor_msgs.msg import JointState
+from tactile_msgs.msg import TactileState
 
 js = JointState()
 mapping = []
 
+
 def receive_cb(msg):
-  
-  for i,name  in enumerate (js.name):
-    r_in=mapping[name]['range_in']
-    r_out=mapping[name]['range_out']
-    val = msg.data[ mapping[name]['idx'] ]
-    js.position[i] =  r_out[0] + (r_out[1]-r_out[0])* (float(val)-r_in[0])/(r_in[1]-r_in[0]) 
-  js.header.stamp=rospy.Time.now()
-  pub.publish(js)
-  
-  
+
+    for channel in msg.sensors:
+        # find tactile_glove channel in the tactile state
+        if channel.name == "tactile glove":
+            # for each joint, extract the correct index of the channel data vector
+            for i, name in enumerate(js.name):
+                r_in = mapping[name]['range_in']
+                r_out = mapping[name]['range_out']
+                if mapping[name]['idx'] < len(channel.values):
+                    val = channel.values[mapping[name]['idx']]
+                    js.position[i] = r_out[0] + (r_out[1] - r_out[0]) * (float(val) - r_in[0]) / (r_in[1] - r_in[0])
+            js.header.stamp = rospy.Time.now()
+            pub.publish(js)
+
 if __name__ == '__main__':
-  
-  rospy.init_node('tactile_to_js_converter')
-  
-  mapping = rospy.get_param('~tactile_to_js_mapping')
-  print (mapping)
-  
-  for k, v in mapping.iteritems():
-    js.name.append(k)
-    js.position.append(0.0)
-    js.velocity.append(0.0)
-    js.effort.append(0.0)
-  
-  
-  pub = rospy.Publisher("/joint_states", JointState,queue_size=1)
-  sub = rospy.Subscriber("/tactile", UInt16MultiArray, receive_cb,queue_size=1)
-  rospy.spin()
+
+    rospy.init_node('tactile_to_js')
+
+    mapping = rospy.get_param('~tactile_to_js_mapping')
+    print(mapping)
+
+    for k, v in mapping.iteritems():
+        js.name.append(k)
+        js.position.append(0.0)
+        js.velocity.append(0.0)
+        js.effort.append(0.0)
+
+    pub = rospy.Publisher("/joint_states", JointState, queue_size=1)
+    sub = rospy.Subscriber("/tactile_states", TactileState, receive_cb, queue_size=1)
+    rospy.spin()
