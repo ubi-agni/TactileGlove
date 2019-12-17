@@ -1,22 +1,24 @@
 #include <SPI.h>  // include the new SPI library:
 #include <Wire.h>
+// install the version in guihomework repository https://github.com/guihomework/SparkFun_BNO080_Arduino_Library
 #include "BNO08x_Library.h"
+// install the library from the svn https://svn.techfak.uni-bielefeld.de/citec/projects/AGNIserialProtocol/src/teensy/SerialProtocol
 #include "SerialProtocol.h"
 BNO080 myIMU;
 
 // Serial Protocol setting
 #define SP_TACTDATA_LEN  0xC0  // 192 = 64x (uint8 + uint16)
-#define SP_BENDDATA_LEN  0x30  // 48 = 16x (uint8 + uint16)
+#define SP_BENDDATA_LEN  0x03  // 3 = 1x (uint8 + uint16)  
 #define SP_IMU_DATA_LEN  0x28  // 40 = 3x4 + 3x4 + 4x4 = 40
 
-char sp_configuration[14] = {0x28, //device type
-                              0x03, //3 sub-devices
+char sp_configuration[10] = {0x28, //device type
+                              0x02, //3 sub-devices
                               0x35, 0x02,  // sub-device 1 type (tactile resistive)
-                              0xC0, 0x00,  // sub-device 1 data length  64 taxels
-                              0x35, 0xD2,  // sub-device 2 type (bend sensor = position angular
-                              0x30, 0x00,  // sub-device 2 data length 16 bend sensors
+                              SP_TACTDATA_LEN, 0x00,  // sub-device 1 taxel data length  
+                             // 0x35, 0xD2,  // sub-device 2 type (bend sensor = position angular
+                            //  SP_BENDDATA_LEN, 0x00,  // sub-device 2 bend sensor data length
                               0x30, 0xDC,  // sub-device 3 type (IMU BNO08x)
-                              0x28, 0x00}; // sub-device 3 data length 
+                              SP_IMU_DATA_LEN, 0x00}; // sub-device 3 data length 
 
 #define IMU_REFRESH_PERIOD  2 // in ms = 250 Hz  one cannot set 2.5 ms to get 400 Hz so using the next nice digit                            
 /*max IMU speed  
@@ -36,24 +38,26 @@ Magnetometer 100 Hz
 #define IMU_MASK_GYRO       0x02 
 #define IMU_MASK_QUAT       0x04
 
+
+#define ADC_CONFIG_WRITE_REG 0x0831<<4
 #define ADC_REFRESH_PERIOD  1 // in ms
 
-#define NUM_TAXELS 80
-#define NUM_ADC 5
-#define BEND_SENSOR_ADC_ID 4
+#define NUM_TAXELS 64 //80
+#define NUM_ADC 4             //5
+#define BEND_SENSOR_ADC_ID 1  //4
+#define BEND_SENSOR_ADC_CHANNEL 14  //TO BE CHECKED WITH ROS
 #define NUM_CHANNEL 16
 
 // using two incompatible SPI devices, A and B
-const byte slaveA0Pin = 10; //Device A: ADC: Max11131A
-const byte slaveA1Pin = 9;
-const byte slaveA2Pin = 20;
-const byte slaveA3Pin = 21;
-const byte slaveBPin = 15; //Device B: Flex sensors
-const byte slaveCPin = 16;  //Device C: IMU: BNO085
+const byte slaveA0Pin = 10; //Device A: ADC: AD7490 The order may be changed !?!! (Max11131A in newer ADC-Boards)
+const byte slaveA1Pin = 9;  //The order may be changed !?!!
+const byte slaveA2Pin = 20; //The order may be changed !?!!
+const byte slaveA3Pin = 21; //The order may be changed !?!! / Device: Flex sensors integrated somewhere
+const byte slaveBPin = 15; //Device B: IMU: BNO085 // const byte slaveCPin = 16;  //Device C: IMU: BNO085
 //Further IMU pins
-const byte imuWAKPin = 23;
-const byte imuINTPin = 17;
-const byte imuRSTPin = 22;
+const byte imuWAKPin = 23;  //PS0
+const byte imuINTPin = 17;  //INT
+const byte imuRSTPin = 22;  //RST
 
 const byte ledPin = 13; //orange led (Teensy3.2)
 int ledState = LOW;
@@ -70,32 +74,19 @@ float ax, ay, az, gx, gy, gz, qx, qy, qz, qw; // (qx, qy, qz, qw = to i,j,k, rea
 byte new_imu_reports = 0;
 
 uint16_t AnalogData[NUM_TAXELS]; // analog sensor data
-byte ADC_CS[NUM_ADC] = {10,9,20,21,15}; //15 added
-unsigned short SPI_channelselect[NUM_CHANNEL] = {
-  0x0800,
-  0x0880,
-  0x0900,
-  0x0980,
-  0x0A00,
-  0x0A80,
-  0x0B00,
-  0x0B80,
-  0x0C00,
-  0x0C80,
-  0x0D00,
-  0x0D80,
-  0x0E00,
-  0x0E80,
-  0x0F00,
-  0x0F80
-  };
+byte ADC_CS[NUM_ADC] = {slaveA0Pin,slaveA1Pin,slaveA2Pin,slaveA3Pin}; //15 removed
 
+const unsigned long message_period = 1000000;
+
+IntervalTimer messageTimer;
 IntervalTimer myTimer;
 
-SPISettings settingsADC(48000000, MSBFIRST, SPI_MODE3); //Max11131  //SPI Clock Speeds:
-//SPISettings settingsB(115200, LSBFIRST, SPI_MODE3); //BNO085
+SPISettings settingsADC(48000000, MSBFIRST, SPI_MODE0); //AD7490  //SPI Clock Speeds:
+//SPISettings settingsADC(48000000, MSBFIRST, SPI_MODE3); //Max11131  //SPI Clock Speeds:
+SPISettings settingsB(115200, LSBFIRST, SPI_MODE3); //BNO085
 
 bool timer_started = false;
+bool message_timer_started = false;
 
 void setup() {
   // set the Slave Select Pins as outputs:
@@ -104,7 +95,7 @@ void setup() {
   pinMode (slaveA2Pin, OUTPUT);
   pinMode (slaveA3Pin, OUTPUT);
   pinMode (slaveBPin, OUTPUT);  
-  pinMode (slaveCPin, OUTPUT);
+//  pinMode (slaveCPin, OUTPUT);
 
   // initialize serial communication at 9600 bits per second:
   Serial.begin(115200);
@@ -131,9 +122,18 @@ void setup() {
 
   // activate the integrated LED
   pinMode(ledPin, OUTPUT);
+
+  // initialize ADCs (copied from old MCU)
+  unsigned char adc_nr = 0;
+  while(adc_nr < NUM_ADC){
+
+   spi_transfer(adc_nr, 0xFFFF);
+    spi_transfer(adc_nr, ( ADC_CONFIG_WRITE_REG | (0<<10) ));
+    adc_nr++;
+  }  
  
   //Setup BNO080 to use SPI interface with default SPI port and max BNO080 clk speed of 3MHz
-  myIMU.beginSPI(slaveCPin, imuWAKPin, imuINTPin, imuRSTPin);
+  myIMU.beginSPI(slaveBPin, imuWAKPin, imuINTPin, imuRSTPin); //changed from slaveCPin 
   // Default periodicity (IMU_REFRESH_PERIOD ms)
   myIMU.enableLinearAccelerometer(IMU_REFRESH_PERIOD); // m/s^2 no gravity
   myIMU.enableRotationVector(IMU_REFRESH_PERIOD);  // quat
@@ -146,6 +146,23 @@ uint8_t stat, val1, val2, result;
 long counter = 0;
 
 void loop() {
+  if (SP.has_client_talked())
+  {
+    if (message_timer_started)
+    {
+      messageTimer.end();
+      message_timer_started = false;
+    }
+  }
+  else
+  {
+     if (!message_timer_started)
+     {
+       messageTimer.begin(print_message, message_period); // timer want us
+       message_timer_started = true;
+     }
+  }
+ 
   if (SP.is_streaming())
   {
      if (!timer_started)
@@ -163,7 +180,9 @@ void loop() {
   {
     // indicate disconnected if serial not open
     if(Serial)
+    {
       digitalWrite(ledPin, LOW);
+    }
     else
       digitalWrite(ledPin, HIGH);
     if (timer_started)
@@ -180,6 +199,13 @@ void loop() {
   SP.update();   
 
 }
+
+
+void print_message()
+{
+  Serial.println("SerialProtocol Device: send 0xF0C400C0F4 for config and 0xF0C400F1C5 to start streaming" );
+}
+
 
 void read_tactile()
 {
@@ -198,30 +224,21 @@ void read_tactile()
 
   byte taxel_counter = 0;
   byte bend_sensor_counter = 0;
-  //byte channel=0;
-  for (byte channel=0; channel < NUM_CHANNEL; channel++)
+  //byte SelectADC = 2;
+  for (byte SelectADC=0; SelectADC < NUM_ADC; SelectADC++)
   {
-    //byte SelectADC = 2;
-    for (byte SelectADC=0; SelectADC < NUM_ADC; SelectADC++)
-    {
-      // initialize SPI Bus for tactile reading
-      SPI.beginTransaction(settingsADC);
-  
-      //select new ADC chip  
-      digitalWrite (ADC_CS[SelectADC], LOW);
-      AnalogData[taxel_counter] = SPI.transfer16(SPI_channelselect[channel]);
-      digitalWrite (ADC_CS[SelectADC], HIGH);
-     // Serial.println(AnalogData[taxel_counter]);
-      SPI.endTransaction();
-
-      // separate the bend sensors on a second "serial protocol device"
-      if (SelectADC == BEND_SENSOR_ADC_ID)
+    //byte channel=0;
+    for (unsigned short channel=0; channel < NUM_CHANNEL; channel++)
+    {  
+      AnalogData[taxel_counter] = spi_transfer(SelectADC, ( ADC_CONFIG_WRITE_REG | (channel<<10) ));
+      // separate the bend sensors on a second "serial protocol device"     Single goniomtert in Glove P2 channel 14
+     /* if (SelectADC == BEND_SENSOR_ADC_ID)
       {
         // prepare the bend buffer
         pack_adc_buffer(bend_buf+3*bend_sensor_counter, bend_sensor_counter, AnalogData[taxel_counter]);
         bend_sensor_counter++;
-      }
-      else
+      }*/
+      if(1) //else
       {
         // prepare the tactile buffer
         pack_adc_buffer(tactile_buf+3*taxel_counter, taxel_counter, AnalogData[taxel_counter]);
@@ -232,8 +249,8 @@ void read_tactile()
   // pack and send the data in a first and second datagram
   SP.pack_data((void *)tactile_buf, SP_TACTDATA_LEN, 1);
   SP.publish();
-  SP.pack_data((void *)bend_buf, SP_BENDDATA_LEN, 2);
-  SP.publish();
+ // SP.pack_data((void *)bend_buf, SP_BENDDATA_LEN, 2);
+ // SP.publish();
 
   //Look for reports from the IMU
   if (myIMU.dataAvailable() == true)
@@ -270,6 +287,19 @@ void read_tactile()
   }
 }
 
+
+unsigned int spi_transfer(unsigned int nr, unsigned short data){
+  // initialize SPI Bus for tactile reading
+  SPI.beginTransaction(settingsADC);
+  //select new ADC chip  
+  digitalWrite (ADC_CS[nr], LOW);
+  unsigned int result = SPI.transfer16(data);
+  digitalWrite (ADC_CS[nr], HIGH);
+  SPI.endTransaction();
+  return result;
+}
+
+
 void pack_adc_buffer(char *buf, uint8_t id, uint16_t data){
   memcpy(buf, (char*)&id, sizeof(uint8_t));
   // separate to two bytes
@@ -292,6 +322,3 @@ void pack_all_imudata(char *buf){
   memcpy(buf+32, (char*)&qy, sizeof(float));
   memcpy(buf+36, (char*)&qz, sizeof(float)); 
 }
-
-
-
