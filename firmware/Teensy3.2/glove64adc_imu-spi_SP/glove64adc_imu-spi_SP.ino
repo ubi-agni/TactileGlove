@@ -59,6 +59,8 @@ const byte imuWAKPin = 23;  //PS0
 const byte imuINTPin = 17;  //INT
 const byte imuRSTPin = 22;  //RST
 
+bool imu_initialized = false;
+
 const byte ledPin = 13; //orange led (Teensy3.2)
 int ledState = LOW;
 
@@ -95,9 +97,8 @@ void setup() {
   pinMode (slaveA2Pin, OUTPUT);
   pinMode (slaveA3Pin, OUTPUT);
   pinMode (slaveBPin, OUTPUT);  
-//  pinMode (slaveCPin, OUTPUT);
 
-  // initialize serial communication at 9600 bits per second:
+  // initialize serial communication at 115200 bits per second:
   Serial.begin(115200);
   Serial.setTimeout(500); //timeout of 500 ms
   while (!Serial) {
@@ -123,21 +124,23 @@ void setup() {
   // activate the integrated LED
   pinMode(ledPin, OUTPUT);
 
+  //Setup BNO080 to use SPI interface with default SPI port and max BNO080 clk speed of 3MHz
+  imu_initialized = myIMU.beginSPI(slaveBPin, imuWAKPin, imuINTPin, imuRSTPin); //changed from slaveCPin 
+  // Default periodicity (IMU_REFRESH_PERIOD ms)
+  if (imu_initialized)
+  {
+    myIMU.enableLinearAccelerometer(IMU_REFRESH_PERIOD); // m/s^2 no gravity
+    myIMU.enableRotationVector(IMU_REFRESH_PERIOD);  // quat
+    myIMU.enableGyro(IMU_REFRESH_PERIOD); // rad/s
+  }
   // initialize ADCs (copied from old MCU)
   unsigned char adc_nr = 0;
   while(adc_nr < NUM_ADC){
-
-   spi_transfer(adc_nr, 0xFFFF);
-    spi_transfer(adc_nr, ( ADC_CONFIG_WRITE_REG | (0<<10) ));
+    spi_transfer(adc_nr, 0xFFFF);
+    spi_transfer(adc_nr, (ADC_CONFIG_WRITE_REG | (0<<10) ));
     adc_nr++;
-  }  
- 
-  //Setup BNO080 to use SPI interface with default SPI port and max BNO080 clk speed of 3MHz
-  myIMU.beginSPI(slaveBPin, imuWAKPin, imuINTPin, imuRSTPin); //changed from slaveCPin 
-  // Default periodicity (IMU_REFRESH_PERIOD ms)
-  myIMU.enableLinearAccelerometer(IMU_REFRESH_PERIOD); // m/s^2 no gravity
-  myIMU.enableRotationVector(IMU_REFRESH_PERIOD);  // quat
-  myIMU.enableGyro(IMU_REFRESH_PERIOD); // rad/s
+  }
+
   interrupts();
   // no code below this line in the setup
 }
@@ -146,6 +149,8 @@ uint8_t stat, val1, val2, result;
 long counter = 0;
 
 void loop() {
+  // display a welcome message as long as the SerialProtocol
+  // did not receive valid requests from the host
   if (SP.has_client_talked())
   {
     if (message_timer_started)
@@ -163,8 +168,10 @@ void loop() {
      }
   }
  
+  // if SerialProtocol is in streaming mode
   if (SP.is_streaming())
   {
+    // if not yet started, start the acquisition timer
      if (!timer_started)
      {
         int pub_period = SP.get_period(1);
@@ -196,14 +203,18 @@ void loop() {
   /*  myIMU.enableLinearAccelerometer(50);
   myIMU.enableRotationVector(50);
   myIMU.enableGyro(50);*/
+  // handle communication with the SerialProtocol
   SP.update();   
-
 }
 
 
 void print_message()
 {
-  Serial.println("SerialProtocol Device: send 0xF0C400C0F4 for config and 0xF0C400F1C5 to start streaming" );
+  Serial.println("SerialProtocol Device: send 0xF0 C4 00 C0 F4 for config and 0xF0 C4 00 F1 C5 to start streaming" );
+  if (!imu_initialized)
+  {
+    Serial.println("  IMU did not start properly" );
+  }
 }
 
 
@@ -288,12 +299,12 @@ void read_tactile()
 }
 
 
-unsigned int spi_transfer(unsigned int nr, unsigned short data){
+uint16_t spi_transfer(unsigned int nr, unsigned short data){
   // initialize SPI Bus for tactile reading
   SPI.beginTransaction(settingsADC);
   //select new ADC chip  
   digitalWrite (ADC_CS[nr], LOW);
-  unsigned int result = SPI.transfer16(data);
+  uint16_t result = SPI.transfer16(data);
   digitalWrite (ADC_CS[nr], HIGH);
   SPI.endTransaction();
   return result;
