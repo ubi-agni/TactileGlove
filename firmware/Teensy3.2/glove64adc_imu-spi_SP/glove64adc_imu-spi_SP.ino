@@ -128,9 +128,11 @@ void setup() {
   pinMode(ledPin, OUTPUT);
 
   //Setup BNO080 to use SPI interface with default SPI port and max BNO080 clk speed of 3MHz
+  // currently the testing of the answer is wrong on the BNO085 with the BNO08x lib... even if the device communicates correctly, to be checked
   imu_initialized = myIMU.beginSPI(slaveBPin, imuWAKPin, imuINTPin, imuRSTPin); //changed from slaveCPin 
   // Default periodicity (IMU_REFRESH_PERIOD ms)
-  if (imu_initialized)
+  //imu_initialized = false;
+  if (1)//imu_initialized)
   {
     myIMU.enableLinearAccelerometer(IMU_REFRESH_PERIOD); // m/s^2 no gravity
     myIMU.enableRotationVector(IMU_REFRESH_PERIOD);  // quat
@@ -267,7 +269,7 @@ void read_tactile()
  // SP.publish();
 
   //Look for reports from the IMU
-  if (myIMU.dataAvailable() == true)
+  if (1)//imu_initialized)
   {
     if (myIMU.dataAvailable() == true)
     {
