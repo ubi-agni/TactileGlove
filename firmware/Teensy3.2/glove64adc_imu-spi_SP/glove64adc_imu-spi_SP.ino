@@ -86,7 +86,7 @@ IntervalTimer myTimer;
 
 SPISettings settingsADC(20000000, MSBFIRST, SPI_MODE1); //AD7490  //SPI Clock Speeds:
 //SPISettings settingsADC(48000000, MSBFIRST, SPI_MODE3); //Max11131  //SPI Clock Speeds:
-SPISettings settingsB(115200, LSBFIRST, SPI_MODE3); //BNO085
+SPISettings settingsB(20000000, MSBFIRST, SPI_MODE3); //BNO085
 
 bool timer_started = false;
 bool message_timer_started = false;
@@ -268,6 +268,9 @@ void read_tactile()
  // SP.pack_data((void *)bend_buf, SP_BENDDATA_LEN, 2);
  // SP.publish();
 
+  // to ensure the clock is idle high before CS of the IMU is low, we need to do a dummy transfer with the same settings as the IMU
+  // but without chipselect
+  spi_dummy_transfer();
   //Look for reports from the IMU
   if (1)//imu_initialized)
   {
@@ -343,6 +346,14 @@ uint16_t spi_transfer(unsigned int nr, unsigned short data){
   return result;
 }
 
+uint16_t spi_dummy_transfer(){
+  unsigned short data;
+  // initialize SPI Bus for resetting the correct mode for IMU reading
+  SPI.beginTransaction(settingsB);
+  uint16_t result = SPI.transfer16(data);
+  SPI.endTransaction();
+  return result;
+}
 
 void pack_adc_buffer(char *buf, uint8_t id, uint16_t data){
   memcpy(buf, (char*)&id, sizeof(uint8_t));
