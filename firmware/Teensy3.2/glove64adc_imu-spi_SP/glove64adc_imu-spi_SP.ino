@@ -83,7 +83,7 @@ const unsigned long message_period = 1000000;
 IntervalTimer messageTimer;
 IntervalTimer myTimer;
 
-SPISettings settingsADC(48000000, MSBFIRST, SPI_MODE0); //AD7490  //SPI Clock Speeds:
+SPISettings settingsADC(20000000, MSBFIRST, SPI_MODE1); //AD7490  //SPI Clock Speeds:
 //SPISettings settingsADC(48000000, MSBFIRST, SPI_MODE3); //Max11131  //SPI Clock Speeds:
 SPISettings settingsB(115200, LSBFIRST, SPI_MODE3); //BNO085
 
@@ -112,14 +112,16 @@ void setup() {
   // TODO see if one should have different period for bend sensors, as a multiple of the period of the tactile sensor period
   //SP.set_period(2, 100); // x0.1ms  10=1kHz, 50=200Hz, 100=100Hz // indirectly using the same ADC loop so one single frequency there
   SP.set_period(3, IMU_REFRESH_PERIOD * 10); // x0.1ms  10=1kHz, 50=200Hz, 100=100Hz
-    
+
+
+  SPI.setMOSI(7);
+  SPI.setMISO(8);
+  SPI.setSCK(14);  
   // initialize SPI:
   SPI.begin(); 
   
   // set up the SPI pins utilized on Teensy 3.2
-  SPI.setMOSI(7);
-  SPI.setMISO(8);
-  SPI.setSCK(14);
+
 
   // activate the integrated LED
   pinMode(ledPin, OUTPUT);
