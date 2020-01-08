@@ -63,6 +63,7 @@ bool imu_initialized = false;
 
 const byte ledPin = 13; //orange led (Teensy3.2)
 int ledState = LOW;
+int imu_missing_count = 0;
 
 elapsedMicros elapsedtime;
 
@@ -268,34 +269,62 @@ void read_tactile()
   //Look for reports from the IMU
   if (myIMU.dataAvailable() == true)
   {
-    byte linAccuracy = 0;
-    if (myIMU.getOnNewLinAccel(ax, ay, az, linAccuracy))
+    if (myIMU.dataAvailable() == true)
     {
-      new_imu_reports |= IMU_MASK_ACC;
+      byte linAccuracy = 0;
+      if (myIMU.getOnNewLinAccel(ax, ay, az, linAccuracy))
+      {
+        new_imu_reports |= IMU_MASK_ACC;
+      }
+      byte gyroAccuracy = 0;
+      if (myIMU.getOnNewGyro(gx, gy, gz, gyroAccuracy))
+      {
+        new_imu_reports |= IMU_MASK_GYRO;
+      }
+  
+      float quatRadianAccuracy = 0;
+      byte quatAccuracy = 0;
+      if (myIMU.getOnNewQuat(qx, qy, qz, qw, quatRadianAccuracy, quatAccuracy))
+      {
+        new_imu_reports |= IMU_MASK_QUAT;
+      }
+  
+      // only publish when all imu data were acquired new
+      if ((new_imu_reports & IMU_MASK_ALLNEWDATA) == IMU_MASK_ALLNEWDATA)
+      {
+        // prepare the IMU data in a buffer
+        pack_all_imudata(imu_buf);
+        // erase new flag
+        new_imu_reports = 0;
+        // pack and send the IMU data in a 3rd datagram
+        SP.pack_data((void *)imu_buf, SP_IMU_DATA_LEN, 3);  
+        SP.publish();
+      }
+      else
+      {
+        SP.text_error("IMU data there but incomplete");
+        if(new_imu_reports != 0x0)
+        {
+          SP.text_error(" available data is : ");
+          if ((new_imu_reports & IMU_MASK_ACC) == IMU_MASK_ACC)
+            SP.text_error("ACC ");
+          if ((new_imu_reports & IMU_MASK_GYRO) == IMU_MASK_GYRO)
+            SP.text_error("GYR ");
+          if ((new_imu_reports & IMU_MASK_QUAT) == IMU_MASK_QUAT)
+            SP.text_error("QUAT");
+        }
+        
+        
+      }
     }
-    byte gyroAccuracy = 0;
-    if (myIMU.getOnNewGyro(gx, gy, gz, gyroAccuracy))
-    {
-      new_imu_reports |= IMU_MASK_GYRO;
-    }
-
-    float quatRadianAccuracy = 0;
-    byte quatAccuracy = 0;
-    if (myIMU.getOnNewQuat(qx, qy, qz, qw, quatRadianAccuracy, quatAccuracy))
-    {
-      new_imu_reports |= IMU_MASK_QUAT;
-    }
-
-    // only publish when all imu data were acquired new
-    if ((new_imu_reports & IMU_MASK_ALLNEWDATA) == IMU_MASK_ALLNEWDATA)
-    {
-      // prepare the IMU data in a buffer
-      pack_all_imudata(imu_buf);
-      // erase new flag
-      new_imu_reports = 0;
-      // pack and send the IMU data in a 3rd datagram
-      SP.pack_data((void *)imu_buf, SP_IMU_DATA_LEN, 3);  
-      SP.publish();
+  }
+  else
+  {
+    imu_missing_count++;
+    if (imu_missing_count > 1000)
+    { 
+      SP.text_error("IMU not initialized");
+      imu_missing_count=0;     
     }
   }
 }
