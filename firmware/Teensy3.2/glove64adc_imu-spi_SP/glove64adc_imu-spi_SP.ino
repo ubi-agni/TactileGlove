@@ -127,12 +127,13 @@ void setup() {
   // activate the integrated LED
   pinMode(ledPin, OUTPUT);
 
+  // needed to get the clock idle HIGH before talking to the BNO085
+  spi_dummy_transfer();
+
   //Setup BNO080 to use SPI interface with default SPI port and max BNO080 clk speed of 3MHz
-  // currently the testing of the answer is wrong on the BNO085 with the BNO08x lib... even if the device communicates correctly, to be checked
   imu_initialized = myIMU.beginSPI(slaveBPin, imuWAKPin, imuINTPin, imuRSTPin); //changed from slaveCPin 
   // Default periodicity (IMU_REFRESH_PERIOD ms)
-  //imu_initialized = false;
-  if (1)//imu_initialized)
+  if (imu_initialized)
   {
     myIMU.enableLinearAccelerometer(IMU_REFRESH_PERIOD); // m/s^2 no gravity
     myIMU.enableRotationVector(IMU_REFRESH_PERIOD);  // quat
@@ -212,7 +213,7 @@ void loop() {
   SP.update();   
 }
 
-
+// idle message for terminal debugging
 void print_message()
 {
   Serial.println("SerialProtocol Device: send 0xF0 C4 00 C0 F4 for config and 0xF0 C4 00 F1 C5 to start streaming" );
@@ -272,7 +273,7 @@ void read_tactile()
   // but without chipselect
   spi_dummy_transfer();
   //Look for reports from the IMU
-  if (1)//imu_initialized)
+  if (imu_initialized)
   {
     if (myIMU.dataAvailable() == true)
     {
@@ -302,21 +303,22 @@ void read_tactile()
         // erase new flag
         new_imu_reports = 0;
         // pack and send the IMU data in a 3rd datagram
-        SP.pack_data((void *)imu_buf, SP_IMU_DATA_LEN, 3);  
+        SP.pack_data((void *)imu_buf, SP_IMU_DATA_LEN, 2); // was 3  
         SP.publish();
       }
       else
       {
-        SP.text_error("IMU data there but incomplete");
+        //SP.text_error("IMU data there but incomplete");
         if(new_imu_reports != 0x0)
         {
-          SP.text_error(" available data is : ");
-          if ((new_imu_reports & IMU_MASK_ACC) == IMU_MASK_ACC)
+          //SP.text_error(" available data is : ");
+          /*if ((new_imu_reports & IMU_MASK_ACC) == IMU_MASK_ACC)
             SP.text_error("ACC ");
           if ((new_imu_reports & IMU_MASK_GYRO) == IMU_MASK_GYRO)
             SP.text_error("GYR ");
           if ((new_imu_reports & IMU_MASK_QUAT) == IMU_MASK_QUAT)
             SP.text_error("QUAT");
+            */
         }
         
         
@@ -361,7 +363,8 @@ void pack_adc_buffer(char *buf, uint8_t id, uint16_t data){
   // little endian
   byte c_data = byte(data & 0x00FF);
   memcpy(buf+1, (char*)&c_data, sizeof(char));
-  c_data = byte((data & 0x0F00) >> 8);
+  // do not discard the channel number, it can be useful for debugging at PC side
+  c_data = byte((data & 0xFF00) >> 8);
   memcpy(buf+2, (char*)&c_data, sizeof(char));  
 }
 
