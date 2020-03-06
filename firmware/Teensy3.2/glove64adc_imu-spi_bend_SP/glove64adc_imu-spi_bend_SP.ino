@@ -2,7 +2,7 @@
 
 #include <SPI.h>  // include the new SPI library:
 #include <Wire.h>
-// install the version in guihomework repository https://github.com/guihomework/SparkFun_BNO080_Arduino_Library
+// install the robomantic branch from guihomework repository https://github.com/guihomework/SparkFun_BNO080_Arduino_Library
 #include "BNO08x_Library.h"
 // install the library from the svn https://svn.techfak.uni-bielefeld.de/citec/projects/AGNIserialProtocol/src/teensy/SerialProtocol
 #include "SerialProtocol.h"
@@ -78,11 +78,11 @@ String serial_string = String("TG_T32_") + String(NUM_ADC,DEC) + String("_") + S
   String("_") + String(ARDUINO,DEC) + String("_") + String(REV,DEC) + String("_") + String(__DATE__).replace(" ", "-") + String("_glove64adc_imu_spi_bend_SP.ino");
 
 // using two incompatible SPI devices, A and B
-const byte slaveA0Pin = 10; //Device A: ADC: AD7490 The order may be changed !?!!
-const byte slaveA1Pin = 9;  //The order may be changed !?!!
-const byte slaveA2Pin = 20; //The order may be changed !?!!
-const byte slaveA3Pin = 21; //The order may be changed !?!! 
-const byte slaveBPin = 15; //Device B: IMU: BNO085
+const byte slaveA0Pin = 21; //Device A: ADC: AD7490 The order may be changed !?!!
+const byte slaveA1Pin = 20;  //The order may be changed !?!!
+const byte slaveA2Pin = 9; //The order may be changed !?!!
+const byte slaveA3Pin = 10; //The order may be changed !?!! 
+const byte slaveBPin = 16; //Device B: IMU: BNO085
 //Further IMU pins
 const byte imuWAKPin = 23;  //PS0
 const byte imuINTPin = 17;  //INT
