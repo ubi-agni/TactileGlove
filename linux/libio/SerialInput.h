@@ -54,7 +54,6 @@ private:
 	struct termios oldtio,newtio;
 	struct timespec timeout;
 	int    fd;
-	fd_set fdset;
 };
 
 }

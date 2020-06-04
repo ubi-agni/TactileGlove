@@ -98,9 +98,6 @@ void SerialInput::connect(const std::string &sDevice)
 	tcsetattr(fd,TCSANOW,&newtio);
 	tcflush(fd, TCIFLUSH);
 
-	FD_ZERO (&fdset);
-	FD_SET (fd,&fdset);
-
 	connected = true;
 	readFrame(); // read eventually incomplete frame
 }
@@ -120,11 +117,14 @@ const InputInterface::data_vector& SerialInput::readFrame()
 
 	unsigned char buf[PACKET_SIZE_BYTES]; // receive buffer
 	size_t index;
+	fd_set fdset;
 
 	while (connected) {
+		FD_ZERO(&fdset);
+		FD_SET(fd, &fdset);
 		int res = pselect (fd+1,&fdset,NULL,NULL,&timeout,NULL);
 		if (res == -1) throw std::runtime_error(strerror(errno));
-		if (res == 0) 	throw timeout_error();
+		if (res == 0)	throw timeout_error();
 
 		// read a maximum of 5 bytes into buf (actual read count is in res)
 		res = read(fd,buf,PACKET_SIZE_BYTES);
