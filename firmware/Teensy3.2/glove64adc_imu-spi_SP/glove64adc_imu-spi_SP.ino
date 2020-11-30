@@ -10,16 +10,6 @@ BNO080 myIMU;
 #define SP_TACTDATA_LEN  0xC0  // 192 = 64x (uint8 + uint16)
 #define SP_BENDDATA_LEN  0x03  // 3 = 1x (uint8 + uint16)  
 #define SP_IMU_DATA_LEN  0x28  // 40 = 3x4 + 3x4 + 4x4 = 40
-
-char sp_configuration[10] = {0x28, //device type
-                              0x02, //3 sub-devices
-                              0x35, 0x02,  // sub-device 1 type (tactile resistive)
-                              SP_TACTDATA_LEN, 0x00,  // sub-device 1 taxel data length  
-                             // 0x35, 0xD2,  // sub-device 2 type (bend sensor = position angular
-                            //  SP_BENDDATA_LEN, 0x00,  // sub-device 2 bend sensor data length
-                              0x30, 0xDC,  // sub-device 3 type (IMU BNO08x)
-                              SP_IMU_DATA_LEN, 0x00}; // sub-device 3 data length 
-
 #define IMU_REFRESH_PERIOD  2 // in ms = 250 Hz  one cannot set 2.5 ms to get 400 Hz so using the next nice digit                            
 /*max IMU speed  
 Gyro rotation Vector 1 kHz
@@ -81,6 +71,8 @@ byte ADC_CS[NUM_ADC] = {slaveA0Pin,slaveA1Pin,slaveA2Pin,slaveA3Pin}; //15 remov
 
 const unsigned long message_period = 1000000;
 
+SP_SensorConfiguration sensorConfigs[2];
+
 IntervalTimer messageTimer;
 IntervalTimer myTimer;
 
@@ -92,6 +84,14 @@ bool timer_started = false;
 bool message_timer_started = false;
 
 void setup() {
+
+  // Sensor configuration including default pub period (can be changed through the serial protocol)
+  sensorConfigs[0] =  SP_makeSensorConfig(SensorTypeIDEnum::TactileSensorResistive, 0x35,  SP_TACTDATA_LEN, ADC_REFRESH_PERIOD * 10);  // x0.1ms  10=1kHz, 50=200Hz, 100=100Hz
+   // TODO see if one should have different period for bend sensors, as a multiple of the period of the tactile sensor period
+  //sensorConfigs[1] =  SP_makeSensorConfig(SensorTypeIDE::PositionSensorAngular, 0x35, SP_BENDDATA_LEN, 100);  // x0.1ms  10=1kHz, 50=200Hz, 100=100Hz // indirectly using the same ADC loop so one single frequency there
+  sensorConfigs[1] =  SP_makeSensorConfig(SensorTypeIDEnum::IMU, 0x30, SP_IMU_DATA_LEN, IMU_REFRESH_PERIOD * 10);  // x0.1ms  10=1kHz, 50=200Hz, 100=100Hz
+
+
   // set the Slave Select Pins as outputs:
   pinMode (slaveA0Pin, OUTPUT);
   pinMode (slaveA1Pin, OUTPUT);
@@ -107,12 +107,8 @@ void setup() {
   }
 
   // store the configuration for the SerialProtocol 
-  SP.set_conf(sp_configuration, sizeof(sp_configuration));
-  // default pub period (can be changed through the serial protocol)
-  SP.set_period(1, ADC_REFRESH_PERIOD * 10); // x0.1ms  10=1kHz, 50=200Hz, 100=100Hz
-  // TODO see if one should have different period for bend sensors, as a multiple of the period of the tactile sensor period
-  //SP.set_period(2, 100); // x0.1ms  10=1kHz, 50=200Hz, 100=100Hz // indirectly using the same ADC loop so one single frequency there
-  SP.set_period(3, IMU_REFRESH_PERIOD * 10); // x0.1ms  10=1kHz, 50=200Hz, 100=100Hz
+  SP.setConfigFromStruct(DeviceTypeIDEnum::TactileGlove, 2, sensorConfigs);
+
 
 
   SPI.setMOSI(7);
@@ -155,62 +151,72 @@ uint8_t stat, val1, val2, result;
 long counter = 0;
 
 void loop() {
-  // display a welcome message as long as the SerialProtocol
-  // did not receive valid requests from the host
-  if (SP.has_client_talked())
+  while(1)
   {
-    if (message_timer_started)
+    // display a welcome message as long as the SerialProtocol
+    // did not receive valid requests from the host
+    if (SP.hasClientTalked())
     {
-      messageTimer.end();
-      message_timer_started = false;
-    }
-  }
-  else
-  {
-     if (!message_timer_started)
-     {
-       messageTimer.begin(print_message, message_period); // timer want us
-       message_timer_started = true;
-     }
-  }
- 
-  // if SerialProtocol is in streaming mode
-  if (SP.is_streaming())
-  {
-    // if not yet started, start the acquisition timer
-     if (!timer_started)
-     {
-        int pub_period = SP.get_period(1);
-        if (pub_period != SP_PERIOD_UNKNOWN_ID && pub_period != SP_PERIOD_INACTIVE)
-        {
-          // 1 kHz timer start
-          timer_started = true;
-          myTimer.begin(read_tactile, pub_period * 100.0); // period is given in 100 us timer wants us
-        }
-     }
-  }
-  else
-  {
-    // indicate disconnected if serial not open
-    if(Serial)
-    {
-      digitalWrite(ledPin, LOW);
+        messageTimer.end();
+        break;
     }
     else
-      digitalWrite(ledPin, HIGH);
-    if (timer_started)
     {
-      myTimer.end();
-      timer_started = false;
+       if (!message_timer_started)
+       {
+         messageTimer.begin(print_message, message_period); // timer want us
+         message_timer_started = true;
+       }
     }
+     // handle communication with the SerialProtocol
+    SP.update();
   }
-  
-  // TODO handle periodicity change of other devices
-  /*  myIMU.enableLinearAccelerometer(50);
-  myIMU.enableRotationVector(50);
-  myIMU.enableGyro(50);*/
-  // handle communication with the SerialProtocol
-  SP.update();   
+
+  while(1)
+  {
+    // if SerialProtocol is in streaming mode
+    if (SP.isStreaming())
+    {
+      // if not yet started, start the acquisition timer
+       if (!timer_started || SP.hasPeriodChanged())
+       {
+          uint16_t pub_period;
+          int8_t result = SP.getPeriod(&pub_period, 1); 
+          if (result != SP_SENSOR_UNKNOWN_ID && result != SP_PERIOD_INACTIVE)
+          {
+            if (result == SP_VARIABLE_CHANGED)
+            {
+              myTimer.end();
+            }
+            // 1 kHz timer start
+            myTimer.begin(read_tactile, pub_period * 100.0); // period is given in 100 us, timer wants us
+            timer_started = true;
+          }
+       }
+    }
+    else
+    {
+      // indicate disconnected if serial not open
+      if(Serial)
+      {
+        digitalWrite(ledPin, LOW);
+      }
+      else
+        digitalWrite(ledPin, HIGH);
+      if (timer_started)
+      {
+        myTimer.end();
+        timer_started = false;
+      }
+    }
+    
+    // TODO handle periodicity change of other devices
+    /*  myIMU.enableLinearAccelerometer(50);
+    myIMU.enableRotationVector(50);
+    myIMU.enableGyro(50);*/
+    // handle communication with the SerialProtocol
+    SP.update();   
+  }
 }
 
 // idle message for terminal debugging
@@ -264,9 +270,9 @@ void read_tactile()
     }
   }
   // pack and send the data in a first and second datagram
-  SP.pack_data((void *)tactile_buf, SP_TACTDATA_LEN, 1);
+  SP.packData((void *)tactile_buf, SP_TACTDATA_LEN, 1);
   SP.publish();
- // SP.pack_data((void *)bend_buf, SP_BENDDATA_LEN, 2);
+ // SP.packData((void *)bend_buf, SP_BENDDATA_LEN, 2);
  // SP.publish();
 
   // to ensure the clock is idle high before CS of the IMU is low, we need to do a dummy transfer with the same settings as the IMU
@@ -303,7 +309,7 @@ void read_tactile()
         // erase new flag
         new_imu_reports = 0;
         // pack and send the IMU data in a 3rd datagram
-        SP.pack_data((void *)imu_buf, SP_IMU_DATA_LEN, 2); // was 3  
+        SP.packData((void *)imu_buf, SP_IMU_DATA_LEN, 2); // was 3  
         SP.publish();
       }
       else
@@ -311,7 +317,7 @@ void read_tactile()
         //SP.text_error("IMU data there but incomplete");
         if(new_imu_reports != 0x0)
         {
-          //SP.text_error(" available data is : ");
+          //SP.textError(" available data is : ");
           /*if ((new_imu_reports & IMU_MASK_ACC) == IMU_MASK_ACC)
             SP.text_error("ACC ");
           if ((new_imu_reports & IMU_MASK_GYRO) == IMU_MASK_GYRO)
@@ -330,7 +336,7 @@ void read_tactile()
     imu_missing_count++;
     if (imu_missing_count > 1000)
     { 
-      SP.text_error("IMU not initialized");
+      SP.textError("IMU not initialized");
       imu_missing_count=0;     
     }
   }
