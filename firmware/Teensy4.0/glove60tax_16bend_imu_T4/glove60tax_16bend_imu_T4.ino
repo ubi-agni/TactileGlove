@@ -11,6 +11,14 @@
 #include "SerialProtocol.h"
 BNO080 myIMU;
 
+//#define Guillaume1
+//#define IMU_SPI1
+//#define NO_ADC
+#define P6Leander
+#define IMU_SPI0
+//#define NO_ADC
+#define ADC_SPI1
+
 #define NUM_TAXELS 64 //60 used channels
 
 // Serial Protocol setting
@@ -20,8 +28,8 @@ BNO080 myIMU;
 #define SP_TACTDATA_LEN  (0x03*NUM_TAXELS) //  0xC0  // 192 = 64x (uint8 + uint16)
 #define SP_IMU_DATA_LEN  0x28  // 40 = 3x4 + 3x4 + 4x4 = 40
 
-#define IMU_INTERNAL_REFRESH_PERIOD  7 // in ms = 142 Hz
-#define IMU_REFRESH_PERIOD  20 // in ms 50 Hz
+#define IMU_INTERNAL_REFRESH_PERIOD  6 // in ms = 142 Hz
+#define IMU_REFRESH_PERIOD  10 // in ms 50 Hz
        
 /*max IMU speed  
 Gyro rotation Vector 1 kHz
@@ -50,32 +58,87 @@ Magnetometer 100 Hz
 // prepare the serial number 
 String serial_string = String("TG_T4_") + String(NUM_ADC,DEC) + String("_") + String(NUM_BEND_SENSORS,DEC) + 
   String("_") + String(ARDUINO,DEC) + String("_") + String(REV,DEC) + String("_") + String(__DATE__).replace(" ", "-") + String("_glove60tax_16bend_imu_T4.ino");
-
+/*
 // using two incompatible SPI devices, A and B
 const byte peripheralA0Pin = 9; //Device A: ADC MAX11131A    or older ADC: AD7490 The order may be changed !?!!
 const byte peripheralA1Pin = 10;  //The order may be changed !?!!
 const byte peripheralA2Pin = 20; //The order may be changed !?!!
 const byte peripheralA3Pin = 21; //The order may be changed !?!!
 const byte peripheralA4Pin = 0; //(bens-sensor and Calib-Tool ADC )
+*/
+const byte peripheralA0Pin = 10; //Device A: ADC MAX11131A    or older ADC: AD7490 The order may be changed !?!!
+const byte peripheralA1Pin = 9;  //The order may be changed !?!!
+const byte peripheralA2Pin = 20; //The order may be changed !?!!
+const byte peripheralA3Pin = 21; //The order may be changed !?!!
+const byte peripheralA4Pin = 0; //(bens-sensor and Calib-Tool ADC )
 
-const byte adcCOPIPin = 26;
-const byte adcCIPOPin = 1;
-const byte adcSCKPin = 27;
-     
-//Further IMU pins
+
+// pin config IMU SPI1 Guillaume
+#ifdef Guillaume1
+const byte imuWAKPin = 24;  //PS0
+const byte imuINTPin = 25;  //INT
+const byte imuRSTPin = 2;  //RST
+const byte imuCSPin = 0;
+#endif
+#ifdef Guillaume2
+// pin config IMU SPI2 Guillaume
 const byte imuWAKPin = 23;  //PS0
 const byte imuINTPin = 17;  //INT
 const byte imuRSTPin = 22;  //RST
-const byte imuCSPin = 36; //Device B: IMU: BNO085
-// SPI1 on Teensy 4.0 uses COPI Pin = 35 CIPO Pin = 34, SCK Pin = 37
+const byte imuCSPin = 36;
+#endif
+#ifdef P6Leander
+// pin config IMU P6Leander
+const byte imuWAKPin = 23;  //PS0
+const byte imuINTPin = 17;  //INT
+const byte imuRSTPin = 22;  //RST
+const byte imuCSPin = 36;
+#endif
+
+#ifndef NO_ADC
+  #ifdef ADC_SPI0
+  const byte adcCOPIPin = 11;
+  const byte adcCIPOPin = 12;
+  const byte adcSCKPin = 13;
+  SPIClass &adcSPI = SPI;
+  #endif
+  #ifdef ADC_SPI1
+  const byte adcCOPIPin = 26;
+  const byte adcCIPOPin = 1;
+  const byte adcSCKPin = 27;
+  SPIClass &adcSPI = SPI1;
+  #endif
+#endif
+
+#ifdef IMU_SPI0
+// SPI0 on Teensy 4.0 uses COPI Pin = 11 CIPO Pin = 12, SCK Pin = 13
+const byte imuCOPIPin = 11;
+const byte imuCIPOPin = 12;
+const byte imuSCKPin = 13;
+SPIClass &imuSPI = SPI;
+#endif
+#ifdef IMU_SPI1
+// SPI1 on Teensy 4.0 uses COPI Pin = 26 CIPO Pin = 1, SCK Pin = 27
+const byte imuCOPIPin = 26;
+const byte imuCIPOPin = 1;
+const byte imuSCKPin = 27;
+SPIClass &imuSPI = SPI1;
+#endif
+#ifdef IMU_SPI2
+// SPI2 on Teensy 4.0 uses COPI Pin = 35 CIPO Pin = 34, SCK Pin = 37
 const byte imuCOPIPin = 35;
 const byte imuCIPOPin = 34;
 const byte imuSCKPin = 37;
+SPIClass &imuSPI = SPI2;
+#endif
 
+//Further IMU pins
 bool imu_initialized = false;
 
+#ifndef IMU_SPI0
 const byte ledPin = 13; //orange led  = 13(Teensy3.2 and Teensy4.0)
 int ledState = LOW;
+#endif
 int imu_missing_count = 0;
 
 elapsedMicros elapsedtime;
@@ -137,11 +200,14 @@ void setup() {
   sensorConfigs[2] =  SP_makeSensorConfig(SensorTypeIDEnum::IMU, 0x30, SP_IMU_DATA_LEN, IMU_REFRESH_PERIOD * 10);  // x0.1ms  10=1kHz, 50=200Hz, 100=100Hz // CURRENTLY in poll mode cannot handle faster than 20ms
 
   // set the Slave Select Pins as outputs:
+#ifndef NO_ADC
   pinMode (peripheralA0Pin, OUTPUT);
   pinMode (peripheralA1Pin, OUTPUT);
   pinMode (peripheralA2Pin, OUTPUT);
   pinMode (peripheralA3Pin, OUTPUT);
   pinMode (peripheralA4Pin, OUTPUT);
+#endif
+
   pinMode (imuCSPin, OUTPUT);  
 
 
@@ -162,25 +228,33 @@ void setup() {
   //SPI.setSCK(37);   //Teensy3.2 SCK(14)   Teensy4.0 SCK(13) SCK1(27) SCK2(37)
   // initialize SPI:
   //SPI.begin();
+  // set up the SPI pins utilized on Teensy 4.0
 
-Serial.println("initializing SPI1");
-  // set up the SPI1 pins utilized on Teensy 4.0
-  SPI1.setMOSI(adcCOPIPin);
-  SPI1.setMISO(adcCIPOPin);
-  SPI1.setSCK(adcSCKPin);
-  // initialize SPI1:
-  SPI1.begin();
-Serial.println("initialized SPI1, initializing SPI2");
-  // set up the SPI2 pins utilized on Teensy 4.0
-  SPI2.setMOSI(imuCOPIPin);
-  SPI2.setMISO(imuCIPOPin);
-  SPI2.setSCK(imuSCKPin);
-  // initialize SPI2:
-  SPI2.begin();
-Serial.println("initializing SPI2");
+//myIMU.enableDebugging(Serial); //Pipe debug messages to Serial port
+
+  Serial.println("setting up IMU on SPI");
+  imuSPI.setMOSI(imuCOPIPin);
+  imuSPI.setMISO(imuCIPOPin);
+  imuSPI.setSCK(imuSCKPin);
+  // initialize SPI:
+  imuSPI.begin();
+
+#ifndef NO_ADC
+  Serial.println("setting up ADC on SPI");
+  adcSPI.setMOSI(adcCOPIPin);
+  adcSPI.setMISO(adcCIPOPin);
+  adcSPI.setSCK(adcSCKPin);
+  // initialize SPI:
+  adcSPI.begin();
+#endif
+
+#if !defined IMU_SPI0 && !defined ADC_SPI0
   // activate the integrated LED
   pinMode(ledPin, OUTPUT);
+#endif
 
+
+  spi_dummy_transfer();
    // initialize ADCs (copied from old MCU)
   unsigned char adc_nr = 0;
   /*while(adc_nr < NUM_ADC){
@@ -191,7 +265,7 @@ Serial.println("initializing SPI2");
 
   Serial.println("initializing IMU");
   //Setup BNO080 to use SPI interface with default SPI port and max BNO080 clk speed of 3MHz
-  imu_initialized = myIMU.beginSPI(imuCSPin, imuWAKPin, imuINTPin, imuRSTPin, 3000000, SPI2);
+  imu_initialized = myIMU.beginSPI(imuCSPin, imuWAKPin, imuINTPin, imuRSTPin, 3000000, imuSPI);
   Serial.println("IMU config requested");
   // Default internal periodicity (IMU_INTERNAL_REFRESH_PERIOD ms)
   if (imu_initialized)
@@ -250,6 +324,7 @@ bool processIMU()
     new_imu_reports = 0;
     // pack and send the IMU data in a 3rd datagram
     SP.packData((void *)imu_buf, 3);
+    SP.publish();
   }
   else
   {
@@ -328,7 +403,11 @@ void loop() {
             // handle timing
             elapsedTimeSensor2 = 0;
             // process IMU data
-            if (processIMU() != true)
+
+            noInterrupts();
+            bool ret = processIMU();
+            interrupts();
+            if (ret!= true)
             {
               // processIMU() produced data but not a full frame
               if (elapsedError > 1000)
@@ -339,7 +418,7 @@ void loop() {
             }
           }
         } 
-        SP.publish();
+        
       }
     }
     else
@@ -347,10 +426,16 @@ void loop() {
       // indicate disconnected if serial not open
       if(Serial)
       {
+        #if !defined IMU_SPI0 && !defined ADC_SPI0
         digitalWrite(ledPin, LOW);
+        #endif
       }
       else
+      {
+        #if !defined IMU_SPI0 && !defined ADC_SPI0
         digitalWrite(ledPin, HIGH);
+        #endif
+      }
       if (timer_started)
       {
         myTimer.end();
@@ -381,7 +466,7 @@ void print_message()
 
 void read_tactile()
 {
-  //noInterrupts();
+  noInterrupts();
   elapsedtime=0;
   // make the LED blink dim to indicate running
   counter++;
@@ -390,27 +475,31 @@ void read_tactile()
     if (counter > 1000/ADC_REFRESH_PERIOD) // for 0.5 sec
       counter = 0;
     // dim
+    #if !defined IMU_SPI0 && !defined ADC_SPI0
     digitalWrite(ledPin, HIGH);   // turn the LED on (HIGH is the voltage level)
     delayMicroseconds(10);
     digitalWrite(ledPin, LOW);    // turn the LED off by making the voltage LOW
+    #endif
   }
 
+#ifndef NO_ADC
 
   //read all Max11131 ADC chips/channels  
   byte taxel_counter = 0;
   byte bend_sensor_counter = 0;
   //byte channel=0;
+
   for (byte channel=0; channel < NUM_CHANNEL; channel++)
   {
     //byte SelectADC = 2;
     for (byte SelectADC=0; SelectADC < NUM_ADC; SelectADC++)
     {
       // initialize SPI Bus for tactile reading
-      SPI1.beginTransaction(settingsADC);
+      adcSPI.beginTransaction(settingsADC);
   
       //select new ADC chip  
       digitalWrite (ADC_CS[SelectADC], LOW);
-      AnalogData[taxel_counter + bend_sensor_counter] = SPI1.transfer16(SPI_channelselect[channel]);
+      AnalogData[taxel_counter + bend_sensor_counter] = adcSPI.transfer16(SPI_channelselect[channel]);
       // for some reason the bit order of the answer is starting with the data (not the channel) and the last 3 bits are always zero
       // shifting should solve for now
       AnalogData[taxel_counter + bend_sensor_counter] = AnalogData[taxel_counter + bend_sensor_counter] >> 3;
@@ -430,7 +519,7 @@ void read_tactile()
         pack_adc_buffer(tactile_buf+3*taxel_counter, taxel_counter, AnalogData[taxel_counter + bend_sensor_counter]);
         taxel_counter++;
       }     
-      SPI1.endTransaction();
+      adcSPI.endTransaction();
    }
   }
   // pack and send the data in a first and second datagram
@@ -442,7 +531,8 @@ void read_tactile()
   if (ret < 0)
     SP.textError("pack error for bend");
   SP.publish();
-  //interrupts();
+  interrupts();
+ #endif
 }
 
 
@@ -485,17 +575,28 @@ void imu_interrupt_handler()
   interrupts();
 }
 
-
+#ifndef NO_ADC
 uint16_t spi_transfer(unsigned int nr, unsigned short data){
   // initialize SPI Bus for tactile reading
-  SPI1.beginTransaction(settingsADC);
+  adcSPI.beginTransaction(settingsADC);
   //select new ADC chip  
   digitalWrite (ADC_CS[nr], LOW);
-  uint16_t result = SPI1.transfer16(data);
+  uint16_t result = adcSPI.transfer16(data);
   digitalWrite (ADC_CS[nr], HIGH);
-  SPI1.endTransaction();
+  adcSPI.endTransaction();
   return result;
 }
+
+
+uint16_t spi_dummy_transfer(){
+  unsigned short data=0;
+  // initialize SPI Bus for resetting the correct mode for IMU reading
+  adcSPI.beginTransaction(settingsADC);
+  uint16_t result = adcSPI.transfer16(data);
+  adcSPI.endTransaction();
+  return result;
+}
+#endif
 
 void pack_adc_buffer(char *buf, uint8_t id, uint16_t data){
   memcpy(buf, (char*)&id, sizeof(uint8_t));
