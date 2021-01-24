@@ -4,7 +4,7 @@ project (tactile_glove)
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-find_package(catkin QUIET COMPONENTS roscpp std_msgs tactile_msgs)
+find_package(catkin QUIET COMPONENTS roscpp std_msgs sensor_msgs tactile_msgs)
 find_package(Boost 1.38 REQUIRED COMPONENTS thread program_options regex)
 find_package(tactile_filters REQUIRED)
 
@@ -16,6 +16,7 @@ if(catkin_FOUND)
 	# installs package.xml, *Config.cmake, and *.pc files
 	# defines catkin_destinations()
 	catkin_package(
+		CATKIN_DEPENDS roscpp std_msgs sensor_msgs tactile_msgs
 		SKIP_CMAKE_CONFIG_GENERATION
 		SKIP_PKG_CONFIG_GENERATION
 	)
@@ -34,7 +35,7 @@ endif()
 if(catkin_FOUND)
   install(DIRECTORY launch config DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})
   catkin_install_python(
-    PROGRAMS 
+    PROGRAMS
     scripts/tactile_to_js.py
     DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
   )
