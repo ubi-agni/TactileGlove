@@ -76,7 +76,7 @@ BNO080 myIMU;
 
 // prepare the serial number 
 String serial_string = String("TG_T4_") + String(NUM_ADC,DEC) + String("_") + String(NUM_BEND_SENSORS,DEC) + 
-  String("_") + String(ARDUINO,DEC) + String("_") + String(REV,DEC) + String("_") + String(__DATE__).replace(" ", "-") + String("_glove60tax_T4.ino");
+  String("_") + String(ARDUINO,DEC) + String("_") + String(REV,DEC) + String("_") + String(__DATE__).replace(" ", "-") + String("_glove_generic_T4.ino");
 
 // using two incompatible SPI devices, A and B
 const byte peripheralA0Pin = 10; //Device A: ADC MAX11131A    or older ADC: AD7490 The order may be changed !?!!
