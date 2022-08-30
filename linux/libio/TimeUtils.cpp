@@ -22,6 +22,8 @@
  *
  * ============================================================ */
 #include "TimeUtils.h"
+#include <stdio.h>  // `printf()`
+#include <time.h>  // `timespec_get()`
 
 /// Convert seconds to microseconds
 #define SEC_TO_US(sec) ((sec) * 1000000) 

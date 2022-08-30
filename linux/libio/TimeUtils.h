@@ -23,9 +23,6 @@
  * ============================================================ */
 #pragma once
 
-#include <stdint.h>  // `UINT64_MAX`
-#include <unistd.h>
-#include <stdio.h>  // `printf()`
-#include <time.h>   // `timespec_get()`
+#include <stdint.h>  // `UINT64`
 
 uint64_t getMicroseconds();
