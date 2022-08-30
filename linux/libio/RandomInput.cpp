@@ -23,13 +23,16 @@
  * ============================================================ */
 
 #include "RandomInput.h"
+#include "TimeUtils.h"
 #include <stdlib.h>
 #include <stdexcept>
+#include <unistd.h>
 
 namespace tactile {
 
-RandomInput::RandomInput(size_t noTaxels)
-   : InputInterface(noTaxels)
+RandomInput::RandomInput(size_t noTaxels, const uint64_t period)
+   : InputInterface(noTaxels),
+  period(period)
 {
 	// initialize smallest values
 	data[1] = 2048;
@@ -39,6 +42,7 @@ RandomInput::RandomInput(size_t noTaxels)
 void RandomInput::connect(const std::string &dummy)
 {
 	connected = true;
+	prev_time = getMicroseconds();
 }
 
 void RandomInput::disconnect()
@@ -49,7 +53,8 @@ void RandomInput::disconnect()
 const InputInterface::data_vector& RandomInput::readFrame()
 {
 	if (!connected) throw std::runtime_error("not connected");
-
+	
+	// first prepare data (takes some time)
 	size_t idx = 0;
 	for (data_vector::iterator it=data.begin(), end=data.end(); it != end; ++it, ++idx) {
 		long int rndnumber = random();
@@ -60,6 +65,18 @@ const InputInterface::data_vector& RandomInput::readFrame()
 			if (idx == 14) *it = std::min<data_type>(*it + 3700, 0xFFF); // goniometer joint value
 		}
 	}
+	// then check time elapsed
+	uint64_t cur_time = getMicroseconds();
+	uint64_t time_diff_us = cur_time - prev_time;
+	//printf("time us %ld\n", time_diff_us);
+
+	// if required wait until period has passed
+	if (time_diff_us < period)
+	{
+		usleep(period - time_diff_us);
+	}
+
+	prev_time = getMicroseconds();  // store time when returning the data
 	return data;
 }
 

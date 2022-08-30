@@ -1,6 +1,6 @@
 /* ============================================================
  *
- * Copyright (C) 2015 by Robert Haschke <rhaschke at techfak dot uni-bielefeld dot de>
+ * Copyright (C) 2022 by Guillaume Walck <gwalck at techfak dot uni-bielefeld dot de>
  *
  * This file may be licensed under the terms of the
  * GNU Lesser General Public License Version 3 (the "LGPL"),
@@ -21,27 +21,26 @@
  *     Bielefeld University
  *
  * ============================================================ */
-#pragma once
+#include "TimeUtils.h"
 
-#include "InputInterface.h"
+/// Convert seconds to microseconds
+#define SEC_TO_US(sec) ((sec) * 1000000) 
 
-namespace tactile {
-
-class RandomInput : public InputInterface
+uint64_t getMicroseconds()
 {
-public:
-	RandomInput(size_t noTaxels, const uint64_t period=1000);
-	void connect(const std::string &dummy);
-	void disconnect();
-	const data_vector& readFrame ();
-	void setPeriod(const uint64_t microseconds)  // set period in microseconds
+	uint64_t microseconds;
+	struct timespec ts;
+	int return_code = timespec_get(&ts, TIME_UTC);
+	if (return_code == 0)
 	{
-		period = microseconds;
-	};
-
-private:
-	uint64_t period;  // period in microseconds
-	uint64_t prev_time;
-};
-
+		printf("Failed to obtain timestamp.\n");
+		microseconds = UINT64_MAX; // use this to indicate error
+	}
+	else
+	{
+		// `ts` now contains your timestamp in seconds and nanoseconds! To 
+		// convert the whole struct to nanoseconds, do this:
+		microseconds = SEC_TO_US((uint64_t)ts.tv_sec) + ((uint64_t)ts.tv_nsec) / 1000;
+	}
+	return microseconds;
 }

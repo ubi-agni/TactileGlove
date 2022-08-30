@@ -1,6 +1,6 @@
 /* ============================================================
  *
- * Copyright (C) 2015 by Robert Haschke <rhaschke at techfak dot uni-bielefeld dot de>
+ * Copyright (C) 2022 by Guillaume Walck <gwalck at techfak dot uni-bielefeld dot de>
  *
  * This file may be licensed under the terms of the
  * GNU Lesser General Public License Version 3 (the "LGPL"),
@@ -23,25 +23,9 @@
  * ============================================================ */
 #pragma once
 
-#include "InputInterface.h"
+#include <stdint.h>  // `UINT64_MAX`
+#include <unistd.h>
+#include <stdio.h>  // `printf()`
+#include <time.h>   // `timespec_get()`
 
-namespace tactile {
-
-class RandomInput : public InputInterface
-{
-public:
-	RandomInput(size_t noTaxels, const uint64_t period=1000);
-	void connect(const std::string &dummy);
-	void disconnect();
-	const data_vector& readFrame ();
-	void setPeriod(const uint64_t microseconds)  // set period in microseconds
-	{
-		period = microseconds;
-	};
-
-private:
-	uint64_t period;  // period in microseconds
-	uint64_t prev_time;
-};
-
-}
+uint64_t getMicroseconds();
