@@ -1,6 +1,6 @@
 /* ============================================================
  *
- * Copyright (C) 2015 by Robert Haschke <rhaschke at techfak dot uni-bielefeld dot de>
+ * Copyright (C) 2022 by Robert Haschke, Bielefeld University
  *
  * This file may be licensed under the terms of the
  * GNU Lesser General Public License Version 3 (the "LGPL"),
@@ -15,10 +15,6 @@
  * program. If not, go to http://www.gnu.org/licenses/lgpl.html
  * or write to the Free Software Foundation, Inc.,
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- *
- * The development of this software was supported by:
- *   CITEC, "Cognitive Interaction Technology" Excellence Cluster
- *     Bielefeld University
  *
  * ============================================================ */
 #pragma once
