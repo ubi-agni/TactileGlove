@@ -1,11 +1,11 @@
 <launch>
-  
-  
+
+
   <node name="tactile_to_synergy" pkg="tactile_glove" type="tactile_to_js.py" respawn="false" output="screen" >
    <rosparam file="$(find tactile_glove)/config/tactile_to_synergy_mapping.yaml">
    </rosparam>
    <remap from ="/tactile_states" to="/TactileGlove" />
    <remap from ="/joint_states" to="/synergy/joint_states" />
   </node>
-  
+
 </launch>

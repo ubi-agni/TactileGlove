@@ -1,5 +1,5 @@
 tactile_to_js_mapping:
-  synergy_joint: 
+  synergy_joint:
     idx: 14
     range_in: [4096, 0.0]
     range_out: [0, 1.0]

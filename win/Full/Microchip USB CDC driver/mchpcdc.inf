@@ -3,75 +3,75 @@
 ; Copyright (c) 2000 Microsoft Corporation
 ; Copyright (C) 2007 Microchip Technology Inc.
 
-[Version] 
-Signature="$Windows NT$" 
+[Version]
+Signature="$Windows NT$"
 Class=Ports
-ClassGuid={4D36E978-E325-11CE-BFC1-08002BE10318} 
-Provider=%MFGNAME% 
+ClassGuid={4D36E978-E325-11CE-BFC1-08002BE10318}
+Provider=%MFGNAME%
 LayoutFile=layout.inf
 CatalogFile=%MFGFILENAME%.cat
 DriverVer=03/11/2010,5.1.2600.2
 
-[Manufacturer] 
+[Manufacturer]
 %MFGNAME%=DeviceList, NTamd64
 
-[DestinationDirs] 
-DefaultDestDir=12 
+[DestinationDirs]
+DefaultDestDir=12
 
 
 ;------------------------------------------------------------------------------
 ;  Windows 2000/XP/Server2003/Vista/Server2008/7 - 32bit Sections
 ;------------------------------------------------------------------------------
 
-[DriverInstall.nt] 
+[DriverInstall.nt]
 include=mdmcpq.inf
 CopyFiles=DriverCopyFiles.nt
-AddReg=DriverInstall.nt.AddReg 
+AddReg=DriverInstall.nt.AddReg
 
 [DriverCopyFiles.nt]
 usbser.sys,,,0x20
 
-[DriverInstall.nt.AddReg] 
-HKR,,DevLoader,,*ntkern 
-HKR,,NTMPDriver,,%DRIVERFILENAME%.sys 
-HKR,,EnumPropPages32,,"MsPorts.dll,SerialPortPropPageProvider" 
+[DriverInstall.nt.AddReg]
+HKR,,DevLoader,,*ntkern
+HKR,,NTMPDriver,,%DRIVERFILENAME%.sys
+HKR,,EnumPropPages32,,"MsPorts.dll,SerialPortPropPageProvider"
 
-[DriverInstall.nt.Services] 
+[DriverInstall.nt.Services]
 AddService=usbser, 0x00000002, DriverService.nt
 
-[DriverService.nt] 
-DisplayName=%SERVICE% 
+[DriverService.nt]
+DisplayName=%SERVICE%
 ServiceType=1
 StartType=3
 ErrorControl=1
-ServiceBinary=%12%\%DRIVERFILENAME%.sys 
+ServiceBinary=%12%\%DRIVERFILENAME%.sys
 
 ;------------------------------------------------------------------------------
 ;  Windows XP/Server2003/Vista/Server2008/7 - 64bit Sections
 ;------------------------------------------------------------------------------
 
-[DriverInstall.NTamd64] 
+[DriverInstall.NTamd64]
 include=mdmcpq.inf
 CopyFiles=DriverCopyFiles.NTamd64
-AddReg=DriverInstall.NTamd64.AddReg 
+AddReg=DriverInstall.NTamd64.AddReg
 
 [DriverCopyFiles.NTamd64]
 %DRIVERFILENAME%.sys,,,0x20
 
-[DriverInstall.NTamd64.AddReg] 
-HKR,,DevLoader,,*ntkern 
-HKR,,NTMPDriver,,%DRIVERFILENAME%.sys 
-HKR,,EnumPropPages32,,"MsPorts.dll,SerialPortPropPageProvider" 
+[DriverInstall.NTamd64.AddReg]
+HKR,,DevLoader,,*ntkern
+HKR,,NTMPDriver,,%DRIVERFILENAME%.sys
+HKR,,EnumPropPages32,,"MsPorts.dll,SerialPortPropPageProvider"
 
-[DriverInstall.NTamd64.Services] 
+[DriverInstall.NTamd64.Services]
 AddService=usbser, 0x00000002, DriverService.NTamd64
 
-[DriverService.NTamd64] 
-DisplayName=%SERVICE% 
+[DriverService.NTamd64]
+DisplayName=%SERVICE%
 ServiceType=1
 StartType=3
 ErrorControl=1
-ServiceBinary=%12%\%DRIVERFILENAME%.sys 
+ServiceBinary=%12%\%DRIVERFILENAME%.sys
 
 
 ;------------------------------------------------------------------------------
@@ -86,10 +86,10 @@ ServiceBinary=%12%\%DRIVERFILENAME%.sys
 [SourceDisksFiles]
 [SourceDisksNames]
 [DeviceList]
-%DESCRIPTION%=DriverInstall, USB\VID_04D8&PID_000A 
+%DESCRIPTION%=DriverInstall, USB\VID_04D8&PID_000A
 
-[DeviceList.NTamd64] 
-%DESCRIPTION%=DriverInstall, USB\VID_04D8&PID_000A 
+[DeviceList.NTamd64]
+%DESCRIPTION%=DriverInstall, USB\VID_04D8&PID_000A
 
 
 ;------------------------------------------------------------------------------
@@ -104,5 +104,3 @@ MFGNAME="Microchip Technology, Inc."
 INSTDISK="Microchip Technology, Inc. Installation Disc"
 DESCRIPTION="USB Communications Port"
 SERVICE="USB RS-232 Emulation Driver"
-
-

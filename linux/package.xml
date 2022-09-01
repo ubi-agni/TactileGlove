@@ -5,7 +5,7 @@
   <description>Bielefeld University TactileGlove software</description>
   <license>GPLv3</license>
 
-  <!-- One author/maintainer tag required, multiple allowed, one person per tag --> 
+  <!-- One author/maintainer tag required, multiple allowed, one person per tag -->
   <author email="rhaschke@techfak.uni-bielefeld.de">Robert Haschke</author>
   <maintainer email="rhaschke@techfak.uni-bielefeld.de">Robert Haschke</maintainer>
 

@@ -24,14 +24,14 @@ BNO080 myIMU;
 // Serial Protocol setting
 #define BEND_SENSOR_ADC_ID 4
 #define NUM_BEND_SENSORS 16
-#define SP_BENDDATA_LEN  (0x03*NUM_BEND_SENSORS)  // 3 = 1x (uint8 + uint16)  
+#define SP_BENDDATA_LEN  (0x03*NUM_BEND_SENSORS)  // 3 = 1x (uint8 + uint16)
 #define SP_TACTDATA_LEN  (0x03*NUM_TAXELS) //  0xC0  // 192 = 64x (uint8 + uint16)
 #define SP_IMU_DATA_LEN  0x28  // 40 = 3x4 + 3x4 + 4x4 = 40
 
 #define IMU_INTERNAL_REFRESH_PERIOD  6 // in ms = 142 Hz
 #define IMU_REFRESH_PERIOD  10 // in ms 50 Hz
-       
-/*max IMU speed  
+
+/*max IMU speed
 Gyro rotation Vector 1 kHz
 Rotation Vector  400 Hz
 Gaming Rotation Vector 400 Hz
@@ -45,18 +45,18 @@ Magnetometer 100 Hz
 
 #define IMU_MASK_ALLNEWDATA 0x07
 #define IMU_MASK_ACC        0x01
-#define IMU_MASK_GYRO       0x02 
+#define IMU_MASK_GYRO       0x02
 #define IMU_MASK_QUAT       0x04
 
 #define ADC_CONFIG_WRITE_REG 0x0831<<4
 #define ADC_REFRESH_PERIOD  1 // in ms
 
 // NUM_ADC * NUM_CHANNEL should match NUM_TAXELS + NUM_BEND_SENSORS
-#define NUM_ADC 5            
+#define NUM_ADC 5
 #define NUM_CHANNEL 16
 
-// prepare the serial number 
-String serial_string = String("TG_T4_") + String(NUM_ADC,DEC) + String("_") + String(NUM_BEND_SENSORS,DEC) + 
+// prepare the serial number
+String serial_string = String("TG_T4_") + String(NUM_ADC,DEC) + String("_") + String(NUM_BEND_SENSORS,DEC) +
   String("_") + String(ARDUINO,DEC) + String("_") + String(REV,DEC) + String("_") + String(__DATE__).replace(" ", "-") + String("_glove60tax_16bend_imu_T4.ino");
 /*
 // using two incompatible SPI devices, A and B
@@ -208,7 +208,7 @@ void setup() {
   pinMode (peripheralA4Pin, OUTPUT);
 #endif
 
-  pinMode (imuCSPin, OUTPUT);  
+  pinMode (imuCSPin, OUTPUT);
 
 
   // initialize serial communication at 115200 bits per second:
@@ -219,7 +219,7 @@ void setup() {
   }
 
   Serial.println(serial_string);
-  // store the configuration for the SerialProtocol 
+  // store the configuration for the SerialProtocol
   SP.setConfigFromStruct(DeviceTypeIDEnum::TactileGlove, 3, sensorConfigs);
 
   // set up the SPI pins utilized on Teensy 3.2
@@ -296,7 +296,7 @@ bool processIMU()
     newLinAcc = 0;  // mark data as read
     new_imu_reports |= IMU_MASK_ACC;
     //Serial.println("acc");
-    
+
   }
   if(newQuat) {
     float quatRadianAccuracy = 0;
@@ -341,7 +341,7 @@ bool processIMU()
        */
     }
     return false;
-  } 
+  }
   return true;
 }
 
@@ -376,7 +376,7 @@ void loop() {
       if (!timer_started || SP.hasPeriodChanged())
       {
         uint16_t pub_period;
-        int8_t result = SP.getPeriod(&pub_period, 1); 
+        int8_t result = SP.getPeriod(&pub_period, 1);
         if (result != SP_SENSOR_UNKNOWN_ID && result != SP_PERIOD_INACTIVE)
         {
           if (result == SP_VARIABLE_CHANGED)
@@ -393,7 +393,7 @@ void loop() {
       if (imu_initialized)
       {
         uint16_t ui16_period;
-        int8_t i8_result = SP.getPeriod(&ui16_period, 3); 
+        int8_t i8_result = SP.getPeriod(&ui16_period, 3);
         if (i8_result >= SP_VARIABLE_UNCHANGED) // sensor is active
         {
           // if period of publishing was reached
@@ -417,8 +417,8 @@ void loop() {
               }
             }
           }
-        } 
-        
+        }
+
       }
     }
     else
@@ -442,14 +442,14 @@ void loop() {
         timer_started = false;
       }
     }
-  
+
     // TODO handle periodicity change of other devices
     /*  myIMU.enableLinearAccelerometer(50);
     myIMU.enableRotationVector(50);
     myIMU.enableGyro(50);*/
     // handle communication with the SerialProtocol
     SP.update();
-    //delay(1); // shorter than 1 ms makes the publication stall  
+    //delay(1); // shorter than 1 ms makes the publication stall
   }
 }
 
@@ -484,7 +484,7 @@ void read_tactile()
 
 #ifndef NO_ADC
 
-  //read all Max11131 ADC chips/channels  
+  //read all Max11131 ADC chips/channels
   byte taxel_counter = 0;
   byte bend_sensor_counter = 0;
   //byte channel=0;
@@ -496,14 +496,14 @@ void read_tactile()
     {
       // initialize SPI Bus for tactile reading
       adcSPI.beginTransaction(settingsADC);
-  
-      //select new ADC chip  
+
+      //select new ADC chip
       digitalWrite (ADC_CS[SelectADC], LOW);
       AnalogData[taxel_counter + bend_sensor_counter] = adcSPI.transfer16(SPI_channelselect[channel]);
       // for some reason the bit order of the answer is starting with the data (not the channel) and the last 3 bits are always zero
       // shifting should solve for now
       AnalogData[taxel_counter + bend_sensor_counter] = AnalogData[taxel_counter + bend_sensor_counter] >> 3;
-      
+
       digitalWrite (ADC_CS[SelectADC], HIGH);
      // Serial.println(AnalogData[taxel_counter]);
        // separate the bend sensors on a second "serial protocol device"
@@ -518,7 +518,7 @@ void read_tactile()
         // prepare the tactile buffer
         pack_adc_buffer(tactile_buf+3*taxel_counter, taxel_counter, AnalogData[taxel_counter + bend_sensor_counter]);
         taxel_counter++;
-      }     
+      }
       adcSPI.endTransaction();
    }
   }
@@ -550,15 +550,15 @@ void imu_interrupt_handler()
     }
     break;
     case SENSOR_REPORTID_GYROSCOPE: {
-     
+
          newGyro = 1;
       //Serial.println("a1");
     }
     break;
-    
+
     case SENSOR_REPORTID_ROTATION_VECTOR:
     case SENSOR_REPORTID_GAME_ROTATION_VECTOR: {
-     
+
         newQuat = 1;
       //Serial.println("a2");
     }
@@ -567,9 +567,9 @@ void imu_interrupt_handler()
     case 0:
       // no data
       break;
-    
+
     default:
-      // Unhandled Input Report        
+      // Unhandled Input Report
       break;
   }
   interrupts();
@@ -579,7 +579,7 @@ void imu_interrupt_handler()
 uint16_t spi_transfer(unsigned int nr, unsigned short data){
   // initialize SPI Bus for tactile reading
   adcSPI.beginTransaction(settingsADC);
-  //select new ADC chip  
+  //select new ADC chip
   digitalWrite (ADC_CS[nr], LOW);
   uint16_t result = adcSPI.transfer16(data);
   digitalWrite (ADC_CS[nr], HIGH);
@@ -606,7 +606,7 @@ void pack_adc_buffer(char *buf, uint8_t id, uint16_t data){
   memcpy(buf+1, (char*)&c_data, sizeof(char));
   // do not discard the channel number, it can be useful for debugging at PC side
   c_data = byte((data & 0xFF00) >> 8);
-  memcpy(buf+2, (char*)&c_data, sizeof(char));  
+  memcpy(buf+2, (char*)&c_data, sizeof(char));
 }
 
 void pack_all_imudata(char *buf){
@@ -619,5 +619,5 @@ void pack_all_imudata(char *buf){
   memcpy(buf+24, (char*)&qw, sizeof(float));
   memcpy(buf+28, (char*)&qx, sizeof(float));
   memcpy(buf+32, (char*)&qy, sizeof(float));
-  memcpy(buf+36, (char*)&qz, sizeof(float)); 
+  memcpy(buf+36, (char*)&qz, sizeof(float));
 }

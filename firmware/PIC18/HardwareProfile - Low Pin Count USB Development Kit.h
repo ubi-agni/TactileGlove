@@ -53,7 +53,7 @@
     //  option carefully and determine which options are desired/required
     //  for your application.
 
-    //#define USE_SELF_POWER_SENSE_IO	
+    //#define USE_SELF_POWER_SENSE_IO
     #define tris_self_power     TRISAbits.TRISA2    // Input
     #if defined(USE_SELF_POWER_SENSE_IO)
     #define self_power          PORTAbits.RA2
@@ -77,9 +77,9 @@
     /*******************************************************************/
     /*******************************************************************/
 
-    //Uncomment the following line to make the output HEX of this 
+    //Uncomment the following line to make the output HEX of this
     //  project work with the HID Bootloader
-    //#define PROGRAMMABLE_WITH_USB_HID_BOOTLOADER	
+    //#define PROGRAMMABLE_WITH_USB_HID_BOOTLOADER
 
     /** Board definition ***********************************************/
     //These defintions will tell the main() function which board is
@@ -88,20 +88,20 @@
     //  initialization functions for the board.  These defitions are only
     //  required in the stack provided demos.  They are not required in
     //  final application design.
-    
+
   //  #define DEMO_BOARD LOW_PIN_COUNT_USB_DEVELOPMENT_KIT
     #define LOW_PIN_COUNT_USB_DEVELOPMENT_KIT
     #define CLOCK_FREQ 48000000
     #define GetSystemClock() CLOCK_FREQ
-    
+
     /** LED ************************************************************/
     #define mInitAllLEDs()      LATC &= 0xF0; TRISC &= 0xF0;
-    
+
     #define mLED_1              LATCbits.LATC0
     #define mLED_2              LATCbits.LATC1
     #define mLED_3              LATCbits.LATC2
     #define mLED_4              LATCbits.LATC3
-    
+
     #define mGetLED_1()         mLED_1
     #define mGetLED_2()         mLED_2
     #define mGetLED_3()         mLED_3
@@ -111,17 +111,17 @@
     #define mLED_2_On()         mLED_2 = 1;
     #define mLED_3_On()         mLED_3 = 1;
     #define mLED_4_On()         mLED_4 = 1;
-    
+
     #define mLED_1_Off()        mLED_1 = 0;
     #define mLED_2_Off()        mLED_2 = 0;
     #define mLED_3_Off()        mLED_3 = 0;
     #define mLED_4_Off()        mLED_4 = 0;
-    
+
     #define mLED_1_Toggle()     mLED_1 = !mLED_1;
     #define mLED_2_Toggle()     mLED_2 = !mLED_2;
     #define mLED_3_Toggle()     mLED_3 = !mLED_3;
     #define mLED_4_Toggle()     mLED_4 = !mLED_4;
-    
+
     /** SWITCH *********************************************************/
     #define mInitSwitch2()      //TRISAbits.TRISA3=1
         //only one switch available so double duty

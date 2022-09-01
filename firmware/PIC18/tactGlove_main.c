@@ -9,11 +9,11 @@
  * Osc. Freq.: 12 MHz (external Quartz)								*
  ****************************************************************
  * PORTA.0				- LED
- * PORTA.1				- CS7 
+ * PORTA.1				- CS7
  * PORTA.2				- CS1 					*
- * PORTA.3				- NC					
+ * PORTA.3				- NC
  * PORTA.5              - NC
- * PORTA.6				- CS2 					
+ * PORTA.6				- CS2
  * PORTA.7              - OSC
 
  * PORTB.0				- CS5						*
@@ -25,7 +25,7 @@
  * PORTB.6              - PGC						*
  * PORTB.7              - PGD
  * PORTB.8              - 						*
- 
+
 
  * PORTC.0              - CS8						*
  * PORTC.1              - CS9
@@ -74,7 +74,7 @@
 
 #define LED LATAbits.LATA0
 
-#define TIMER_START_SEC 0 // 0x2472  //0xBFFF 
+#define TIMER_START_SEC 0 // 0x2472  //0xBFFF
 
 #define CS_1 LATAbits.LATA2
 #define CS_2 LATAbits.LATA6
@@ -88,7 +88,7 @@
 #define CS_9 LATCbits.LATC1
 
 
-#define AUTOMATIC_SEQUENCE 0x0831<<4  
+#define AUTOMATIC_SEQUENCE 0x0831<<4
 #define  WRITE_REG 0x0831<<4
 
 
@@ -125,7 +125,7 @@ void timer0_handler (void)
 	transmit = 1;
 /*	if(ledr==1){
  		LED	= 0;
-		ledr=0; 
+		ledr=0;
 	} else {
 		 LED=1;
 		ledr=1;
@@ -143,28 +143,28 @@ unsigned int spi_transfer(unsigned int nr, unsigned short data){
 
 	unsigned char 	a = (0xFF00 & data)>>8;
 	unsigned char b = (0xFF&data);
-	unsigned short a1,b1;	
+	unsigned short a1,b1;
 
 	CS_3 = 1;
 	CS_4 = 1;
 	CS_9 = 1;
 	CS_6 = 1;
 
-	if(nr==0) CS_3 = 0; 
-	if(nr==1) CS_4 = 0; 
-	if(nr==2) CS_9 = 0; 
-	if(nr==3) CS_6 = 0; 
+	if(nr==0) CS_3 = 0;
+	if(nr==1) CS_4 = 0;
+	if(nr==2) CS_9 = 0;
+	if(nr==3) CS_6 = 0;
 
 
 	putcSPI(a);
 	while(!DataRdySPI()){
 	}
-	a1 = SSP1BUF;	
+	a1 = SSP1BUF;
 
 	putcSPI(b);
 	while(!DataRdySPI()){
 	}
-	b1 = SSP1BUF;	
+	b1 = SSP1BUF;
 
 	CS_3 = 1;
 	CS_4 = 1;
@@ -185,15 +185,15 @@ void main (void)
  unsigned int pll_startup_counter = 1600;
 	//Init ports
 	//1=in, 0=output
-	unsigned char adc_nr=0;	
+	unsigned char adc_nr=0;
 
      OSCTUNEbits.PLLEN = 1;  //Enable the PLL and wait 2+ms until the PLL locks before enabling USB module
       while(pll_startup_counter--);
 
 	TRISA	= 0b0;	// all out
-	TRISB	= 0b00100000;	// 
-	TRISC	= 0b0;   // 
-	
+	TRISB	= 0b00100000;	//
+	TRISC	= 0b0;   //
+
 //	RPINR6 = 0;
 
 	OpenTimer0  (TIMER_INT_ON & T0_SOURCE_INT & T0_16BIT & T0_PS_1_1);
@@ -243,18 +243,18 @@ void main (void)
 	USB_Out_Buffer[4]=0;
 	USB_Out_Buffer[5]=0;
 
-	 USBDeviceInit();	
+	 USBDeviceInit();
 
 
 	while(1){
 	//mainloop
-		   USBDeviceTasks(); 
+		   USBDeviceTasks();
 			if(transmit){
 
 				ProcessIO();
 
 				transmit =1;
-			}		
+			}
 	}
 
 }
@@ -263,7 +263,7 @@ void main (void)
 #define PUTHEADER 0
 #define VALUES 1
 void ProcessIO(void)
-{   
+{
     unsigned short result;
 	static char state=VALUES;
 	static char count=-1;
@@ -292,7 +292,7 @@ void ProcessIO(void)
 			count=0;
 			USB_Out_Buffer[0] = 60; //start character
 		}
-		
+
 
 	//	if (count<=11) result = read_register(1, (0x0b+count) ); else
 	//	result = read_register(2, (0x0b+count-12) );
@@ -314,7 +314,7 @@ void ProcessIO(void)
 
 		putUSBUSART(USB_Out_Buffer,5);
 		LED = !LED;
-		
+
 
 
 	 }
@@ -344,7 +344,7 @@ BOOL USER_USB_CALLBACK_EVENT_HANDLER(USB_EVENT event, void *pdata, WORD size)
 {
     switch(event)
     {
-        case EVENT_CONFIGURED: 
+        case EVENT_CONFIGURED:
             USBCBInitEP();
             break;
         case EVENT_SET_DESCRIPTOR:
@@ -370,6 +370,6 @@ BOOL USER_USB_CALLBACK_EVENT_HANDLER(USB_EVENT event, void *pdata, WORD size)
             break;
         default:
             break;
-    }      
-    return TRUE; 
+    }
+    return TRUE;
 }

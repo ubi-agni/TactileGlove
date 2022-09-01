@@ -40,7 +40,7 @@ namespace TactileDataglove
         private string[] saNameMapping = new string[64];
 
         // Variable declarations
-        private SerialPort spUSB = new SerialPort(); // Communication over (virtual) serial port 
+        private SerialPort spUSB = new SerialPort(); // Communication over (virtual) serial port
         private Queue<byte> qbReceiveQueue = new Queue<byte>(CQUEUESIZE); // Receive queue (FIFO)
         static private readonly object locker = new object(); // Queue locker object to regulate access from multiple threads
         private uint uiLastRemaining; // Saves the count of remaning bytes from last packet parser run (value range is 0 to 4)
@@ -72,7 +72,7 @@ namespace TactileDataglove
             {
                 cbSerialPort.Text = cbSerialPort.Items[0].ToString();
                 for (int i = 0; i < cbSerialPort.Items.Count; i++)
-                    if (cbSerialPort.Items[i].ToString() == "COM11") // If available, default to COM11 initially 
+                    if (cbSerialPort.Items[i].ToString() == "COM11") // If available, default to COM11 initially
                         cbSerialPort.SelectedIndex = i;
             }
 

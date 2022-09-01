@@ -74,7 +74,7 @@ const FileInput::data_vector& FileInput::readFrame()
 	time(&cur_time);
 	double time_diff_ms = difftime(cur_time, prev_time)* 1000.;
 	prev_time = cur_time;
-	
+
 	size_t idx = 0;
 	int timestamp;
 	char buf[256];

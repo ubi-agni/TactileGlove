@@ -1,5 +1,5 @@
 tactile_to_js_mapping:
-  goniometer: 
+  goniometer:
     idx: 14
     range_in: [4095,0]
     range_out: [0, 1.0]

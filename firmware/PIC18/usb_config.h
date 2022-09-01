@@ -4,7 +4,7 @@
                	Situational: usb_function_hid.h, usb_function_cdc.h, usb_function_msd.h, etc.
  Processor:		PIC18 or PIC24 USB Microcontrollers
  Hardware:		The code is natively intended to be used on the following
- 				hardware platforms: PICDEM™ FS USB Demo Board, 
+ 				hardware platforms: PICDEM™ FS USB Demo Board,
  				PIC18F87J50 FS USB Plug-In Module, or
  				Explorer 16 + PIC24 USB PIM.  The firmware may be
  				modified for use on other USB platforms by editing the
@@ -56,7 +56,7 @@
 								// of applications.  Exceptions to this, are applications
 								// that use EP0 IN or OUT for sending large amounts of
 								// application related data.
-									
+
 #define USB_MAX_NUM_INT     	1   // For tracking Alternate Setting
 
 //Device descriptor - if these two definitions are not defined then

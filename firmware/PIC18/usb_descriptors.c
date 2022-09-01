@@ -3,7 +3,7 @@
  Dependencies:	See INCLUDES section
  Processor:		PIC18 or PIC24 USB Microcontrollers
  Hardware:		The code is natively intended to be used on the following
- 				hardware platforms: PICDEM™ FS USB Demo Board, 
+ 				hardware platforms: PICDEM™ FS USB Demo Board,
  				PIC18F87J50 FS USB Plug-In Module, or
  				Explorer 16 + PIC24 USB PIM.  The firmware may be
  				modified for use on other USB platforms by editing the
@@ -38,7 +38,7 @@ Filling in the descriptor values in the usb_descriptors.c file:
 -------------------------------------------------------------------
 
 [Device Descriptors]
-The device descriptor is defined as a USB_DEVICE_DESCRIPTOR type.  
+The device descriptor is defined as a USB_DEVICE_DESCRIPTOR type.
 This type is defined in usb_ch9.h  Each entry into this structure
 needs to be the correct length for the data type of the entry.
 
@@ -59,7 +59,7 @@ _SELF tells the USB host that this device is self-powered. The
 _RWU tells the USB host that this device supports Remote Wakeup.
 
 [Endpoint Descriptors]
-Like the configuration descriptor, the endpoint descriptors were 
+Like the configuration descriptor, the endpoint descriptors were
 changed in v2.x of the stack from a structure to a BYTE array.  As
 endpoint descriptors also has a field that are multi-byte entities,
 please be sure to specify both bytes of the field.  For example, for
@@ -142,7 +142,7 @@ is a dummy place holder since configuration 0 is the un-configured
 state according to the definition in the USB specification.
 
 ********************************************************************/
- 
+
 /*********************************************************************
  * Descriptor specific type definitions are defined in:
  * usb_device.h
@@ -152,7 +152,7 @@ state according to the definition in the USB specification.
  ********************************************************************/
 #ifndef __USB_DESCRIPTORS_C
 #define __USB_DESCRIPTORS_C
- 
+
 /** INCLUDES *******************************************************/
 #include "./USB/usb.h"
 #include "./USB/usb_function_cdc.h"
@@ -192,7 +192,7 @@ ROM BYTE configDescriptor1[]={
     0,                      // Configuration string index
     _DEFAULT | _SELF,               // Attributes, see usb_device.h
     250,                     // Max power consumption (2X mA)
-							
+
     /* Interface Descriptor */
     9,//sizeof(USB_INTF_DSC),   // Size of this descriptor in bytes
     USB_DESCRIPTOR_INTERFACE,               // INTERFACE descriptor type
@@ -246,7 +246,7 @@ ROM BYTE configDescriptor1[]={
     0,                      // Subclass code
     NO_PROTOCOL,            // Protocol code
     0,                      // Interface string index
-    
+
     /* Endpoint Descriptor */
     //sizeof(USB_EP_DSC),DSC_EP,_EP03_OUT,_BULK,CDC_BULK_OUT_EP_SIZE,0x00,
     0x07,/*sizeof(USB_EP_DSC)*/

@@ -91,7 +91,7 @@ bool handleCommandline(uint &outflags,
 	outflags = 0;
 	if (map.count("console")) outflags |= OUTPUT_CURSES;
 	if (map.count("ros")) outflags |= OUTPUT_ROS;
- 
+
 	bLoop = (map.count("loop") > 0);
 #if HAVE_CURSES
 	if (!outflags) outflags |= OUTPUT_CURSES;
@@ -129,7 +129,7 @@ int main(int argc, char **argv)
 			if (sFilename == "") {
 				input.reset(new tactile::ThrottledInput<tactile::RandomInput>(NO_TAXELS));
 				input->connect(sDevice);
-			}	
+			}
 			else {
 				input.reset(new tactile::FileInput(NO_TAXELS, fSpeedFactor, bLoop));
 				input->connect(sFilename);
@@ -250,7 +250,7 @@ void printCurses(const tactile::InputInterface::data_vector &data,
 			printw("%2d: %4d    ", x+1, data[x]);
 	}
 
-	refresh(); 
+	refresh();
 #endif
 }
 
