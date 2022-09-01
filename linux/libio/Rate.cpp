@@ -36,10 +36,6 @@ bool Rate::sleep()
   Time expected_end = start_ + expected_cycle_time_;
   Time actual_end = Clock::now();
 
-  // detect backward jumps in time
-  if (actual_end < start_)
-    expected_end = actual_end + expected_cycle_time_;
-
   // calculate the time we'll sleep for
   Duration sleep_time = expected_end - actual_end;
 
@@ -52,8 +48,7 @@ bool Rate::sleep()
   // if we've taken too much time, we won't sleep
   if (sleep_time <= Duration::zero())
   {
-    // if we've jumped forward in time, or the loop has taken more than a full extra
-    // cycle, reset our cycle
+    // if the loop has taken more than a full extra cycle, restart
     if (actual_end > expected_end + expected_cycle_time_)
       start_ = actual_end;
 
