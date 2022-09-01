@@ -24,15 +24,23 @@
 #include <boost/bind.hpp>
 
 using namespace std;
+using tactile::PieceWiseLinearCalib;
 using tactile::TactileValue;
 using tactile::TactileValueArray;
-using tactile::PieceWiseLinearCalib;
 
-MainWindow::MainWindow(size_t noTaxels, QWidget *parent) :
-   QMainWindow(parent), ui(new Ui::MainWindow), iJointIdx(-1),
-   input(0), data(noTaxels), display(noTaxels),
-   frameCount(-1), timerID(0), gloveWidget(0), mapDlg(0),
-   absColorMap(0), relColorMap(0)
+MainWindow::MainWindow(size_t noTaxels, QWidget *parent)
+  : QMainWindow(parent)
+  , ui(new Ui::MainWindow)
+  , iJointIdx(-1)
+  , input(0)
+  , data(noTaxels)
+  , display(noTaxels)
+  , frameCount(-1)
+  , timerID(0)
+  , gloveWidget(0)
+  , mapDlg(0)
+  , absColorMap(0)
+  , relColorMap(0)
 {
 	ui->setupUi(this);
 	ui->toolBar->addWidget(ui->updateTimeSpinBox);
@@ -56,39 +64,46 @@ MainWindow::MainWindow(size_t noTaxels, QWidget *parent) :
 	initModeComboBox(ui->modeComboBox);
 
 	// init upper ranges
-	for (TactileValueArray::iterator it=data.begin(), end=data.end(); it!=end; ++it)
+	for (TactileValueArray::iterator it = data.begin(), end = data.end(); it != end; ++it)
 		it->init(FLT_MAX, 4095);
 
 	// init color maps
 	QStringList colorNames;
 	absColorMap = new ColorMap;
-	colorNames << "black" << "lime" << "yellow" << "red";
+	colorNames << "black"
+	           << "lime"
+	           << "yellow"
+	           << "red";
 	absColorMap->append(colorNames);
 
 	relColorMap = new ColorMap;
-	colorNames.clear(); colorNames << "red" << "black" << "lime";
+	colorNames.clear();
+	colorNames << "red"
+	           << "black"
+	           << "lime";
 	relColorMap->append(colorNames);
 }
 
-void MainWindow::initModeComboBox(QComboBox *cb) {
+void MainWindow::initModeComboBox(QComboBox *cb)
+{
 	QStringList items;
-	for (unsigned int m=0, e=TactileValue::lastMode; m!=e; ++m)
+	for (unsigned int m = 0, e = TactileValue::lastMode; m != e; ++m)
 		items << TactileValue::getModeName((TactileValue::Mode)m).c_str();
 	cb->addItems(items);
-	cb->setCurrentIndex (TactileValue::getMode("default"));
+	cb->setCurrentIndex(TactileValue::getMode("default"));
 }
 
-void MainWindow::setCalibration(const std::string &sCalibFile) {
+void MainWindow::setCalibration(const std::string &sCalibFile)
+{
 	QMutexLocker lock(&dataMutex);
-	calib.reset (new PieceWiseLinearCalib(PieceWiseLinearCalib::load(sCalibFile)));
-	for (NodeToDataMap::const_iterator it = nodeToData.begin(), end = nodeToData.end();
-	     it != end; ++it) {
+	calib.reset(new PieceWiseLinearCalib(PieceWiseLinearCalib::load(sCalibFile)));
+	for (NodeToDataMap::const_iterator it = nodeToData.begin(), end = nodeToData.end(); it != end; ++it) {
 		data[*it].setCalibration(calib);
 	}
 
 	// init upper ranges
 	float fMax = calib->output_range().max();
-	for (TactileValueArray::iterator it=data.begin(), end=data.end(); it!=end; ++it)
+	for (TactileValueArray::iterator it = data.begin(), end = data.end(); it != end; ++it)
 		it->init(FLT_MAX, fMax);
 }
 
@@ -103,23 +118,27 @@ MainWindow::~MainWindow()
 	delete relColorMap;
 }
 
-void MainWindow::initJointBar(TaxelMapping &mapping) {
+void MainWindow::initJointBar(TaxelMapping &mapping)
+{
 	// do we have a joint value?
 	TaxelMapping::iterator it = mapping.find("bar");
 	if (it != mapping.end()) {
 		iJointIdx = it->second;
 		mapping.erase(it);
-	} else iJointIdx = -1;
+	} else
+		iJointIdx = -1;
 
 	if (iJointIdx < 0 || iJointIdx >= data.size()) {
 		iJointIdx = -1;
 		ui->jointBar->hide();
-	} else ui->jointBar->show();
+	} else
+		ui->jointBar->show();
 }
 
-void MainWindow::initGloveWidget(const QString &layout, bool bMirror, const TaxelMapping &mapping) {
+void MainWindow::initGloveWidget(const QString &layout, bool bMirror, const TaxelMapping &mapping)
+{
 	// do before creating the GloveWidget to allow for removing of the bar mapping
-	initJointBar(const_cast<TaxelMapping&>(mapping));
+	initJointBar(const_cast<TaxelMapping &>(mapping));
 
 	QMutexLocker lock(&dataMutex);
 	if (gloveWidget) {
@@ -144,9 +163,9 @@ void MainWindow::initGloveWidget(const QString &layout, bool bMirror, const Taxe
 	connect(ui->actShowAllIDs, SIGNAL(toggled(bool)), gloveWidget, SLOT(setShowAllNames(bool)));
 
 	// initialize TaxelMapping
-	for (TaxelMapping::const_iterator it=mapping.begin(), end=mapping.end();
-	     it!=end; ++it) {
-		if (it->second < 0) continue; // ignore channel indexes
+	for (TaxelMapping::const_iterator it = mapping.begin(), end = mapping.end(); it != end; ++it) {
+		if (it->second < 0)
+			continue;  // ignore channel indexes
 
 		QString sName = QString::fromStdString(it->first);
 		int nodeIdx = gloveWidget->findPathNodeIndex(sName);
@@ -161,7 +180,8 @@ void MainWindow::initGloveWidget(const QString &layout, bool bMirror, const Taxe
 
 void MainWindow::setTimer(int interval)
 {
-	if (!timerID) return;
+	if (!timerID)
+		return;
 	killTimer(timerID);
 	timerID = startTimer(interval);
 }
@@ -171,17 +191,19 @@ void MainWindow::setLambda(double value)
 	data.setMeanLambda(value);
 }
 
-void MainWindow::chooseMapping(TactileValue::Mode mode,
-                               const std::shared_ptr<tactile::Calibration> &calib,
-                               ColorMap *&colorMap, float &fMin, float &fMax) {
+void MainWindow::chooseMapping(TactileValue::Mode mode, const std::shared_ptr<tactile::Calibration> &calib,
+                               ColorMap *&colorMap, float &fMin, float &fMax)
+{
 	switch (mode) {
 	case TactileValue::rawCurrent:
 	case TactileValue::rawMean:
 		if (calib) {
 			tactile::Range r = calib->output_range();
-			fMin=r.min(); fMax=r.max();
+			fMin = r.min();
+			fMax = r.max();
 		} else {
-			fMin=0; fMax=4095;
+			fMin = 0;
+			fMax = 4095;
 		}
 		colorMap = absColorMap;
 		break;
@@ -190,13 +212,15 @@ void MainWindow::chooseMapping(TactileValue::Mode mode,
 	case TactileValue::absMean:
 	case TactileValue::dynCurrent:
 	case TactileValue::dynMean:
-		fMin=0; fMax=1;
+		fMin = 0;
+		fMax = 1;
 		colorMap = absColorMap;
 		break;
 
 	case TactileValue::dynCurrentRelease:
 	case TactileValue::dynMeanRelease:
-		fMin=-1; fMax=1;
+		fMin = -1;
+		fMax = 1;
 		colorMap = relColorMap;
 		break;
 	}
@@ -204,29 +228,32 @@ void MainWindow::chooseMapping(TactileValue::Mode mode,
 
 void MainWindow::timerEvent(QTimerEvent *event)
 {
-	if (event->timerId() != timerID) return;
-	if (frameCount < 0) return; // no data received yet
+	if (event->timerId() != timerID)
+		return;
+	if (frameCount < 0)
+		return;  // no data received yet
 
 	QMutexLocker lock(&dataMutex);
 	int fps = -1;
 
-	TactileValue::Mode mode = (TactileValue::Mode) ui->modeComboBox->currentIndex();
+	TactileValue::Mode mode = (TactileValue::Mode)ui->modeComboBox->currentIndex();
 	data.getValues(mode, display);
 
-	if (lastUpdate.elapsed() > 1000) { // update framerate every 1s
-		fps = roundf (1000. * frameCount / lastUpdate.restart());
+	if (lastUpdate.elapsed() > 1000) {  // update framerate every 1s
+		fps = roundf(1000. * frameCount / lastUpdate.restart());
 		frameCount = 0;
 	}
-	if (!gloveWidget) return;
+	if (!gloveWidget)
+		return;
 	lock.unlock();
 
 	ColorMap *colorMap;
 	float fMin, fMax;
 	chooseMapping(mode, calib, colorMap, fMin, fMax);
 
-	for (NodeToDataMap::const_iterator it = nodeToData.begin(), end = nodeToData.end();
-	     it != end; ++it) {
-		if (highlighted.contains(it.key())) continue;
+	for (NodeToDataMap::const_iterator it = nodeToData.begin(), end = nodeToData.end(); it != end; ++it) {
+		if (highlighted.contains(it.key()))
+			continue;
 		QColor color = colorMap->map(display[it.value()], fMin, fMax);
 		gloveWidget->updateColor(it.key(), color);
 	}
@@ -243,34 +270,35 @@ void MainWindow::timerEvent(QTimerEvent *event)
 		mapDlg->update(display, colorMap, fMin, fMax);
 	}
 
-	if (iJointIdx >= 0) updateJointBar(data[iJointIdx].value(TactileValue::rawCurrent));
-	if (fps >= 0) ui->fps->setText(QString("%1 fps").arg(fps));
+	if (iJointIdx >= 0)
+		updateJointBar(data[iJointIdx].value(TactileValue::rawCurrent));
+	if (fps >= 0)
+		ui->fps->setText(QString("%1 fps").arg(fps));
 }
 
-void MainWindow::resetColors(const QColor &color) {
-	for (NodeToDataMap::const_iterator it = nodeToData.begin(), end = nodeToData.end();
-	     it != end; ++it)
+void MainWindow::resetColors(const QColor &color)
+{
+	for (NodeToDataMap::const_iterator it = nodeToData.begin(), end = nodeToData.end(); it != end; ++it)
 		gloveWidget->updateColor(it.key(), color);
 	gloveWidget->updateSVG();
 }
 
 void MainWindow::updateJointBar(unsigned short value)
 {
-	const int min=4095;
-	const int max=2000;
-	const int targetRange=100;
-	ui->jointBar->setValue(((value-min) * targetRange) / (max-min));
+	const int min = 4095;
+	const int max = 2000;
+	const int targetRange = 100;
+	ui->jointBar->setValue(((value - min) * targetRange) / (max - min));
 }
 
 void MainWindow::closeEvent(QCloseEvent *event)
 {
 	if (bDirtyMapping) {
-		QMessageBox::StandardButton result
-		      = QMessageBox::warning(this, "Unsaved taxel mapping",
-		                             "You have unsaved changes to the taxel mapping. Close anyway?",
-		                             QMessageBox::Save | QMessageBox::Ok | QMessageBox::Cancel,
-		                             QMessageBox::Cancel);
-		if (result == QMessageBox::Save) saveMapping();
+		QMessageBox::StandardButton result = QMessageBox::warning(
+		    this, "Unsaved taxel mapping", "You have unsaved changes to the taxel mapping. Close anyway?",
+		    QMessageBox::Save | QMessageBox::Ok | QMessageBox::Cancel, QMessageBox::Cancel);
+		if (result == QMessageBox::Save)
+			saveMapping();
 		if (result == QMessageBox::Cancel) {
 			event->ignore();
 			return;
@@ -286,7 +314,7 @@ void MainWindow::editMapping(unsigned int nodeIdx)
 {
 	static const QColor highlightColor("blue");
 	highlighted.insert(nodeIdx);
-	QString oldStyle=gloveWidget->highlight(nodeIdx, highlightColor);
+	QString oldStyle = gloveWidget->highlight(nodeIdx, highlightColor);
 
 	bool bOwnDialog = false;
 	if (!mapDlg) {
@@ -295,7 +323,7 @@ void MainWindow::editMapping(unsigned int nodeIdx)
 		bOwnDialog = true;
 	}
 	const QString &oldName = gloveWidget->getNodeName(nodeIdx);
-	const NodeToDataMap::const_iterator node=nodeToData.find(nodeIdx);
+	const NodeToDataMap::const_iterator node = nodeToData.find(nodeIdx);
 	const int channel = node == nodeToData.end() ? -1 : node.value();
 	mapDlg->init(oldName, channel, data.size(), getUnassignedChannels());
 
@@ -308,22 +336,25 @@ void MainWindow::editMapping(unsigned int nodeIdx)
 		if (oldName != mapDlg->name() && !newName.isEmpty()) {
 			if (gloveWidget->findPathNodeIndex(newName))
 				QMessageBox::warning(this, "Name clash", "Taxel name already in use.", QMessageBox::Ok);
-			else { // change node id in gloveWidget's DOM
+			else {  // change node id in gloveWidget's DOM
 				gloveWidget->setNodeName(nodeIdx, newName);
 				gloveWidget->updateSVG();
 			}
 		}
 		if (mapDlg->channel() != channel) {
 			bDirtyMapping = true;
-			if (mapDlg->channel() < 0) nodeToData.remove(nodeIdx);
-			else nodeToData[nodeIdx] = mapDlg->channel();
+			if (mapDlg->channel() < 0)
+				nodeToData.remove(nodeIdx);
+			else
+				nodeToData[nodeIdx] = mapDlg->channel();
 			gloveWidget->setChannel(nodeIdx, mapDlg->channel());
 		}
 	}
-	if (bOwnDialog) mapDlg->deleteLater();
+	if (bOwnDialog)
+		mapDlg->deleteLater();
 }
 
-void MainWindow::resetMapDlg ()
+void MainWindow::resetMapDlg()
 {
 	mapDlg = 0;
 }
@@ -337,7 +368,7 @@ void MainWindow::configureMapping()
 {
 	mapDlg = new MappingDialog(this);
 	connect(mapDlg, SIGNAL(destroyed()), this, SLOT(resetMapDlg()));
-	QPoint         pos;
+	QPoint pos;
 
 	bCancelConfigure = false;
 	QPushButton *btn = mapDlg->addButton(tr("&Abort"), QDialogButtonBox::DestructiveRole);
@@ -352,13 +383,14 @@ void MainWindow::configureMapping()
 	ui->actShowChannels->setChecked(true);
 	ui->actShowIDs->setChecked(false);
 
-	for (unsigned int nodeIdx = 0, end=gloveWidget->numNodes();
-	     !bCancelConfigure && nodeIdx!=end; ++nodeIdx) {
+	for (unsigned int nodeIdx = 0, end = gloveWidget->numNodes(); !bCancelConfigure && nodeIdx != end; ++nodeIdx) {
 		const QString &oldName = gloveWidget->getNodeName(nodeIdx);
 		// ignore nodes named path*
-		if (oldName.startsWith("path")) continue;
+		if (oldName.startsWith("path"))
+			continue;
 		// and nodes already assigned
-		if (nodeToData.find(nodeIdx) != nodeToData.end()) continue;
+		if (nodeToData.find(nodeIdx) != nodeToData.end())
+			continue;
 
 		editMapping(nodeIdx);
 		pos = mapDlg->pos();
@@ -376,18 +408,17 @@ void MainWindow::configureMapping()
 QList<unsigned int> MainWindow::getUnassignedChannels() const
 {
 	QList<unsigned int> unassigned;
-	for (size_t i=0, end=data.size(); i < end; ++i)
+	for (size_t i = 0, end = data.size(); i < end; ++i)
 		unassigned.append(i);
 
-	for (NodeToDataMap::const_iterator it = nodeToData.begin(), end = nodeToData.end();
-	     it != end; ++it)
+	for (NodeToDataMap::const_iterator it = nodeToData.begin(), end = nodeToData.end(); it != end; ++it)
 		unassigned.removeOne(it.value());
 	return unassigned;
 }
 
 void MainWindow::saveMapping()
 {
-	typedef std::map<QString, std::pair<QString, bool (GloveWidget::*)(const QString&, const QString&)> > FilterMap;
+	typedef std::map<QString, std::pair<QString, bool (GloveWidget::*)(const QString &, const QString &)> > FilterMap;
 	static FilterMap filterMap;
 	static QString sFilters;
 	static FilterMap::const_iterator defaultFilter;
@@ -395,16 +426,16 @@ void MainWindow::saveMapping()
 		filterMap[tr("mapping configs (*.cfg)")] = make_pair(".cfg", &GloveWidget::saveMappingCfg);
 		defaultFilter = filterMap.begin();
 		filterMap[tr("xacro configs (*.yaml)")] = make_pair(".yaml", &GloveWidget::saveMappingYAML);
-		for (FilterMap::const_iterator it=filterMap.begin(), end=filterMap.end();
-		     it != end; ++it) {
-			if (!sFilters.isEmpty()) sFilters.append(";;");
+		for (FilterMap::const_iterator it = filterMap.begin(), end = filterMap.end(); it != end; ++it) {
+			if (!sFilters.isEmpty())
+				sFilters.append(";;");
 			sFilters.append(it->first);
 		}
 	}
 
 	// choose default filter from current file name
 	QString selectedFilter = defaultFilter->first;
-	for (FilterMap::const_iterator it=filterMap.begin(), end=filterMap.end(); it != end; ++it) {
+	for (FilterMap::const_iterator it = filterMap.begin(), end = filterMap.end(); it != end; ++it) {
 		if (sMappingFile.endsWith(it->second.first))
 			selectedFilter = it->first;
 	}
@@ -428,15 +459,17 @@ void MainWindow::saveMapping()
 		// which filter was choosen?
 		chosenFilter = filterMap.find(selectedFilter);
 		// file suffix superseeds chosen filter
-		for (FilterMap::const_iterator it=filterMap.begin(), end=filterMap.end(); it != end; ++it) {
+		for (FilterMap::const_iterator it = filterMap.begin(), end = filterMap.end(); it != end; ++it) {
 			if (sFileName.endsWith(it->second.first))
 				chosenFilter = it;
 		}
-		if (chosenFilter == filterMap.end()) chosenFilter = defaultFilter;
+		if (chosenFilter == filterMap.end())
+			chosenFilter = defaultFilter;
 
 		// append default extension from selected filter
 		QFileInfo fi(sFileName);
-		if (fi.suffix().isEmpty()) sFileName.append(chosenFilter->second.first);
+		if (fi.suffix().isEmpty())
+			sFileName.append(chosenFilter->second.first);
 
 		if (fi.exists()) {
 			FileExistsDialog msg(sFileName, chosenFilter->second.second == &GloveWidget::saveMappingCfg, this);
@@ -456,13 +489,13 @@ void MainWindow::saveMapping()
 	if ((gloveWidget->*chosenFilter->second.second)(sFileName, mapping_name))
 		bDirtyMapping = false;
 	else
-		QMessageBox::warning(this, "Save taxel mapping",
-		                     QString("Failed to open file for writing:\n%1").arg(sFileName));
+		QMessageBox::warning(this, "Save taxel mapping", QString("Failed to open file for writing:\n%1").arg(sFileName));
 }
 
 /*** functions for connection handling ***/
-template<typename value_type>
-void MainWindow::updateData(const std::vector<value_type> &frame) {
+template <typename value_type>
+void MainWindow::updateData(const std::vector<value_type> &frame)
+{
 	QMutexLocker lock(&dataMutex);
 	assert(frame.size() == data.size());
 	data.updateValues(frame.begin(), frame.end());
@@ -476,8 +509,7 @@ void MainWindow::configSerial(const QString &sDevice)
 
 	QSerialInput *serial = new QSerialInput(data.size());
 	serial->setUpdateFunction(boost::bind(&MainWindow::updateData<tactile::InputInterface::data_type>, this, _1));
-	connect(serial, SIGNAL(statusMessage(QString,int)),
-	        ui->statusBar, SLOT(showMessage(QString,int)));
+	connect(serial, SIGNAL(statusMessage(QString, int)), ui->statusBar, SLOT(showMessage(QString, int)));
 	connect(serial, SIGNAL(disconnected(QString)), this, SLOT(onSerialError(QString)));
 	input = serial;
 }
@@ -497,11 +529,10 @@ void MainWindow::configROS(const QString &sTopic)
 
 	ROSInput *rosInput = new ROSInput(data.size());
 	rosInput->setUpdateFunction(boost::bind(&MainWindow::updateData<float>, this, _1));
-	connect(rosInput, SIGNAL(statusMessage(QString,int)),
-	        ui->statusBar, SLOT(showMessage(QString,int)));
+	connect(rosInput, SIGNAL(statusMessage(QString, int)), ui->statusBar, SLOT(showMessage(QString, int)));
 	input = rosInput;
 
-	on_btnConnect_clicked(); // auto-connect to ROS topic
+	on_btnConnect_clicked();  // auto-connect to ROS topic
 #endif
 }
 
@@ -518,12 +549,14 @@ void MainWindow::on_btnConnect_clicked()
 {
 	if (input->connect(ui->inputLineEdit->text())) {
 		ui->statusBar->showMessage("Successfully connected.", 2000);
-		frameCount = -1; lastUpdate.start();
-		timerID = startTimer (ui->updateTimeSpinBox->value());
+		frameCount = -1;
+		lastUpdate.start();
+		timerID = startTimer(ui->updateTimeSpinBox->value());
 
 		ui->btnConnect->setEnabled(false);
 		ui->btnDisconnect->setEnabled(true);
-		ui->fps->show(); ui->toolBar->addWidget(ui->fps);
+		ui->fps->show();
+		ui->toolBar->addWidget(ui->fps);
 	}
 }
 
@@ -537,5 +570,6 @@ void MainWindow::on_btnDisconnect_clicked()
 	resetColors();
 
 	ui->btnConnect->setEnabled(true);
-	killTimer(timerID); timerID = 0;
+	killTimer(timerID);
+	timerID = 0;
 }

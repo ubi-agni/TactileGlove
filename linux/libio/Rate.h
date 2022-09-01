@@ -24,21 +24,21 @@
 class Rate
 {
 public:
-  using Clock = std::chrono::steady_clock;
-  using Time = Clock::time_point;
-  using Duration = Clock::duration;
+	using Clock = std::chrono::steady_clock;
+	using Time = Clock::time_point;
+	using Duration = Clock::duration;
 
-  Rate(double frequency);
-  explicit Rate(const Duration &);
+	Rate(double frequency);
+	explicit Rate(const Duration &);
 
-  bool sleep();
-  void reset();
+	bool sleep();
+	void reset();
 
-  Duration cycleTime() const { return actual_cycle_time_; }
+	Duration cycleTime() const { return actual_cycle_time_; }
 
-  Duration expectedCycleTime() const { return expected_cycle_time_; }
+	Duration expectedCycleTime() const { return expected_cycle_time_; }
 
 private:
-  Time start_;
-  Duration expected_cycle_time_, actual_cycle_time_;
+	Time start_;
+	Duration expected_cycle_time_, actual_cycle_time_;
 };

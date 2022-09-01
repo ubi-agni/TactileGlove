@@ -26,9 +26,7 @@
 #include <assert.h>
 #include <cmath>
 
-ColorMap::ColorMap()
-{
-}
+ColorMap::ColorMap() {}
 
 void ColorMap::append(const QColor &c)
 {
@@ -42,7 +40,7 @@ void ColorMap::append(const QList<QColor> &cols)
 
 void ColorMap::append(const QStringList &names)
 {
-	for (QStringList::const_iterator it=names.begin(), end=names.end(); it!=end; ++it)
+	for (QStringList::const_iterator it = names.begin(), end = names.end(); it != end; ++it)
 		colors.append(QColor(*it));
 }
 
@@ -50,16 +48,20 @@ QColor ColorMap::map(float value, float min, float max) const
 {
 	static const QColor errColor("cyan");
 	assert(colors.size() > 1);
-	if (std::isnan(value)) return errColor;
+	if (std::isnan(value))
+		return errColor;
 
-	float ratio = (value-min) / (max-min) * (colors.size()-1);
-	if (ratio < 0) return colors[0];
-	int   idx = ratio;
-	if (idx >= colors.size()-1) return colors.last();
+	float ratio = (value - min) / (max - min) * (colors.size() - 1);
+	if (ratio < 0)
+		return colors[0];
+	int idx = ratio;
+	if (idx >= colors.size() - 1)
+		return colors.last();
 
-	float b = ratio - idx; // in [0..1)
+	float b = ratio - idx;  // in [0..1)
 	float a = 1.0 - b;
-	const QColor& lo = colors[idx];
-	const QColor& hi = colors[idx+1];
-	return QColor(a*lo.red()+b*hi.red(), a*lo.green()+b*hi.green(), a*lo.blue()+b*hi.blue(), a*lo.alpha()+b*hi.alpha());
+	const QColor &lo = colors[idx];
+	const QColor &hi = colors[idx + 1];
+	return QColor(a * lo.red() + b * hi.red(), a * lo.green() + b * hi.green(), a * lo.blue() + b * hi.blue(),
+	              a * lo.alpha() + b * hi.alpha());
 }

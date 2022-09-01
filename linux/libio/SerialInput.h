@@ -34,7 +34,8 @@ namespace tactile {
 class SerialInput : public InputInterface
 {
 public:
-	class timeout_error : public std::exception {
+	class timeout_error : public std::exception
+	{
 	public:
 		const char* what() const throw();
 	};
@@ -43,17 +44,17 @@ public:
 	~SerialInput();
 
 	void setTimeOut(unsigned int msec);
-	void connect(const std::string &sDevice);
+	void connect(const std::string& sDevice);
 	void disconnect();
-	const data_vector& readFrame ();
+	const data_vector& readFrame();
 
 private:
 	void sync(unsigned char buf[]) const;
 
 private:
-	struct termios oldtio,newtio;
+	struct termios oldtio, newtio;
 	struct timespec timeout;
-	int    fd;
+	int fd;
 };
 
-}
+}  // namespace tactile

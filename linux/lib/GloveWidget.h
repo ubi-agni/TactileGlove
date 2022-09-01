@@ -16,11 +16,11 @@ class GloveWidget : public QWidget
 {
 	Q_OBJECT
 public:
-	explicit GloveWidget(const QString& sLayout, bool bMirror=false, QWidget *parent = 0);
+	explicit GloveWidget(const QString &sLayout, bool bMirror = false, QWidget *parent = 0);
 	QSize sizeHint() const;
 
 	/// return number of all SVG nodes
-	unsigned int numNodes () const;
+	unsigned int numNodes() const;
 	/// find a path node in allNodes from sName
 	int findPathNodeIndex(const QString &sName) const;
 	/// get name of indexed node
@@ -67,27 +67,28 @@ private:
 	void mouseDoubleClickEvent(QMouseEvent *event);
 
 private:
-	struct TaxelInfo {
-		TaxelInfo (const QString &name, const QDomNode &pathNode, const QDomNode &styleNode);
+	struct TaxelInfo
+	{
+		TaxelInfo(const QString &name, const QDomNode &pathNode, const QDomNode &styleNode);
 
 		QDomNode pathNode;
-		QString  name;
+		QString name;
 		QDomNode styleNode;
-		QString  styleString;
-		int      iFillStart;
-		short channel; // -1 if unassigned
+		QString styleString;
+		int iFillStart;
+		short channel;  // -1 if unassigned
 	};
 
-	QDomDocument  *qDomDocPtr;
-	bool           bDirtyDoc;
-	QSvgRenderer  *qSvgRendererPtr;
+	QDomDocument *qDomDocPtr;
+	bool bDirtyDoc;
+	QSvgRenderer *qSvgRendererPtr;
 
 	// list of all DOM nodes with their name
 	typedef QList<TaxelInfo> PathList;
-	PathList       allNodes;
+	PathList allNodes;
 
-	unsigned int   numTaxelNodes, numAssigned;
-	bool           bShowChannels, bShowNames, bShowAllNames;
-	QTransform     viewTransform; // painter's transform, used for mouse mapping
-	bool           bMirror;
+	unsigned int numTaxelNodes, numAssigned;
+	bool bShowChannels, bShowNames, bShowAllNames;
+	QTransform viewTransform;  // painter's transform, used for mouse mapping
+	bool bMirror;
 };

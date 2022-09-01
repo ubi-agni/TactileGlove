@@ -25,18 +25,13 @@
 
 namespace tactile {
 
-InputInterface::InputInterface(size_t noTaxels)
-   : data(noTaxels), connected(false)
-{
-}
+InputInterface::InputInterface(size_t noTaxels) : data(noTaxels), connected(false) {}
 
-InputInterface::~InputInterface()
-{
-}
+InputInterface::~InputInterface() {}
 
 bool InputInterface::isConnected() const
 {
 	return connected;
 }
 
-}
+}  // namespace tactile

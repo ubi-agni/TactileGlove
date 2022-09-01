@@ -32,17 +32,18 @@ namespace tactile {
 class FileInput : public InputInterface
 {
 public:
-	FileInput(size_t noTaxels, double speed_factor=1.0, bool startover=false);
+	FileInput(size_t noTaxels, double speed_factor = 1.0, bool startover = false);
 	void connect(const std::string &dummy);
 	void disconnect();
-	const data_vector& readFrame();
+	const data_vector &readFrame();
+
 private:
-  FILE *fd;
-  bool loop;
-  fpos_t startpos;
-  time_t prev_time;
-  int prev_timestamp;
-  float speed_factor;
+	FILE *fd;
+	bool loop;
+	fpos_t startpos;
+	time_t prev_time;
+	int prev_timestamp;
+	float speed_factor;
 };
 
-}
+}  // namespace tactile

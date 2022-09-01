@@ -29,16 +29,15 @@
 
 namespace tactile {
 
-FileInput::FileInput(size_t noTaxels, double factor, bool startover)
-   : InputInterface(noTaxels), loop(startover)
+FileInput::FileInput(size_t noTaxels, double factor, bool startover) : InputInterface(noTaxels), loop(startover)
 {
-	if(factor > 0)
+	if (factor > 0)
 		speed_factor = factor;
 	else
 		speed_factor = 1.0;
 }
 
-void FileInput::connect(const std::string &filename)
+void FileInput::connect(const std::string& filename)
 {
 	fd = fopen(filename.c_str(), "r");
 	char buf[256];
@@ -69,10 +68,11 @@ void FileInput::disconnect()
 
 const FileInput::data_vector& FileInput::readFrame()
 {
-	if (!connected) throw std::runtime_error("not connected");
+	if (!connected)
+		throw std::runtime_error("not connected");
 	time_t cur_time;
 	time(&cur_time);
-	double time_diff_ms = difftime(cur_time, prev_time)* 1000.;
+	double time_diff_ms = difftime(cur_time, prev_time) * 1000.;
 	prev_time = cur_time;
 
 	size_t idx = 0;
@@ -80,52 +80,41 @@ const FileInput::data_vector& FileInput::readFrame()
 	char buf[256];
 	int comment_chars = 1;
 	short unsigned int val;
-	if (feof(fd))
-	{
+	if (feof(fd)) {
 		if (loop) {
 			fsetpos(fd, &startpos);
 			prev_timestamp = 0;
 			printf("loop\n");
-		}
-		else {
+		} else {
 			throw std::runtime_error("end of data");
 		}
 	}
-	if (!feof(fd))
-	{
+	if (!feof(fd)) {
 		// jump comment lines
-		while(comment_chars && !feof(fd)) {
-			comment_chars = fscanf(fd,"# %s\n", buf);
+		while (comment_chars && !feof(fd)) {
+			comment_chars = fscanf(fd, "# %s\n", buf);
 		}
 
 		// read timestamp
-		if (fscanf(fd,"%d", &timestamp) == 1)
-		{
-			if (prev_timestamp != 0)
-			{
+		if (fscanf(fd, "%d", &timestamp) == 1) {
+			if (prev_timestamp != 0) {
 				double diff_timestamp = (timestamp - prev_timestamp);
-				if (diff_timestamp >= 0 && diff_timestamp < 2000)
-				{
+				if (diff_timestamp >= 0 && diff_timestamp < 2000) {
 					if (time_diff_ms < diff_timestamp / speed_factor)
 						usleep(1000 * diff_timestamp / speed_factor);
 					prev_timestamp = timestamp;
-				}
-				else
-				{
+				} else {
 					throw std::runtime_error("timestamps must be increasing and less than 2 seconds appart");
 				}
-			}
-			else
-			{
+			} else {
 				prev_timestamp = timestamp;
 			}
 
-			for (data_vector::iterator it=data.begin(), end=data.end(); it != end; ++it, ++idx) {
-				if(fscanf(fd,";%hu", &val) != 1) {
-					fgets(buf, sizeof(buf), fd); // read rest of line
+			for (data_vector::iterator it = data.begin(), end = data.end(); it != end; ++it, ++idx) {
+				if (fscanf(fd, ";%hu", &val) != 1) {
+					fgets(buf, sizeof(buf), fd);  // read rest of line
 					break;
-				}
-				else {
+				} else {
 					*it = val;
 				}
 			}
@@ -134,4 +123,4 @@ const FileInput::data_vector& FileInput::readFrame()
 	return data;
 }
 
-}
+}  // namespace tactile

@@ -27,7 +27,8 @@
 
 namespace tactile {
 
-class InputInterface {
+class InputInterface
+{
 public:
 	typedef unsigned short data_type;
 	typedef std::vector<data_type> data_vector;
@@ -35,15 +36,15 @@ public:
 	explicit InputInterface(size_t noTaxels);
 	virtual ~InputInterface();
 
-	virtual void connect(const std::string &sInput) = 0;
+	virtual void connect(const std::string& sInput) = 0;
 	virtual void disconnect() = 0;
 	virtual bool isConnected() const;
 
-	virtual const data_vector& readFrame () = 0;
+	virtual const data_vector& readFrame() = 0;
 
 protected:
 	data_vector data;
-	bool        connected;
+	bool connected;
 };
 
-}
+}  // namespace tactile

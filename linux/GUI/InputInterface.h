@@ -26,7 +26,8 @@
 #include "../libio/InputInterface.h"
 class QString;
 
-class InputInterface {
+class InputInterface
+{
 public:
 	virtual ~InputInterface() {}
 

@@ -1,9 +1,6 @@
 #include "ROSInput.h"
 
-ROSInput::ROSInput(size_t noTaxels) :
-   noTaxels(noTaxels), spinner(1)
-{
-}
+ROSInput::ROSInput(size_t noTaxels) : noTaxels(noTaxels), spinner(1) {}
 
 ROSInput::~ROSInput()
 {

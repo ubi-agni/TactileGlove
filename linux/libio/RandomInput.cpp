@@ -28,15 +28,14 @@
 
 namespace tactile {
 
-RandomInput::RandomInput(size_t noTaxels)
-   : InputInterface(noTaxels)
+RandomInput::RandomInput(size_t noTaxels) : InputInterface(noTaxels)
 {
 	// initialize smallest values
 	data[1] = 2048;
 	data[14] = 3700;
 }
 
-void RandomInput::connect(const std::string &dummy)
+void RandomInput::connect(const std::string& dummy)
 {
 	connected = true;
 }
@@ -48,19 +47,23 @@ void RandomInput::disconnect()
 
 const InputInterface::data_vector& RandomInput::readFrame()
 {
-	if (!connected) throw std::runtime_error("not connected");
+	if (!connected)
+		throw std::runtime_error("not connected");
 
 	size_t idx = 0;
-	for (data_vector::iterator it=data.begin(), end=data.end(); it != end; ++it, ++idx) {
+	for (data_vector::iterator it = data.begin(), end = data.end(); it != end; ++it, ++idx) {
 		long int rndnumber = random();
 		if (rndnumber < (RAND_MAX / 2)) { /* only give new value 50% of time */
 			*it = rndnumber & 0xFFF;
-			if (idx != 0) *it /= 10;   // except of first value, all have a rather small stddev
-			if (idx == 1)  *it = std::min<data_type>(*it + 2048, 0xFFF); // simulate a fixed offset
-			if (idx == 14) *it = std::min<data_type>(*it + 3700, 0xFFF); // goniometer joint value
+			if (idx != 0)
+				*it /= 10;  // except of first value, all have a rather small stddev
+			if (idx == 1)
+				*it = std::min<data_type>(*it + 2048, 0xFFF);  // simulate a fixed offset
+			if (idx == 14)
+				*it = std::min<data_type>(*it + 3700, 0xFFF);  // goniometer joint value
 		}
 	}
 	return data;
 }
 
-}
+}  // namespace tactile

@@ -27,10 +27,7 @@
 #include <QPainter>
 #include <QMouseEvent>
 
-TaxelSelector::TaxelSelector(QWidget *parent) :
-   QWidget(parent), bMonitor(false)
-{
-}
+TaxelSelector::TaxelSelector(QWidget *parent) : QWidget(parent), bMonitor(false) {}
 
 void TaxelSelector::init(const QList<unsigned int> &unassigned, bool bMonitor)
 {
@@ -38,7 +35,7 @@ void TaxelSelector::init(const QList<unsigned int> &unassigned, bool bMonitor)
 	this->colors.clear();
 	this->accumulated.clear();
 	QColor c("black");
-	for (unsigned int i=0; i < unassigned.size(); ++i) {
+	for (unsigned int i = 0; i < unassigned.size(); ++i) {
 		this->colors.push_back(c);
 		this->accumulated.push_back(0);
 	}
@@ -50,26 +47,29 @@ void TaxelSelector::init(const QList<unsigned int> &unassigned, bool bMonitor)
 	this->bMonitor = bMonitor;
 }
 
-void TaxelSelector::update(const std::vector<float> &data,
-                           const ColorMap *colorMap, float fMin, float fMax)
+void TaxelSelector::update(const std::vector<float> &data, const ColorMap *colorMap, float fMin, float fMax)
 {
-	for (unsigned int i=0; i < unassigned.size(); ++i) {
+	for (unsigned int i = 0; i < unassigned.size(); ++i) {
 		colors[i] = colorMap->map(data[unassigned[i]], fMin, fMax);
 	}
-	if (bMonitor) doMonitor(data);
+	if (bMonitor)
+		doMonitor(data);
 	QWidget::update();
 }
 
-void TaxelSelector::doMonitor(const std::vector<float> &data) {
-	float valFirst=0, valSecond=0;
+void TaxelSelector::doMonitor(const std::vector<float> &data)
+{
+	float valFirst = 0, valSecond = 0;
 	int idxFirst = -1, idxSecond = -1;
 
-	for (unsigned int i=0; i < unassigned.size(); ++i) {
+	for (unsigned int i = 0; i < unassigned.size(); ++i) {
 		unsigned int idx = unassigned[i];
 		accumulated[i] += data[idx];
 		if (accumulated[i] > valFirst) {
-			valSecond = valFirst; valFirst = accumulated[i];
-			idxSecond = idxFirst; idxFirst = idx;
+			valSecond = valFirst;
+			valFirst = accumulated[i];
+			idxSecond = idxFirst;
+			idxFirst = idx;
 		}
 	}
 	if (valFirst > 5 * valSecond && valFirst > 1000) {
@@ -80,8 +80,8 @@ void TaxelSelector::doMonitor(const std::vector<float> &data) {
 
 QSize TaxelSelector::minimumSizeHint() const
 {
-	int cols = 10, rows = (unassigned.size() + cols-1) / cols;
-	return QSize(cols*cellWidth, rows*cellWidth);
+	int cols = 10, rows = (unassigned.size() + cols - 1) / cols;
+	return QSize(cols * cellWidth, rows * cellWidth);
 }
 
 void TaxelSelector::paintEvent(QPaintEvent *)
@@ -91,28 +91,32 @@ void TaxelSelector::paintEvent(QPaintEvent *)
 	QPainter painter(this);
 	painter.setBrush(this->palette().color(QPalette::Window));
 	painter.setPen(this->palette().color(QPalette::Window));
-	painter.drawRect(QRectF(0,0, width(),height()));
-	QRect bounds (0,0, cellWidth, cellWidth);
+	painter.drawRect(QRectF(0, 0, width(), height()));
+	QRect bounds(0, 0, cellWidth, cellWidth);
 
-	for (int r=0, c=0, i = 0; i != unassigned.size(); ++i) {
-		bounds.moveTopLeft(QPoint(c*cellWidth, r*cellWidth));
+	for (int r = 0, c = 0, i = 0; i != unassigned.size(); ++i) {
+		bounds.moveTopLeft(QPoint(c * cellWidth, r * cellWidth));
 		painter.setBrush(colors[i]);
 		painter.setPen(Qt::white);
 		painter.drawRect(bounds);
 
-		QString label = QString::number(unassigned[i]+1);
+		QString label = QString::number(unassigned[i] + 1);
 		painter.setPen(Qt::black);
 		painter.drawText(bounds, Qt::AlignCenter, label);
 		painter.setPen(Qt::white);
-		painter.drawText(bounds.translated(1,1), Qt::AlignCenter, label);
+		painter.drawText(bounds.translated(1, 1), Qt::AlignCenter, label);
 
-		if (++c >= cols) {++r; c=0;}
+		if (++c >= cols) {
+			++r;
+			c = 0;
+		}
 	}
 }
 
 void TaxelSelector::mousePressEvent(QMouseEvent *event)
 {
-	if (event->button() != Qt::LeftButton) return;
+	if (event->button() != Qt::LeftButton)
+		return;
 	int cols = width() / cellWidth;
 
 	const QPoint &pos = event->pos();

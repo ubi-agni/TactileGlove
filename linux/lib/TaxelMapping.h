@@ -14,7 +14,7 @@ public:
 
 	/// merge mapping from other, overwriting existing associations
 	/// if keys are given in form prefix.name, prefix needs to match (non-empty) sMapping
-	TaxelMapping& merge(const TaxelMapping& other, const std::string &sMapping="");
+	TaxelMapping &merge(const TaxelMapping &other, const std::string &sMapping = "");
 
 	static int parseChannel(const std::string &sValue);
 };

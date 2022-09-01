@@ -22,45 +22,44 @@
 #include <thread>
 
 Rate::Rate(double frequency)
-    : start_(Clock::now()), expected_cycle_time_(static_cast<Duration::rep>(Duration::period::den / Duration::period::num / frequency)), actual_cycle_time_(Clock::duration::zero())
-{
-}
+  : start_(Clock::now())
+  , expected_cycle_time_(static_cast<Duration::rep>(Duration::period::den / Duration::period::num / frequency))
+  , actual_cycle_time_(Clock::duration::zero())
+{}
 
 Rate::Rate(const Duration &d)
-    : start_(Clock::now()), expected_cycle_time_(d), actual_cycle_time_(Clock::duration::zero())
-{
-}
+  : start_(Clock::now()), expected_cycle_time_(d), actual_cycle_time_(Clock::duration::zero())
+{}
 
 bool Rate::sleep()
 {
-  Time expected_end = start_ + expected_cycle_time_;
-  Time actual_end = Clock::now();
+	Time expected_end = start_ + expected_cycle_time_;
+	Time actual_end = Clock::now();
 
-  // calculate the time we'll sleep for
-  Duration sleep_time = expected_end - actual_end;
+	// calculate the time we'll sleep for
+	Duration sleep_time = expected_end - actual_end;
 
-  // set the actual amount of time the loop took in case the user wants to know
-  actual_cycle_time_ = actual_end - start_;
+	// set the actual amount of time the loop took in case the user wants to know
+	actual_cycle_time_ = actual_end - start_;
 
-  // make sure to reset our start time
-  start_ = expected_end;
+	// make sure to reset our start time
+	start_ = expected_end;
 
-  // if we've taken too much time, we won't sleep
-  if (sleep_time <= Duration::zero())
-  {
-    // if the loop has taken more than a full extra cycle, restart
-    if (actual_end > expected_end + expected_cycle_time_)
-      start_ = actual_end;
+	// if we've taken too much time, we won't sleep
+	if (sleep_time <= Duration::zero()) {
+		// if the loop has taken more than a full extra cycle, restart
+		if (actual_end > expected_end + expected_cycle_time_)
+			start_ = actual_end;
 
-    // return false to show that the desired rate was not met
-    return false;
-  }
+		// return false to show that the desired rate was not met
+		return false;
+	}
 
-  std::this_thread::sleep_for(sleep_time);
-  return true;
+	std::this_thread::sleep_for(sleep_time);
+	return true;
 }
 
 void Rate::reset()
 {
-  start_ = Clock::now();
+	start_ = Clock::now();
 }

@@ -38,7 +38,7 @@ public:
 	void append(const QStringList &names);
 
 	/// map a value linearly onto the color map (assuming an input range from min..max)
-	QColor map(float value, float min=0, float max=1) const;
+	QColor map(float value, float min = 0, float max = 1) const;
 
 private:
 	QList<QColor> colors;

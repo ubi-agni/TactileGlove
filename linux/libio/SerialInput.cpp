@@ -40,13 +40,12 @@ const char *SerialInput::timeout_error::what() const throw()
 	return "serial communication timed out";
 }
 
-
-SerialInput::SerialInput(size_t noTaxels)
-   : InputInterface(noTaxels)
+SerialInput::SerialInput(size_t noTaxels) : InputInterface(noTaxels)
 {
 	setTimeOut(100);
 }
-SerialInput::~SerialInput() {
+SerialInput::~SerialInput()
+{
 	disconnect();
 }
 
@@ -58,27 +57,28 @@ void SerialInput::setTimeOut(unsigned int msec)
 
 void SerialInput::connect(const std::string &sDevice)
 {
-	if (connected) return;
-	if ((fd = open (sDevice.c_str(), O_RDONLY | O_NOCTTY)) < 0)
+	if (connected)
+		return;
+	if ((fd = open(sDevice.c_str(), O_RDONLY | O_NOCTTY)) < 0)
 		throw std::runtime_error(string("Connection failed: ") + strerror(errno));
 
-	tcgetattr(fd,&oldtio); /* save current port settings */
+	tcgetattr(fd, &oldtio); /* save current port settings */
 	bzero(&newtio, sizeof(newtio));
 
-	cfsetospeed (&newtio, B115200);
-	cfsetispeed (&newtio, B115200);
+	cfsetospeed(&newtio, B115200);
+	cfsetispeed(&newtio, B115200);
 
 	// set up raw mode / no echo / binary
-	newtio.c_cflag |= (tcflag_t)  (CLOCAL | CREAD);
-	newtio.c_lflag &= (tcflag_t) ~(ICANON | ECHO | ECHOE | ECHOK | ECHONL | ISIG | IEXTEN); //|ECHOPRT
+	newtio.c_cflag |= (tcflag_t)(CLOCAL | CREAD);
+	newtio.c_lflag &= (tcflag_t) ~(ICANON | ECHO | ECHOE | ECHOK | ECHONL | ISIG | IEXTEN);  //|ECHOPRT
 
 	newtio.c_oflag &= (tcflag_t) ~(OPOST);
 	newtio.c_iflag &= (tcflag_t) ~(INLCR | IGNCR | ICRNL | IGNBRK);
 #ifdef IUCLC
-	newtio.c_iflag &= (tcflag_t) ~IUCLC;
+	newtio.c_iflag &= (tcflag_t)~IUCLC;
 #endif
 #ifdef PARMRK
-	newtio.c_iflag &= (tcflag_t) ~PARMRK;
+	newtio.c_iflag &= (tcflag_t)~PARMRK;
 #endif
 
 	// setup char len = CS8
@@ -92,60 +92,66 @@ void SerialInput::connect(const std::string &sDevice)
 	newtio.c_iflag &= (tcflag_t) ~(IXON | IXOFF | IXANY);
 	newtio.c_cflag &= (tcflag_t) ~(CRTSCTS);
 
-	newtio.c_cc[VTIME]    = 0;   /* inter-character timer unused */
-	newtio.c_cc[VMIN]     = 0;   /* no minimum chars to be read */
+	newtio.c_cc[VTIME] = 0; /* inter-character timer unused */
+	newtio.c_cc[VMIN] = 0; /* no minimum chars to be read */
 
-	tcsetattr(fd,TCSANOW,&newtio);
+	tcsetattr(fd, TCSANOW, &newtio);
 	tcflush(fd, TCIFLUSH);
 
 	connected = true;
-	readFrame(); // read eventually incomplete frame
+	readFrame();  // read eventually incomplete frame
 }
 
 void SerialInput::disconnect()
 {
-	if (!connected) return;
+	if (!connected)
+		return;
 	connected = false;
-	tcsetattr(fd,TCSANOW,&oldtio);
+	tcsetattr(fd, TCSANOW, &oldtio);
 	tcflush(fd, TCIOFLUSH);
 	close(fd);
 }
 
-const InputInterface::data_vector& SerialInput::readFrame()
+const InputInterface::data_vector &SerialInput::readFrame()
 {
-	if (!connected) throw std::runtime_error("not connected");
+	if (!connected)
+		throw std::runtime_error("not connected");
 
-	unsigned char buf[PACKET_SIZE_BYTES]; // receive buffer
+	unsigned char buf[PACKET_SIZE_BYTES];  // receive buffer
 	size_t index;
 	fd_set fdset;
 
 	while (connected) {
 		FD_ZERO(&fdset);
 		FD_SET(fd, &fdset);
-		int res = pselect (fd+1,&fdset,NULL,NULL,&timeout,NULL);
-		if (res == -1) throw std::runtime_error(strerror(errno));
-		if (res == 0)	throw timeout_error();
+		int res = pselect(fd + 1, &fdset, NULL, NULL, &timeout, NULL);
+		if (res == -1)
+			throw std::runtime_error(strerror(errno));
+		if (res == 0)
+			throw timeout_error();
 
 		// read a maximum of 5 bytes into buf (actual read count is in res)
-		res = read(fd,buf,PACKET_SIZE_BYTES);
+		res = read(fd, buf, PACKET_SIZE_BYTES);
 
 		/* Parsing: We go through the res bytes in buf[] and look for
-			- first byte determines taxel number, allowed range is from 0x3C to 0x7B;
-			- constant byte 0x01
-			- 2 byte sensor value, with first 4 bits as internal AD channel number (ignore)
-			- NULL byte (0x00)
-			Example: 3C 01 0F FF 00
+		   - first byte determines taxel number, allowed range is from 0x3C to 0x7B;
+		   - constant byte 0x01
+		   - 2 byte sensor value, with first 4 bits as internal AD channel number (ignore)
+		   - NULL byte (0x00)
+		   Example: 3C 01 0F FF 00
 		*/
 		if (res == PACKET_SIZE_BYTES) {
-			if ((buf[0]>=0x3C) && ((index = buf[0] - 0x3C) < data.size()) &&
-			    buf[1] == 0x01 && buf[4] == 0x00) {
+			if ((buf[0] >= 0x3C) && ((index = buf[0] - 0x3C) < data.size()) && buf[1] == 0x01 && buf[4] == 0x00) {
 				// we have a valid packet
-				data_type value = ((0x0F & buf[2])<<8) | buf[3]; // get pressure value
-				data[index] = 4095-value;
+				data_type value = ((0x0F & buf[2]) << 8) | buf[3];  // get pressure value
+				data[index] = 4095 - value;
 				// got full frame ?
-				if (index==data.size()-1) return data;
-			} else sync(buf);
-		} else throw std::runtime_error ("failed to read from serial input");
+				if (index == data.size() - 1)
+					return data;
+			} else
+				sync(buf);
+		} else
+			throw std::runtime_error("failed to read from serial input");
 	}
 
 	return data;
@@ -153,16 +159,17 @@ const InputInterface::data_vector& SerialInput::readFrame()
 
 inline bool valid(const unsigned char buf[PACKET_SIZE_BYTES], unsigned int o)
 {
-	return buf[o % PACKET_SIZE_BYTES] >= 0x3C &&
-	       buf[(1+o) % PACKET_SIZE_BYTES] == 0x01 &&
-	       buf[(4+o) % PACKET_SIZE_BYTES] == 0x00;
+	return buf[o % PACKET_SIZE_BYTES] >= 0x3C && buf[(1 + o) % PACKET_SIZE_BYTES] == 0x01 &&
+	       buf[(4 + o) % PACKET_SIZE_BYTES] == 0x00;
 }
 
-void SerialInput::sync(unsigned char buf[PACKET_SIZE_BYTES]) const {
+void SerialInput::sync(unsigned char buf[PACKET_SIZE_BYTES]) const
+{
 	unsigned int offset = 1;
 	for (; offset < PACKET_SIZE_BYTES; ++offset)
-		if (valid(buf, offset)) break;
-	read(fd, buf, PACKET_SIZE_BYTES-offset);
+		if (valid(buf, offset))
+			break;
+	read(fd, buf, PACKET_SIZE_BYTES - offset);
 }
 
-}
+}  // namespace tactile

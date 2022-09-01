@@ -34,7 +34,7 @@ class RandomInput : public QObject, public InputInterface
 {
 	Q_OBJECT
 signals:
-	void statusMessage(const QString&, int time);
+	void statusMessage(const QString &, int time);
 
 public:
 	RandomInput(size_t noTaxels);
@@ -42,8 +42,8 @@ public:
 	bool disconnect();
 
 	typedef tactile::InputInterface::data_vector data_vector;
-	typedef boost::function<void(const data_vector&)> UpdateFunction;
-	void setUpdateFunction(const UpdateFunction &f) {updateFunc = f;}
+	typedef boost::function<void(const data_vector &)> UpdateFunction;
+	void setUpdateFunction(const UpdateFunction &f) { updateFunc = f; }
 
 private:
 	tactile::RandomInput input;

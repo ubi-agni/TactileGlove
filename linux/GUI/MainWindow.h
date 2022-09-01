@@ -10,7 +10,9 @@
 #include <tactile_filters/TactileValueArray.h>
 #include <tactile_filters/Calibration.h>
 
-namespace Ui {class MainWindow;}
+namespace Ui {
+class MainWindow;
+}
 class QComboBox;
 class ColorMap;
 
@@ -27,7 +29,7 @@ public:
 
 	void setCalibration(const std::string &sCalibFile);
 	void initJointBar(TaxelMapping &mapping);
-	void initGloveWidget(const QString &layout, bool bMirror, const TaxelMapping& mapping);
+	void initGloveWidget(const QString &layout, bool bMirror, const TaxelMapping &mapping);
 
 	void configSerial(const QString &sDevice);
 	void configROS(const QString &sTopic);
@@ -38,12 +40,10 @@ public slots:
 
 private:
 	void initModeComboBox(QComboBox *cb);
-	void chooseMapping(tactile::TactileValue::Mode mode,
-	                   const std::shared_ptr<tactile::Calibration> &calib,
-	                   ColorMap *&colorMap,
-	                   float &fMin, float &fMax);
-	void resetColors(const QColor &color=QColor("black"));
-	template<typename value_type>
+	void chooseMapping(tactile::TactileValue::Mode mode, const std::shared_ptr<tactile::Calibration> &calib,
+	                   ColorMap *&colorMap, float &fMin, float &fMax);
+	void resetColors(const QColor &color = QColor("black"));
+	template <typename value_type>
 	void updateData(const std::vector<value_type> &frame);
 	void updateJointBar(unsigned short value);
 
@@ -64,36 +64,36 @@ private slots:
 	void editMapping(unsigned int nodeIdx);
 	/// configure all unassigned taxels
 	void configureMapping();
-	void setCancelConfigure(bool bCancel=true);
+	void setCancelConfigure(bool bCancel = true);
 	void resetMapDlg();
 
 private:
-	Ui::MainWindow  *ui;
-	GloveWidget     *gloveWidget;
-	InputInterface  *input;
+	Ui::MainWindow *ui;
+	GloveWidget *gloveWidget;
+	InputInterface *input;
 
-	QMutex           dataMutex;
+	QMutex dataMutex;
 	tactile::TactileValueArray data;
 	tactile::TactileValueArray::vector_data display;
 	std::shared_ptr<tactile::Calibration> calib;
 
 	/// mapping from node indices to data indices
 	typedef QMap<unsigned int, unsigned int> NodeToDataMap;
-	NodeToDataMap    nodeToData;
-	QString          sMappingFile;
-	bool             bDirtyMapping;
+	NodeToDataMap nodeToData;
+	QString sMappingFile;
+	bool bDirtyMapping;
 
 	// stuff needed for taxel mapping configuration
-	MappingDialog      *mapDlg;
-	QSet<unsigned int>  highlighted; /// highlighted node indeces (to avoid updating them)
-	bool                bCancelConfigure;
+	MappingDialog *mapDlg;
+	QSet<unsigned int> highlighted;  /// highlighted node indeces (to avoid updating them)
+	bool bCancelConfigure;
 	std::vector<unsigned long> accumulated;
 
-	int              iJointIdx;
+	int iJointIdx;
 
-	ColorMap        *absColorMap, *relColorMap;
+	ColorMap *absColorMap, *relColorMap;
 
-	QTime            lastUpdate;
-	int              frameCount;
-	int              timerID;
+	QTime lastUpdate;
+	int frameCount;
+	int timerID;
 };

@@ -16,7 +16,7 @@ public:
 
 	QString name() const;
 	int channel() const;
-	QPushButton* addButton(const QString& label, QDialogButtonBox::ButtonRole role);
+	QPushButton *addButton(const QString &label, QDialogButtonBox::ButtonRole role);
 
 	void update(const std::vector<float> &data, const ColorMap *colorMap, float fMin, float fMax);
 
@@ -25,11 +25,12 @@ public slots:
 
 private:
 	ChannelValidator *validator;
-	TaxelSelector    *taxelSelector;
+	TaxelSelector *taxelSelector;
 };
 
-class ChannelValidator : public QIntValidator {
+class ChannelValidator : public QIntValidator
+{
 public:
 	ChannelValidator(QObject *parent = 0) : QIntValidator(1, 1, parent) {}
-	QValidator::State	validate(QString &input, int &pos) const;
+	QValidator::State validate(QString &input, int &pos) const;
 };

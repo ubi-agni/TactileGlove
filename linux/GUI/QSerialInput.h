@@ -11,8 +11,8 @@ class QSerialInput : public QObject, public InputInterface
 	Q_OBJECT
 
 signals:
-	void statusMessage(const QString&, int time);
-	void disconnected(const QString& reason);
+	void statusMessage(const QString &, int time);
+	void disconnected(const QString &reason);
 
 private:
 	void sync(unsigned char buf[]) const;
@@ -23,8 +23,8 @@ public:
 	bool disconnect() Q_DECL_OVERRIDE;
 
 	typedef tactile::InputInterface::data_vector data_vector;
-	typedef boost::function<void(const data_vector&)> UpdateFunction;
-	void setUpdateFunction(const UpdateFunction &f) {updateFunc = f;}
+	typedef boost::function<void(const data_vector &)> UpdateFunction;
+	void setUpdateFunction(const UpdateFunction &f) { updateFunc = f; }
 
 private slots:
 	void readData();

@@ -21,25 +21,24 @@
 
 #include "Rate.h"
 
-namespace tactile
+namespace tactile {
+
+template <typename T>
+class ThrottledInput : public T
 {
-
-	template <typename T>
-	class ThrottledInput : public T
+public:
+	using T::T;  // inherit all constructors
+	const typename T::data_vector &readFrame() override
 	{
-	public:
-		using T::T; // inherit all constructors
-		const typename T::data_vector &readFrame() override
-		{
-			rate_.sleep();
-			return T::readFrame();
-		}
+		rate_.sleep();
+		return T::readFrame();
+	}
 
-		const Rate &rate() const { return rate_; }
-		void setRate(const Rate &rate) { rate_ = rate; }
+	const Rate &rate() const { return rate_; }
+	void setRate(const Rate &rate) { rate_ = rate; }
 
-	private:
-		Rate rate_ = 1000.0; // default: 1kHz
-	};
+private:
+	Rate rate_ = 1000.0;  // default: 1kHz
+};
 
-}
+}  // namespace tactile

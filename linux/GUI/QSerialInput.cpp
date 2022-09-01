@@ -3,8 +3,7 @@
 #include <qdebug.h>
 #include <QtSerialPort/qserialport.h>
 
-QSerialInput::QSerialInput(size_t noTaxels)
-   : serial(0), frame(noTaxels)
+QSerialInput::QSerialInput(size_t noTaxels) : serial(0), frame(noTaxels)
 {
 	serial = new QSerialPort(this);
 	serial->setFlowControl(QSerialPort::NoFlowControl);
@@ -31,7 +30,8 @@ bool QSerialInput::connect(const QString &sDevice)
 
 bool QSerialInput::disconnect()
 {
-	if (!serial->isOpen()) return true;
+	if (!serial->isOpen())
+		return true;
 	serial->close();
 	Q_EMIT disconnected(QString());
 	return true;
@@ -57,34 +57,35 @@ static const size_t PACKET_SIZE_BYTES = 5;
 void QSerialInput::readData()
 {
 	unsigned char buf[PACKET_SIZE_BYTES];
-	size_t index, max_index = frame.size()-1;
+	size_t index, max_index = frame.size() - 1;
 
 	while (serial->bytesAvailable() >= PACKET_SIZE_BYTES) {
-		Q_ASSERT(serial->read((char*)buf, PACKET_SIZE_BYTES) == PACKET_SIZE_BYTES);
+		Q_ASSERT(serial->read((char *)buf, PACKET_SIZE_BYTES) == PACKET_SIZE_BYTES);
 
-		if ((buf[0]>=0x3C) && ((index = buf[0] - 0x3C) <= max_index) &&
-		    buf[1] == 0x01 && buf[4] == 0x00) {
+		if ((buf[0] >= 0x3C) && ((index = buf[0] - 0x3C) <= max_index) && buf[1] == 0x01 && buf[4] == 0x00) {
 			// we have a valid packet
-			tactile::InputInterface::data_type value = ((0x0F & buf[2])<<8) | buf[3]; // extract value
-			frame[index] = 4095-value;
+			tactile::InputInterface::data_type value = ((0x0F & buf[2]) << 8) | buf[3];  // extract value
+			frame[index] = 4095 - value;
 
 			// got full frame ?
 			if (index == max_index)
 				updateFunc(frame);
-		} else sync(buf);
+		} else
+			sync(buf);
 	}
 }
 
 inline bool valid(const unsigned char buf[PACKET_SIZE_BYTES], unsigned int o)
 {
-	return buf[o % PACKET_SIZE_BYTES] >= 0x3C &&
-	       buf[(1+o) % PACKET_SIZE_BYTES] == 0x01 &&
-	       buf[(4+o) % PACKET_SIZE_BYTES] == 0x00;
+	return buf[o % PACKET_SIZE_BYTES] >= 0x3C && buf[(1 + o) % PACKET_SIZE_BYTES] == 0x01 &&
+	       buf[(4 + o) % PACKET_SIZE_BYTES] == 0x00;
 }
 
-void QSerialInput::sync(unsigned char buf[PACKET_SIZE_BYTES]) const {
+void QSerialInput::sync(unsigned char buf[PACKET_SIZE_BYTES]) const
+{
 	unsigned int offset = 1;
 	for (; offset < PACKET_SIZE_BYTES; ++offset)
-		if (valid(buf, offset)) break;
-	serial->read((char*)buf, PACKET_SIZE_BYTES-offset);
+		if (valid(buf, offset))
+			break;
+	serial->read((char *)buf, PACKET_SIZE_BYTES - offset);
 }

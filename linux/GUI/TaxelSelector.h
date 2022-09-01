@@ -48,9 +48,9 @@ private:
 
 private:
 	QList<unsigned int> unassigned;
-	QList<QColor>       colors;
-	int                 cellWidth;
+	QList<QColor> colors;
+	int cellWidth;
 
-	QList<float>        accumulated;
-	bool                bMonitor;
+	QList<float> accumulated;
+	bool bMonitor;
 };

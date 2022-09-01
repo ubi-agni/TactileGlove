@@ -27,25 +27,26 @@
 #include "RandomInput.h"
 #include <QTimerEvent>
 
-RandomInput::RandomInput(size_t noTaxels)
-   : input(noTaxels), timerID(0)
-{
-}
+RandomInput::RandomInput(size_t noTaxels) : input(noTaxels), timerID(0) {}
 
-bool RandomInput::connect(const QString &dummy) {
+bool RandomInput::connect(const QString &dummy)
+{
 	input.connect("");
 	timerID = startTimer(100);
 	return input.isConnected();
 }
 
-bool RandomInput::disconnect() {
+bool RandomInput::disconnect()
+{
 	input.disconnect();
-	killTimer(timerID); timerID=0;
+	killTimer(timerID);
+	timerID = 0;
 	return input.isConnected();
 }
 
 void RandomInput::timerEvent(QTimerEvent *event)
 {
-	if (event->timerId() != timerID) return;
+	if (event->timerId() != timerID)
+		return;
 	updateFunc(input.readFrame());
 }
