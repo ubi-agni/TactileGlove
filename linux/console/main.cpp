@@ -131,13 +131,13 @@ int main(int argc, char **argv)
 				input->connect(sDevice);
 			}	
 			else {
-				input.reset(new tactile::ThrottledInput<tactile::FileInput>(NO_TAXELS, fSpeedFactor, bLoop));
+				input.reset(new tactile::FileInput(NO_TAXELS, fSpeedFactor, bLoop));
 				input->connect(sFilename);
 			}
 		}
 		else
 		{
-			input.reset(new tactile::ThrottledInput<tactile::SerialInput>(NO_TAXELS));
+			input.reset(new tactile::SerialInput(NO_TAXELS));
 			input->connect(sDevice);
 		}
 
