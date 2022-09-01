@@ -28,7 +28,7 @@ make install
 ```
 ## Usage
 
-The software is split in two parts: a console program and a GUI program (in corresponding sub dirs).
+The software is split into two parts: a console program and a GUI program (in corresponding sub dirs).
 
 ### gloveConsole
 
@@ -42,22 +42,22 @@ and two input modes
 
 ### GloveViz GUI
 
-The GUI program correspondingly supports several input modes that are choosen on the command line:
+The GUI program correspondingly supports several input modes that are chosen on the command line:
 - serial (real glove connected via USB)
 - ROS topic `/TactileGlove`
 - dummy  (provide random dummy values)
 
-If no ROS/catkin environment is found during build, ROS support will be disabled.
+If no ROS/catkin environment is found during building, ROS support will be disabled.
 
-As the glove comes in different variants, it's possible to chose the taxel layout
+As the glove comes in different variants, it's possible to choose the taxel layout
 as well as the mapping of taxels to individual data channels.
 To this end, the GloveViz GUI uses svg files describing the layout and a taxel.cfg file
 describing the mapping from svg node IDs to data channels. Both files are compiled into the binary.
 
 As a glove layout might exist in different instantiations with different mappings,
-the taxel.cfg file contains several sections, one for each known glove instantiation / mapping, each referencing the corresponding layout. Hence, on the command line, you should simply choose your glove version with option `-m version`.
+the taxel.cfg file contains several sections, one for each known glove instantiation/mapping, each referencing the corresponding layout. Hence, on the command line, you should simply choose your glove version with the option `-m version`.
 
-However, you can also specify your own or modify the existing mapping on the commandline, either loading an own mapping file with option `-f mapping.ini` or specifying individual mapping like so: `name=channel`.
+However, you can also specify your own or modify the existing mapping on the command line, either loading your own mapping file with option `-f mapping.ini` or specifying individual mapping like so: `name=channel`.
 
 ## Calibration
 
