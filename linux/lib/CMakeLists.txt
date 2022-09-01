@@ -54,6 +54,7 @@ write_basic_package_version_file(
 install(EXPORT ${PROJECT_NAME}Targets
   DESTINATION share/${PROJECT_NAME}/cmake)
 
+#catkin_lint: ignore_once missing_file
 # install the *Config.cmake and *ConfigVersion.cmake
 install(FILES
   ${CMAKE_BINARY_DIR}/${PROJECT_NAME}Config.cmake

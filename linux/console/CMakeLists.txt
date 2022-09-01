@@ -1,9 +1,9 @@
-cmake_minimum_required (VERSION 2.6)
-
 find_package(Curses QUIET)
+
 if(CURSES_FOUND)
    add_definitions(-DHAVE_CURSES=1)
 endif()
+
 if(catkin_FOUND)
    include_directories(${catkin_INCLUDE_DIRS})
    add_definitions(-DHAVE_ROS=1)
@@ -27,6 +27,7 @@ target_link_libraries(${PROG_NAME}
    ${tactile_filters_LIBRARIES})
 
 install(TARGETS ${PROG_NAME} RUNTIME DESTINATION bin)
+
 if(catkin_FOUND)
-  install(TARGETS ${PROG_NAME} RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
+   install(TARGETS ${PROG_NAME} RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
 endif()
