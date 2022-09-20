@@ -418,7 +418,7 @@ QList<unsigned int> MainWindow::getUnassignedChannels() const
 
 void MainWindow::saveMapping()
 {
-	typedef std::map<QString, std::pair<QString, bool (GloveWidget::*)(const QString &, const QString &)> > FilterMap;
+	using FilterMap = std::map<QString, std::pair<QString, bool (GloveWidget::*)(const QString &, const QString &)> >;
 	static FilterMap filterMap;
 	static QString sFilters;
 	static FilterMap::const_iterator defaultFilter;

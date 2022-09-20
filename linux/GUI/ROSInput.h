@@ -22,7 +22,7 @@ public:
 	bool connect(const QString &sTopic) override;
 	bool disconnect() override;
 
-	typedef boost::function<void(const std::vector<float> &)> UpdateFunction;
+	using UpdateFunction = boost::function<void(const std::vector<float> &)>;
 	void setUpdateFunction(const UpdateFunction &f) { updateFunc = f; }
 
 private:

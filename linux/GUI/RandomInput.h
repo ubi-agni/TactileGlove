@@ -41,8 +41,8 @@ public:
 	bool connect(const QString &dummy) override;
 	bool disconnect() override;
 
-	typedef tactile::InputInterface::data_vector data_vector;
-	typedef boost::function<void(const data_vector &)> UpdateFunction;
+	using data_vector = tactile::InputInterface::data_vector;
+	using UpdateFunction = boost::function<void(const data_vector &)>;
 	void setUpdateFunction(const UpdateFunction &f) { updateFunc = f; }
 
 private:

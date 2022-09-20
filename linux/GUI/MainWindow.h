@@ -78,7 +78,7 @@ private:
 	std::shared_ptr<tactile::Calibration> calib;
 
 	/// mapping from node indices to data indices
-	typedef QMap<unsigned int, unsigned int> NodeToDataMap;
+	using NodeToDataMap = QMap<unsigned int, unsigned int>;
 	NodeToDataMap nodeToData;
 	QString sMappingFile;
 	bool bDirtyMapping;

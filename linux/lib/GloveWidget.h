@@ -84,7 +84,7 @@ private:
 	QSvgRenderer *qSvgRendererPtr;
 
 	// list of all DOM nodes with their name
-	typedef QList<TaxelInfo> PathList;
+	using PathList = QList<TaxelInfo>;
 	PathList allNodes;
 
 	unsigned int numTaxelNodes, numAssigned;
