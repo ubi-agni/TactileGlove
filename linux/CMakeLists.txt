@@ -1,6 +1,8 @@
 cmake_minimum_required (VERSION 2.8.12)
 project (tactile_glove)
 
+set(CMAKE_CXX_STANDARD 14)
+
 #catkin_lint: ignore_once missing_required
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)

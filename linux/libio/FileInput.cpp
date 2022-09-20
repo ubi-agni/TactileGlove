@@ -41,7 +41,7 @@ void FileInput::connect(const std::string& filename)
 {
 	fd = fopen(filename.c_str(), "r");
 	char buf[256];
-	if (fd == NULL)
+	if (fd == nullptr)
 		throw std::runtime_error("cannot open file");
 
 	// skip header
@@ -59,9 +59,9 @@ void FileInput::connect(const std::string& filename)
 
 void FileInput::disconnect()
 {
-	if (fd != NULL) {
+	if (fd != nullptr) {
 		fclose(fd);
-		fd = NULL;
+		fd = nullptr;
 	}
 	connected = false;
 }

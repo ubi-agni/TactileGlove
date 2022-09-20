@@ -30,8 +30,8 @@ namespace tactile {
 class InputInterface
 {
 public:
-	typedef unsigned short data_type;
-	typedef std::vector<data_type> data_vector;
+	using data_type = unsigned short;
+	using data_vector = std::vector<data_type>;
 
 	explicit InputInterface(size_t noTaxels);
 	virtual ~InputInterface();

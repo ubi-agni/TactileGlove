@@ -35,7 +35,7 @@ RandomInput::RandomInput(size_t noTaxels) : InputInterface(noTaxels)
 	data[14] = 3700;
 }
 
-void RandomInput::connect(const std::string& dummy)
+void RandomInput::connect(const std::string& /*input*/)
 {
 	connected = true;
 }

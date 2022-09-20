@@ -8,8 +8,8 @@ class FileExistsDialog : public QDialog
 	Q_OBJECT
 
 public:
-	explicit FileExistsDialog(const QString &file, bool allow_merge, QWidget *parent = 0);
-	~FileExistsDialog();
+	explicit FileExistsDialog(const QString &file, bool allow_merge, QWidget *parent = nullptr);
+	~FileExistsDialog() override;
 
 	QString mappingName() const;
 

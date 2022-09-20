@@ -29,7 +29,7 @@ public:
 	using Duration = Clock::duration;
 
 	Rate(double frequency);
-	explicit Rate(const Duration &);
+	explicit Rate(const Duration &duration);
 
 	bool sleep();
 	void reset();

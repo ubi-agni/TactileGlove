@@ -35,7 +35,7 @@ void TaxelSelector::init(const QList<unsigned int> &unassigned, bool bMonitor)
 	this->colors.clear();
 	this->accumulated.clear();
 	QColor c("black");
-	for (unsigned int i = 0; i < unassigned.size(); ++i) {
+	for (unsigned int i = 0; i < static_cast<unsigned int>(unassigned.size()); ++i) {
 		this->colors.push_back(c);
 		this->accumulated.push_back(0);
 	}
@@ -49,7 +49,7 @@ void TaxelSelector::init(const QList<unsigned int> &unassigned, bool bMonitor)
 
 void TaxelSelector::update(const std::vector<float> &data, const ColorMap *colorMap, float fMin, float fMax)
 {
-	for (unsigned int i = 0; i < unassigned.size(); ++i) {
+	for (unsigned int i = 0; i < static_cast<unsigned int>(unassigned.size()); ++i) {
 		colors[i] = colorMap->map(data[unassigned[i]], fMin, fMax);
 	}
 	if (bMonitor)
@@ -60,15 +60,14 @@ void TaxelSelector::update(const std::vector<float> &data, const ColorMap *color
 void TaxelSelector::doMonitor(const std::vector<float> &data)
 {
 	float valFirst = 0, valSecond = 0;
-	int idxFirst = -1, idxSecond = -1;
+	int idxFirst = -1;
 
-	for (unsigned int i = 0; i < unassigned.size(); ++i) {
+	for (unsigned int i = 0; i < static_cast<unsigned int>(unassigned.size()); ++i) {
 		unsigned int idx = unassigned[i];
 		accumulated[i] += data[idx];
 		if (accumulated[i] > valFirst) {
 			valSecond = valFirst;
 			valFirst = accumulated[i];
-			idxSecond = idxFirst;
 			idxFirst = idx;
 		}
 	}
@@ -84,7 +83,7 @@ QSize TaxelSelector::minimumSizeHint() const
 	return QSize(cols * cellWidth, rows * cellWidth);
 }
 
-void TaxelSelector::paintEvent(QPaintEvent *)
+void TaxelSelector::paintEvent(QPaintEvent * /*event*/)
 {
 	int cols = width() / cellWidth;
 

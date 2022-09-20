@@ -149,7 +149,7 @@ void GloveWidget::setChannel(unsigned int nodeIdx, int channelIdx)
 
 void GloveWidget::saveSVG()
 {
-	QString sFileName = QFileDialog::getSaveFileName(0, "save sensor layout", qDomDocPtr->nodeValue(), "*.svg");
+	QString sFileName = QFileDialog::getSaveFileName(nullptr, "save sensor layout", qDomDocPtr->nodeValue(), "*.svg");
 	if (sFileName.isNull())
 		return;
 
@@ -195,26 +195,26 @@ bool GloveWidget::saveMappingCfg(const QString &sFileName, const QString &sMappi
 		ini.beginGroup(sMappingName);
 	ini.remove("");  // remove all keys in current group
 
-	for (PathList::const_iterator it = allNodes.begin(), end = allNodes.end(); it != end; ++it) {
-		if (it->channel < 0)
+	for (const auto &node : allNodes) {
+		if (node.channel < 0)
 			continue;
-		ini.setValue(it->name, it->channel);
+		ini.setValue(node.name, node.channel);
 	}
 	ini.sync();
 	return true;
 }
 
-bool GloveWidget::saveMappingYAML(const QString &sFileName, const QString &sMappingName)
+bool GloveWidget::saveMappingYAML(const QString &sFileName, const QString & /*sMappingName*/)
 {
 	QFile file(sFileName);
 	if (!file.open(QFile::WriteOnly | QFile::Truncate))
 		return false;
 
 	QTextStream ts(&file);
-	for (PathList::const_iterator it = allNodes.begin(), end = allNodes.end(); it != end; ++it) {
-		if (it->channel < 0)
+	for (const auto &node : allNodes) {
+		if (node.channel < 0)
 			continue;
-		ts << it->name << ":" << it->channel << endl;
+		ts << node.name << ":" << node.channel << endl;
 	}
 	return true;
 }
@@ -267,12 +267,12 @@ void GloveWidget::paintEvent(QPaintEvent * /*event*/)
 	// reset transform for text drawing
 	painter.setMatrix(QMatrix());
 	// show IDs/channels of taxels
-	for (PathList::const_iterator it = allNodes.begin(), end = allNodes.end(); it != end; ++it) {
-		if (!bShowAllNames && it->channel < 0)
+	for (const auto &node : allNodes) {
+		if (!bShowAllNames && node.channel < 0)
 			continue;
-		QMatrix m = qSvgRendererPtr->matrixForElement(it->name) * tf;
-		QRectF bounds = m.mapRect(qSvgRendererPtr->boundsOnElement(it->name));
-		QString label = getLabel(it->channel, it->name, bShowChannels && !bShowAllNames, bShowNames || bShowAllNames);
+		QMatrix m = qSvgRendererPtr->matrixForElement(node.name) * tf;
+		QRectF bounds = m.mapRect(qSvgRendererPtr->boundsOnElement(node.name));
+		QString label = getLabel(node.channel, node.name, bShowChannels && !bShowAllNames, bShowNames || bShowAllNames);
 		painter.setPen(Qt::black);
 		painter.drawText(bounds.translated(1, 1), Qt::AlignCenter, label);
 		painter.setPen(Qt::white);

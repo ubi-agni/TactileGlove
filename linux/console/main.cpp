@@ -102,7 +102,7 @@ bool handleCommandline(uint &outflags, string &device, string &filename, bool &b
 }
 
 bool bRun = true;
-void mySigIntHandler(int sig)
+void mySigIntHandler(int /*signal*/)
 {
 	bRun = false;
 }
@@ -116,28 +116,28 @@ int main(int argc, char **argv)
 	float fSpeedFactor = 1.0;
 	bool bLoop = false;
 	std::unique_ptr<tactile::InputInterface> input;
-	PieceWiseLinearCalib *calib = 0;
+	std::unique_ptr<PieceWiseLinearCalib> calib;
 
 	try {
 		if (handleCommandline(outflags, sDevice, sFilename, bLoop, fSpeedFactor, sTopic, sCalib, argc, argv)) {
 			usage(argv);
 			return EXIT_SUCCESS;
 		}
-		if (sDevice == "") {
-			if (sFilename == "") {
-				input.reset(new tactile::ThrottledInput<tactile::RandomInput>(NO_TAXELS));
+		if (sDevice.empty()) {
+			if (sFilename.empty()) {
+				input = std::make_unique<tactile::ThrottledInput<tactile::RandomInput>>(NO_TAXELS);
 				input->connect(sDevice);
 			} else {
-				input.reset(new tactile::FileInput(NO_TAXELS, fSpeedFactor, bLoop));
+				input = std::make_unique<tactile::FileInput>(NO_TAXELS, fSpeedFactor, bLoop);
 				input->connect(sFilename);
 			}
 		} else {
-			input.reset(new tactile::SerialInput(NO_TAXELS));
+			input = std::make_unique<tactile::SerialInput>(NO_TAXELS);
 			input->connect(sDevice);
 		}
 
 		if (!sCalib.empty()) {
-			calib = new PieceWiseLinearCalib(PieceWiseLinearCalib::load(sCalib));
+			calib = std::make_unique<PieceWiseLinearCalib>(PieceWiseLinearCalib::load(sCalib));
 		}
 	} catch (const exception &e) {
 		cerr << e.what() << endl;
@@ -172,13 +172,13 @@ int main(int argc, char **argv)
 		try {
 			const tactile::InputInterface::data_vector &frame = input->readFrame();
 			if (outflags & OUTPUT_CURSES)
-				printCurses(frame, calib);
+				printCurses(frame, calib.get());
 #if HAVE_ROS
 			if (outflags & OUTPUT_ROS) {
 				ros::Time stamp = ros::Time::now();
-				publishToROS(frame, rosRawPublisher, stamp, NULL);
+				publishToROS(frame, rosRawPublisher, stamp, nullptr);
 				if (calib)
-					publishToROS(frame, rosCalibPublisher, stamp, calib);
+					publishToROS(frame, rosCalibPublisher, stamp, calib.get());
 				ros::spinOnce();
 			}
 #endif
@@ -199,8 +199,6 @@ int main(int argc, char **argv)
 		cerr << sErr << endl;
 		return (EXIT_FAILURE);
 	}
-	if (!calib)
-		delete calib;
 	return EXIT_SUCCESS;
 }
 

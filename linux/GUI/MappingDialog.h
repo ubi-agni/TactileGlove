@@ -11,8 +11,8 @@ class MappingDialog : public QDialog, private Ui::MappingDialog
 	Q_PROPERTY(int channel READ channel WRITE setChannel)
 
 public:
-	explicit MappingDialog(QWidget *parent = 0);
-	void init(const QString &sName, int channel, int maxChannel, QList<unsigned int> unAssignedChannels);
+	explicit MappingDialog(QWidget *parent = nullptr);
+	void init(const QString &sName, int channel, int maxChannel, const QList<unsigned int> &unAssignedChannels);
 
 	QString name() const;
 	int channel() const;
@@ -31,6 +31,6 @@ private:
 class ChannelValidator : public QIntValidator
 {
 public:
-	ChannelValidator(QObject *parent = 0) : QIntValidator(1, 1, parent) {}
-	QValidator::State validate(QString &input, int &pos) const;
+	ChannelValidator(QObject *parent = nullptr) : QIntValidator(1, 1, parent) {}
+	QValidator::State validate(QString &input, int &pos) const override;
 };

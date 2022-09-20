@@ -62,8 +62,7 @@ TaxelMapping getMapping(istream &is, const string &sMappingFilter, po::variables
 }
 
 // load default mapping for sMappingFilter and store option "layout" in map
-TaxelMapping getMapping(const std::string &sMappingFilter, po::variables_map &optsMap,
-                        const po::options_description &opts)
+TaxelMapping getMapping(const std::string &sMappingFilter, po::variables_map &optsMap)
 {
 	if (sMappingFilter.empty())
 		return TaxelMapping();
@@ -83,17 +82,17 @@ std::vector<std::string> getAvailableMappings(istream &is)
 	po::parsed_options parsed = po::parse_config_file(is, getConfigOptions(), true);
 
 	std::map<std::string, unsigned int> groups;
-	for (auto it = parsed.options.begin(), end = parsed.options.end(); it != end; ++it) {
-		string::size_type dot_pos = it->string_key.find(".");
-		if (it->unregistered && dot_pos != string::npos) {
-			groups[it->string_key.substr(0, dot_pos)]++;
+	for (const auto &option : parsed.options) {
+		string::size_type dot_pos = option.string_key.find('.');
+		if (option.unregistered && dot_pos != string::npos) {
+			groups[option.string_key.substr(0, dot_pos)]++;
 		}
 	}
 
-	for (auto it = groups.begin(), end = groups.end(); it != end; ++it) {
+	for (const auto &group : groups) {
 		// only list groups with more than 10 mappings
-		if (it->second >= 10)
-			result.push_back(it->first);
+		if (group.second >= 10)
+			result.push_back(group.first);
 	}
 
 	return result;

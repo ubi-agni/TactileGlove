@@ -70,13 +70,13 @@ void handleCommandline(uint &inputMethod, std::string &sInput, std::string &sLay
 
 	if (map.count("list")) {
 		auto mappings = getAvailableMappings(map.count("file") ? map["file"].as<string>() : string());
-		if (mappings.size() > 0)
+		if (!mappings.empty())
 			std::cout << "available mappings: " << std::endl;
 		else
 			std::cout << "no mappings available" << std::endl;
 
-		for (auto it = mappings.begin(), end = mappings.end(); it != end; ++it)
-			std::cout << *it << std::endl;
+		for (const auto &mapping : mappings)
+			std::cout << mapping << std::endl;
 		exit(EXIT_SUCCESS);
 	}
 
@@ -101,7 +101,7 @@ void handleCommandline(uint &inputMethod, std::string &sInput, std::string &sLay
 	// *** merge taxel mapping options ***
 	if (map.count("mapping"))
 		sMapping = map["mapping"].as<string>();
-	mapping = getMapping(sMapping, map, config);  // initialize from defaults
+	mapping = getMapping(sMapping, map);  // initialize from defaults
 
 	// if mapping was provided, but layout is still undefined -> complain
 	if (!sMapping.empty() && map.count("layout") == 0)
@@ -142,7 +142,7 @@ void handleCommandline(uint &inputMethod, std::string &sInput, std::string &sLay
 }
 
 QApplication *pApp;
-void mySigIntHandler(int sig)
+void mySigIntHandler(int /*signal*/)
 {
 	if (pApp)
 		pApp->quit();

@@ -30,21 +30,21 @@ class TaxelSelector : public QWidget
 {
 	Q_OBJECT
 public:
-	explicit TaxelSelector(QWidget *parent = 0);
+	explicit TaxelSelector(QWidget *parent = nullptr);
 	void init(const QList<unsigned int> &unassigned, bool bMonitor);
 	void update(const std::vector<float> &data, const ColorMap *colorMap, float fMin, float fMax);
 
 signals:
-	void selectedChannel(int);
+	void selectedChannel(int channel);
 	void doubleClicked();
 
 private:
 	void doMonitor(const std::vector<float> &data);
 
-	QSize minimumSizeHint() const;
-	void paintEvent(QPaintEvent *);
-	void mousePressEvent(QMouseEvent *);
-	void mouseDoubleClickEvent(QMouseEvent *event);
+	QSize minimumSizeHint() const override;
+	void paintEvent(QPaintEvent *event) override;
+	void mousePressEvent(QMouseEvent *event) override;
+	void mouseDoubleClickEvent(QMouseEvent *event) override;
 
 private:
 	QList<unsigned int> unassigned;

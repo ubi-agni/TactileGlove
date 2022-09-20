@@ -29,7 +29,7 @@
 
 RandomInput::RandomInput(size_t noTaxels) : input(noTaxels), timerID(0) {}
 
-bool RandomInput::connect(const QString &dummy)
+bool RandomInput::connect(const QString & /*input*/)
 {
 	input.connect("");
 	timerID = startTimer(100);

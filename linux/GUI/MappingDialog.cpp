@@ -17,26 +17,27 @@ QValidator::State ChannelValidator::validate(QString &input, int &pos) const
 	return QIntValidator::validate(input, pos);
 }
 
-MappingDialog::MappingDialog(QWidget *parent) : QDialog(parent), taxelSelector(0)
+MappingDialog::MappingDialog(QWidget *parent) : QDialog(parent), taxelSelector(nullptr)
 {
 	setupUi(this);
 	validator = new ChannelValidator(this);
 	channelComboBox->setValidator(validator);
 }
 
-void MappingDialog::init(const QString &sName, int channel, int maxChannel, QList<unsigned int> unAssignedChannels)
+void MappingDialog::init(const QString &sName, int channel, int maxChannel,
+                         const QList<unsigned int> &unAssignedChannels)
 {
 	validator->setTop(maxChannel);
 	nameEdit->setText(sName);
 	channelComboBox->clear();
 	channelComboBox->addItem(unUsed);
-	Q_FOREACH (unsigned int ch, unAssignedChannels) {
+	for (unsigned int ch : unAssignedChannels) {
 		channelComboBox->addItem(QString::number(ch + 1));
 	}
 	setChannel(channel);
 	channelComboBox->setFocus();
 
-	if (unAssignedChannels.size()) {
+	if (!unAssignedChannels.empty()) {
 		if (!taxelSelector) {
 			taxelSelector = new TaxelSelector(this);
 			connect(taxelSelector, SIGNAL(selectedChannel(int)), this, SLOT(setChannel(int)));
@@ -46,7 +47,7 @@ void MappingDialog::init(const QString &sName, int channel, int maxChannel, QLis
 		verticalLayout->addWidget(taxelSelector);
 	} else if (taxelSelector) {
 		delete taxelSelector;
-		taxelSelector = 0;
+		taxelSelector = nullptr;
 	}
 }
 

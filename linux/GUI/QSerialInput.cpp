@@ -3,7 +3,7 @@
 #include <qdebug.h>
 #include <QtSerialPort/qserialport.h>
 
-QSerialInput::QSerialInput(size_t noTaxels) : serial(0), frame(noTaxels)
+QSerialInput::QSerialInput(size_t noTaxels) : serial(nullptr), frame(noTaxels)
 {
 	serial = new QSerialPort(this);
 	serial->setFlowControl(QSerialPort::NoFlowControl);
@@ -59,8 +59,10 @@ void QSerialInput::readData()
 	unsigned char buf[PACKET_SIZE_BYTES];
 	size_t index, max_index = frame.size() - 1;
 
-	while (serial->bytesAvailable() >= PACKET_SIZE_BYTES) {
-		Q_ASSERT(serial->read((char *)buf, PACKET_SIZE_BYTES) == PACKET_SIZE_BYTES);
+	while (static_cast<size_t>(serial->bytesAvailable()) >= PACKET_SIZE_BYTES) {
+		const auto bytes = serial->read((char *)buf, PACKET_SIZE_BYTES);
+		Q_ASSERT(bytes == PACKET_SIZE_BYTES);
+		Q_UNUSED(bytes);
 
 		if ((buf[0] >= 0x3C) && ((index = buf[0] - 0x3C) <= max_index) && buf[1] == 0x01 && buf[4] == 0x00) {
 			// we have a valid packet

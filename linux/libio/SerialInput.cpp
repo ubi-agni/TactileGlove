@@ -46,7 +46,7 @@ SerialInput::SerialInput(size_t noTaxels) : InputInterface(noTaxels)
 }
 SerialInput::~SerialInput()
 {
-	disconnect();
+	SerialInput::disconnect();
 }
 
 void SerialInput::setTimeOut(unsigned int msec)
@@ -63,7 +63,7 @@ void SerialInput::connect(const std::string &sDevice)
 		throw std::runtime_error(string("Connection failed: ") + strerror(errno));
 
 	tcgetattr(fd, &oldtio); /* save current port settings */
-	bzero(&newtio, sizeof(newtio));
+	memset(&newtio, 0, sizeof(newtio));
 
 	cfsetospeed(&newtio, B115200);
 	cfsetispeed(&newtio, B115200);
@@ -124,7 +124,7 @@ const InputInterface::data_vector &SerialInput::readFrame()
 	while (connected) {
 		FD_ZERO(&fdset);
 		FD_SET(fd, &fdset);
-		int res = pselect(fd + 1, &fdset, NULL, NULL, &timeout, NULL);
+		int res = pselect(fd + 1, &fdset, nullptr, nullptr, &timeout, nullptr);
 		if (res == -1)
 			throw std::runtime_error(strerror(errno));
 		if (res == 0)

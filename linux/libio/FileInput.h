@@ -33,9 +33,9 @@ class FileInput : public InputInterface
 {
 public:
 	FileInput(size_t noTaxels, double speed_factor = 1.0, bool startover = false);
-	void connect(const std::string &dummy);
-	void disconnect();
-	const data_vector &readFrame();
+	void connect(const std::string &dummy) override;
+	void disconnect() override;
+	const data_vector &readFrame() override;
 
 private:
 	FILE *fd;

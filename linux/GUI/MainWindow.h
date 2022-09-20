@@ -24,8 +24,8 @@ class MainWindow : public QMainWindow
 	Q_OBJECT
 
 public:
-	explicit MainWindow(size_t noTaxels, QWidget *parent = 0);
-	~MainWindow();
+	explicit MainWindow(size_t noTaxels, QWidget *parent = nullptr);
+	~MainWindow() override;
 
 	void setCalibration(const std::string &sCalibFile);
 	void initJointBar(TaxelMapping &mapping);
@@ -47,8 +47,8 @@ private:
 	void updateData(const std::vector<value_type> &frame);
 	void updateJointBar(unsigned short value);
 
-	void timerEvent(QTimerEvent *event);
-	void closeEvent(QCloseEvent *event);
+	void timerEvent(QTimerEvent *event) override;
+	void closeEvent(QCloseEvent *event) override;
 
 	QList<unsigned int> getUnassignedChannels() const;
 
@@ -78,7 +78,7 @@ private:
 	std::shared_ptr<tactile::Calibration> calib;
 
 	/// mapping from node indices to data indices
-	typedef QMap<unsigned int, unsigned int> NodeToDataMap;
+	using NodeToDataMap = QMap<unsigned int, unsigned int>;
 	NodeToDataMap nodeToData;
 	QString sMappingFile;
 	bool bDirtyMapping;

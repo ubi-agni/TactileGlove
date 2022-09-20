@@ -31,16 +31,16 @@ using tactile::TactileValueArray;
 MainWindow::MainWindow(size_t noTaxels, QWidget *parent)
   : QMainWindow(parent)
   , ui(new Ui::MainWindow)
-  , iJointIdx(-1)
-  , input(0)
+  , gloveWidget(nullptr)
+  , input(nullptr)
   , data(noTaxels)
   , display(noTaxels)
+  , mapDlg(nullptr)
+  , iJointIdx(-1)
+  , absColorMap(nullptr)
+  , relColorMap(nullptr)
   , frameCount(-1)
   , timerID(0)
-  , gloveWidget(0)
-  , mapDlg(0)
-  , absColorMap(0)
-  , relColorMap(0)
 {
 	ui->setupUi(this);
 	ui->toolBar->addWidget(ui->updateTimeSpinBox);
@@ -64,8 +64,8 @@ MainWindow::MainWindow(size_t noTaxels, QWidget *parent)
 	initModeComboBox(ui->modeComboBox);
 
 	// init upper ranges
-	for (TactileValueArray::iterator it = data.begin(), end = data.end(); it != end; ++it)
-		it->init(FLT_MAX, 4095);
+	for (auto &value : data)
+		value.init(FLT_MAX, 4095);
 
 	// init color maps
 	QStringList colorNames;
@@ -87,7 +87,7 @@ MainWindow::MainWindow(size_t noTaxels, QWidget *parent)
 void MainWindow::initModeComboBox(QComboBox *cb)
 {
 	QStringList items;
-	for (unsigned int m = 0, e = TactileValue::lastMode; m != e; ++m)
+	for (unsigned int m = 0, e = TactileValue::lastMode; m <= e; ++m)
 		items << TactileValue::getModeName((TactileValue::Mode)m).c_str();
 	cb->addItems(items);
 	cb->setCurrentIndex(TactileValue::getMode("default"));
@@ -97,14 +97,14 @@ void MainWindow::setCalibration(const std::string &sCalibFile)
 {
 	QMutexLocker lock(&dataMutex);
 	calib.reset(new PieceWiseLinearCalib(PieceWiseLinearCalib::load(sCalibFile)));
-	for (NodeToDataMap::const_iterator it = nodeToData.begin(), end = nodeToData.end(); it != end; ++it) {
-		data[*it].setCalibration(calib);
+	for (unsigned int id : nodeToData) {
+		data[id].setCalibration(calib);
 	}
 
 	// init upper ranges
 	float fMax = calib->output_range().max();
-	for (TactileValueArray::iterator it = data.begin(), end = data.end(); it != end; ++it)
-		it->init(FLT_MAX, fMax);
+	for (auto &value : data)
+		value.init(FLT_MAX, fMax);
 }
 
 MainWindow::~MainWindow()
@@ -128,7 +128,7 @@ void MainWindow::initJointBar(TaxelMapping &mapping)
 	} else
 		iJointIdx = -1;
 
-	if (iJointIdx < 0 || iJointIdx >= data.size()) {
+	if (iJointIdx < 0 || static_cast<size_t>(iJointIdx) >= data.size()) {
 		iJointIdx = -1;
 		ui->jointBar->hide();
 	} else
@@ -145,7 +145,7 @@ void MainWindow::initGloveWidget(const QString &layout, bool bMirror, const Taxe
 		on_btnDisconnect_clicked();
 		ui->verticalLayout->removeWidget(gloveWidget);
 		delete gloveWidget;
-		gloveWidget = 0;
+		gloveWidget = nullptr;
 	}
 	gloveWidget = new GloveWidget(layout, bMirror, this);
 	ui->verticalLayout->insertWidget(0, gloveWidget);
@@ -163,17 +163,14 @@ void MainWindow::initGloveWidget(const QString &layout, bool bMirror, const Taxe
 	connect(ui->actShowAllIDs, SIGNAL(toggled(bool)), gloveWidget, SLOT(setShowAllNames(bool)));
 
 	// initialize TaxelMapping
-	for (TaxelMapping::const_iterator it = mapping.begin(), end = mapping.end(); it != end; ++it) {
-		if (it->second < 0)
-			continue;  // ignore channel indexes
-
-		QString sName = QString::fromStdString(it->first);
+	for (const auto &item : mapping) {
+		QString sName = QString::fromStdString(item.first);
 		int nodeIdx = gloveWidget->findPathNodeIndex(sName);
 		if (nodeIdx < 0)
-			cerr << "couldn't find a node named " << it->first << endl;
+			cerr << "couldn't find a node named " << item.first << endl;
 
-		gloveWidget->setChannel(nodeIdx, it->second);
-		nodeToData[nodeIdx] = it->second;
+		gloveWidget->setChannel(nodeIdx, item.second);
+		nodeToData[nodeIdx] = item.second;
 	}
 	bDirtyMapping = false;
 }
@@ -356,7 +353,7 @@ void MainWindow::editMapping(unsigned int nodeIdx)
 
 void MainWindow::resetMapDlg()
 {
-	mapDlg = 0;
+	mapDlg = nullptr;
 }
 
 void MainWindow::setCancelConfigure(bool bCancel)
@@ -418,7 +415,7 @@ QList<unsigned int> MainWindow::getUnassignedChannels() const
 
 void MainWindow::saveMapping()
 {
-	typedef std::map<QString, std::pair<QString, bool (GloveWidget::*)(const QString &, const QString &)> > FilterMap;
+	using FilterMap = std::map<QString, std::pair<QString, bool (GloveWidget::*)(const QString &, const QString &)> >;
 	static FilterMap filterMap;
 	static QString sFilters;
 	static FilterMap::const_iterator defaultFilter;
@@ -426,18 +423,18 @@ void MainWindow::saveMapping()
 		filterMap[tr("mapping configs (*.cfg)")] = make_pair(".cfg", &GloveWidget::saveMappingCfg);
 		defaultFilter = filterMap.begin();
 		filterMap[tr("xacro configs (*.yaml)")] = make_pair(".yaml", &GloveWidget::saveMappingYAML);
-		for (FilterMap::const_iterator it = filterMap.begin(), end = filterMap.end(); it != end; ++it) {
+		for (const auto &item : filterMap) {
 			if (!sFilters.isEmpty())
 				sFilters.append(";;");
-			sFilters.append(it->first);
+			sFilters.append(item.first);
 		}
 	}
 
 	// choose default filter from current file name
 	QString selectedFilter = defaultFilter->first;
-	for (FilterMap::const_iterator it = filterMap.begin(), end = filterMap.end(); it != end; ++it) {
-		if (sMappingFile.endsWith(it->second.first))
-			selectedFilter = it->first;
+	for (const auto &item : filterMap) {
+		if (sMappingFile.endsWith(item.second.first))
+			selectedFilter = item.first;
 	}
 
 	// exec file dialog
