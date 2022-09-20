@@ -31,16 +31,16 @@ using tactile::TactileValueArray;
 MainWindow::MainWindow(size_t noTaxels, QWidget *parent)
   : QMainWindow(parent)
   , ui(new Ui::MainWindow)
-  , iJointIdx(-1)
+  , gloveWidget(nullptr)
   , input(nullptr)
   , data(noTaxels)
   , display(noTaxels)
-  , frameCount(-1)
-  , timerID(0)
-  , gloveWidget(nullptr)
   , mapDlg(nullptr)
+  , iJointIdx(-1)
   , absColorMap(nullptr)
   , relColorMap(nullptr)
+  , frameCount(-1)
+  , timerID(0)
 {
 	ui->setupUi(this);
 	ui->toolBar->addWidget(ui->updateTimeSpinBox);
