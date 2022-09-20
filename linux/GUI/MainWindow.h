@@ -24,7 +24,7 @@ class MainWindow : public QMainWindow
 	Q_OBJECT
 
 public:
-	explicit MainWindow(size_t noTaxels, QWidget *parent = 0);
+	explicit MainWindow(size_t noTaxels, QWidget *parent = nullptr);
 	~MainWindow();
 
 	void setCalibration(const std::string &sCalibFile);

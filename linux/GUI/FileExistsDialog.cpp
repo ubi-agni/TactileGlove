@@ -4,7 +4,7 @@
 #include <QPushButton>
 
 FileExistsDialog::FileExistsDialog(const QString &file, bool allow_merge, QWidget *parent)
-  : QDialog(parent), ui(new Ui::FileExistsDialog), button_merge(NULL)
+  : QDialog(parent), ui(new Ui::FileExistsDialog), button_merge(nullptr)
 {
 	ui->setupUi(this);
 	ui->label_exists->setText(tr("File %1 already exists.").arg(file));

@@ -32,15 +32,15 @@ MainWindow::MainWindow(size_t noTaxels, QWidget *parent)
   : QMainWindow(parent)
   , ui(new Ui::MainWindow)
   , iJointIdx(-1)
-  , input(0)
+  , input(nullptr)
   , data(noTaxels)
   , display(noTaxels)
   , frameCount(-1)
   , timerID(0)
-  , gloveWidget(0)
-  , mapDlg(0)
-  , absColorMap(0)
-  , relColorMap(0)
+  , gloveWidget(nullptr)
+  , mapDlg(nullptr)
+  , absColorMap(nullptr)
+  , relColorMap(nullptr)
 {
 	ui->setupUi(this);
 	ui->toolBar->addWidget(ui->updateTimeSpinBox);
@@ -145,7 +145,7 @@ void MainWindow::initGloveWidget(const QString &layout, bool bMirror, const Taxe
 		on_btnDisconnect_clicked();
 		ui->verticalLayout->removeWidget(gloveWidget);
 		delete gloveWidget;
-		gloveWidget = 0;
+		gloveWidget = nullptr;
 	}
 	gloveWidget = new GloveWidget(layout, bMirror, this);
 	ui->verticalLayout->insertWidget(0, gloveWidget);
@@ -356,7 +356,7 @@ void MainWindow::editMapping(unsigned int nodeIdx)
 
 void MainWindow::resetMapDlg()
 {
-	mapDlg = 0;
+	mapDlg = nullptr;
 }
 
 void MainWindow::setCancelConfigure(bool bCancel)

@@ -16,7 +16,7 @@ class GloveWidget : public QWidget
 {
 	Q_OBJECT
 public:
-	explicit GloveWidget(const QString &sLayout, bool bMirror = false, QWidget *parent = 0);
+	explicit GloveWidget(const QString &sLayout, bool bMirror = false, QWidget *parent = nullptr);
 	QSize sizeHint() const;
 
 	/// return number of all SVG nodes

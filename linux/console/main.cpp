@@ -116,7 +116,7 @@ int main(int argc, char **argv)
 	float fSpeedFactor = 1.0;
 	bool bLoop = false;
 	std::unique_ptr<tactile::InputInterface> input;
-	PieceWiseLinearCalib *calib = 0;
+	PieceWiseLinearCalib *calib = nullptr;
 
 	try {
 		if (handleCommandline(outflags, sDevice, sFilename, bLoop, fSpeedFactor, sTopic, sCalib, argc, argv)) {
@@ -176,7 +176,7 @@ int main(int argc, char **argv)
 #if HAVE_ROS
 			if (outflags & OUTPUT_ROS) {
 				ros::Time stamp = ros::Time::now();
-				publishToROS(frame, rosRawPublisher, stamp, NULL);
+				publishToROS(frame, rosRawPublisher, stamp, nullptr);
 				if (calib)
 					publishToROS(frame, rosCalibPublisher, stamp, calib);
 				ros::spinOnce();

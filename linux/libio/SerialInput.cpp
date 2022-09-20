@@ -124,7 +124,7 @@ const InputInterface::data_vector &SerialInput::readFrame()
 	while (connected) {
 		FD_ZERO(&fdset);
 		FD_SET(fd, &fdset);
-		int res = pselect(fd + 1, &fdset, NULL, NULL, &timeout, NULL);
+		int res = pselect(fd + 1, &fdset, nullptr, nullptr, &timeout, nullptr);
 		if (res == -1)
 			throw std::runtime_error(strerror(errno));
 		if (res == 0)

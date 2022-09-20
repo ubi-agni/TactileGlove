@@ -149,7 +149,7 @@ void GloveWidget::setChannel(unsigned int nodeIdx, int channelIdx)
 
 void GloveWidget::saveSVG()
 {
-	QString sFileName = QFileDialog::getSaveFileName(0, "save sensor layout", qDomDocPtr->nodeValue(), "*.svg");
+	QString sFileName = QFileDialog::getSaveFileName(nullptr, "save sensor layout", qDomDocPtr->nodeValue(), "*.svg");
 	if (sFileName.isNull())
 		return;
 

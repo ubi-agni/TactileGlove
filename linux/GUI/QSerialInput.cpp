@@ -3,7 +3,7 @@
 #include <qdebug.h>
 #include <QtSerialPort/qserialport.h>
 
-QSerialInput::QSerialInput(size_t noTaxels) : serial(0), frame(noTaxels)
+QSerialInput::QSerialInput(size_t noTaxels) : serial(nullptr), frame(noTaxels)
 {
 	serial = new QSerialPort(this);
 	serial->setFlowControl(QSerialPort::NoFlowControl);
