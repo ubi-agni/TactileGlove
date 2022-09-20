@@ -64,8 +64,8 @@ MainWindow::MainWindow(size_t noTaxels, QWidget *parent)
 	initModeComboBox(ui->modeComboBox);
 
 	// init upper ranges
-	for (TactileValueArray::iterator it = data.begin(), end = data.end(); it != end; ++it)
-		it->init(FLT_MAX, 4095);
+	for (auto &value : data)
+		value.init(FLT_MAX, 4095);
 
 	// init color maps
 	QStringList colorNames;
@@ -97,14 +97,14 @@ void MainWindow::setCalibration(const std::string &sCalibFile)
 {
 	QMutexLocker lock(&dataMutex);
 	calib.reset(new PieceWiseLinearCalib(PieceWiseLinearCalib::load(sCalibFile)));
-	for (NodeToDataMap::const_iterator it = nodeToData.begin(), end = nodeToData.end(); it != end; ++it) {
-		data[*it].setCalibration(calib);
+	for (unsigned int id : nodeToData) {
+		data[id].setCalibration(calib);
 	}
 
 	// init upper ranges
 	float fMax = calib->output_range().max();
-	for (TactileValueArray::iterator it = data.begin(), end = data.end(); it != end; ++it)
-		it->init(FLT_MAX, fMax);
+	for (auto &value : data)
+		value.init(FLT_MAX, fMax);
 }
 
 MainWindow::~MainWindow()
@@ -163,17 +163,17 @@ void MainWindow::initGloveWidget(const QString &layout, bool bMirror, const Taxe
 	connect(ui->actShowAllIDs, SIGNAL(toggled(bool)), gloveWidget, SLOT(setShowAllNames(bool)));
 
 	// initialize TaxelMapping
-	for (TaxelMapping::const_iterator it = mapping.begin(), end = mapping.end(); it != end; ++it) {
-		if (it->second < 0)
+	for (const auto &item : mapping) {
+		if (item.second < 0)
 			continue;  // ignore channel indexes
 
-		QString sName = QString::fromStdString(it->first);
+		QString sName = QString::fromStdString(item.first);
 		int nodeIdx = gloveWidget->findPathNodeIndex(sName);
 		if (nodeIdx < 0)
-			cerr << "couldn't find a node named " << it->first << endl;
+			cerr << "couldn't find a node named " << item.first << endl;
 
-		gloveWidget->setChannel(nodeIdx, it->second);
-		nodeToData[nodeIdx] = it->second;
+		gloveWidget->setChannel(nodeIdx, item.second);
+		nodeToData[nodeIdx] = item.second;
 	}
 	bDirtyMapping = false;
 }
@@ -426,18 +426,18 @@ void MainWindow::saveMapping()
 		filterMap[tr("mapping configs (*.cfg)")] = make_pair(".cfg", &GloveWidget::saveMappingCfg);
 		defaultFilter = filterMap.begin();
 		filterMap[tr("xacro configs (*.yaml)")] = make_pair(".yaml", &GloveWidget::saveMappingYAML);
-		for (FilterMap::const_iterator it = filterMap.begin(), end = filterMap.end(); it != end; ++it) {
+		for (const auto &item : filterMap) {
 			if (!sFilters.isEmpty())
 				sFilters.append(";;");
-			sFilters.append(it->first);
+			sFilters.append(item.first);
 		}
 	}
 
 	// choose default filter from current file name
 	QString selectedFilter = defaultFilter->first;
-	for (FilterMap::const_iterator it = filterMap.begin(), end = filterMap.end(); it != end; ++it) {
-		if (sMappingFile.endsWith(it->second.first))
-			selectedFilter = it->first;
+	for (const auto &item : filterMap) {
+		if (sMappingFile.endsWith(item.second.first))
+			selectedFilter = item.first;
 	}
 
 	// exec file dialog

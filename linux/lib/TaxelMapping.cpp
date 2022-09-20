@@ -12,18 +12,17 @@ TaxelMapping::TaxelMapping() {}
 
 TaxelMapping::TaxelMapping(const std::vector<po::basic_option<char> > &options)
 {
-	for (std::vector<po::basic_option<char> >::const_iterator it = options.begin(), end = options.end(); it != end;
-	     ++it) {
-		if (!it->unregistered)
+	for (const auto &option : options) {
+		if (!option.unregistered)
 			continue;
-		(*this)[it->string_key] = parseChannel(it->value.back());
+		(*this)[option.string_key] = parseChannel(option.value.back());
 	}
 }
 
 TaxelMapping &TaxelMapping::merge(const TaxelMapping &other, const string &sMapping)
 {
-	for (const_iterator it = other.begin(), e = other.end(); it != e; ++it) {
-		string key = it->first;
+	for (const auto &it : other) {
+		string key = it.first;
 		size_t dot = key.rfind('.');
 		if (dot != string::npos) {
 			// ignore entries for other mappings than sMapping
@@ -31,7 +30,7 @@ TaxelMapping &TaxelMapping::merge(const TaxelMapping &other, const string &sMapp
 				continue;
 			key = key.substr(dot + 1);
 		}
-		(*this)[key] = it->second;
+		(*this)[key] = it.second;
 	}
 	return *this;
 }

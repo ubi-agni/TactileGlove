@@ -30,7 +30,7 @@ void MappingDialog::init(const QString &sName, int channel, int maxChannel, QLis
 	nameEdit->setText(sName);
 	channelComboBox->clear();
 	channelComboBox->addItem(unUsed);
-	Q_FOREACH (unsigned int ch, unAssignedChannels) {
+	for (unsigned int ch : unAssignedChannels) {
 		channelComboBox->addItem(QString::number(ch + 1));
 	}
 	setChannel(channel);

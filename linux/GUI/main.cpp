@@ -75,8 +75,8 @@ void handleCommandline(uint &inputMethod, std::string &sInput, std::string &sLay
 		else
 			std::cout << "no mappings available" << std::endl;
 
-		for (auto it = mappings.begin(), end = mappings.end(); it != end; ++it)
-			std::cout << *it << std::endl;
+		for (const auto &mapping : mappings)
+			std::cout << mapping << std::endl;
 		exit(EXIT_SUCCESS);
 	}
 
