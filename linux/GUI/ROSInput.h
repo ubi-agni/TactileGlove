@@ -14,7 +14,7 @@ class ROSInput : public QObject, public InputInterface
 {
 	Q_OBJECT
 signals:
-	void statusMessage(const QString &, int time);
+	void statusMessage(const QString &message, int time);
 
 public:
 	ROSInput(size_t noTaxels);

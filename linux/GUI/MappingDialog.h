@@ -12,7 +12,7 @@ class MappingDialog : public QDialog, private Ui::MappingDialog
 
 public:
 	explicit MappingDialog(QWidget *parent = nullptr);
-	void init(const QString &sName, int channel, int maxChannel, QList<unsigned int> unAssignedChannels);
+	void init(const QString &sName, int channel, int maxChannel, const QList<unsigned int> &unAssignedChannels);
 
 	QString name() const;
 	int channel() const;

@@ -84,7 +84,7 @@ QSize TaxelSelector::minimumSizeHint() const
 	return QSize(cols * cellWidth, rows * cellWidth);
 }
 
-void TaxelSelector::paintEvent(QPaintEvent *)
+void TaxelSelector::paintEvent(QPaintEvent * /*event*/)
 {
 	int cols = width() / cellWidth;
 

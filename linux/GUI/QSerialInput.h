@@ -11,7 +11,7 @@ class QSerialInput : public QObject, public InputInterface
 	Q_OBJECT
 
 signals:
-	void statusMessage(const QString &, int time);
+	void statusMessage(const QString &message, int time);
 	void disconnected(const QString &reason);
 
 private:

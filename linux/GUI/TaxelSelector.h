@@ -35,15 +35,15 @@ public:
 	void update(const std::vector<float> &data, const ColorMap *colorMap, float fMin, float fMax);
 
 signals:
-	void selectedChannel(int);
+	void selectedChannel(int channel);
 	void doubleClicked();
 
 private:
 	void doMonitor(const std::vector<float> &data);
 
 	QSize minimumSizeHint() const override;
-	void paintEvent(QPaintEvent *) override;
-	void mousePressEvent(QMouseEvent *) override;
+	void paintEvent(QPaintEvent *event) override;
+	void mousePressEvent(QMouseEvent *event) override;
 	void mouseDoubleClickEvent(QMouseEvent *event) override;
 
 private:

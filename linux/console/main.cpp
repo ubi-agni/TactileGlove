@@ -102,7 +102,7 @@ bool handleCommandline(uint &outflags, string &device, string &filename, bool &b
 }
 
 bool bRun = true;
-void mySigIntHandler(int sig)
+void mySigIntHandler(int /*signal*/)
 {
 	bRun = false;
 }
@@ -123,8 +123,8 @@ int main(int argc, char **argv)
 			usage(argv);
 			return EXIT_SUCCESS;
 		}
-		if (sDevice == "") {
-			if (sFilename == "") {
+		if (sDevice.empty()) {
+			if (sFilename.empty()) {
 				input.reset(new tactile::ThrottledInput<tactile::RandomInput>(NO_TAXELS));
 				input->connect(sDevice);
 			} else {

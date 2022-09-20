@@ -34,7 +34,7 @@ class RandomInput : public QObject, public InputInterface
 {
 	Q_OBJECT
 signals:
-	void statusMessage(const QString &, int time);
+	void statusMessage(const QString &message, int time);
 
 public:
 	RandomInput(size_t noTaxels);

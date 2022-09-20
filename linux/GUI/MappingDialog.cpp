@@ -24,7 +24,8 @@ MappingDialog::MappingDialog(QWidget *parent) : QDialog(parent), taxelSelector(n
 	channelComboBox->setValidator(validator);
 }
 
-void MappingDialog::init(const QString &sName, int channel, int maxChannel, QList<unsigned int> unAssignedChannels)
+void MappingDialog::init(const QString &sName, int channel, int maxChannel,
+                         const QList<unsigned int> &unAssignedChannels)
 {
 	validator->setTop(maxChannel);
 	nameEdit->setText(sName);
@@ -36,7 +37,7 @@ void MappingDialog::init(const QString &sName, int channel, int maxChannel, QLis
 	setChannel(channel);
 	channelComboBox->setFocus();
 
-	if (unAssignedChannels.size()) {
+	if (!unAssignedChannels.empty()) {
 		if (!taxelSelector) {
 			taxelSelector = new TaxelSelector(this);
 			connect(taxelSelector, SIGNAL(selectedChannel(int)), this, SLOT(setChannel(int)));

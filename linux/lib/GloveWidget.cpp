@@ -204,7 +204,7 @@ bool GloveWidget::saveMappingCfg(const QString &sFileName, const QString &sMappi
 	return true;
 }
 
-bool GloveWidget::saveMappingYAML(const QString &sFileName, const QString &sMappingName)
+bool GloveWidget::saveMappingYAML(const QString &sFileName, const QString & /*sMappingName*/)
 {
 	QFile file(sFileName);
 	if (!file.open(QFile::WriteOnly | QFile::Truncate))
