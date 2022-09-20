@@ -3,7 +3,7 @@
   <name>tactile_glove</name>
   <version>0.1.0</version>
   <description>Bielefeld University TactileGlove software</description>
-  <license>GPLv3</license>
+  <license>LGPLv3</license>
 
   <!-- One author/maintainer tag required, multiple allowed, one person per tag -->
   <author email="rhaschke@techfak.uni-bielefeld.de">Robert Haschke</author>
