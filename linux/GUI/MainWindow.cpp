@@ -87,7 +87,7 @@ MainWindow::MainWindow(size_t noTaxels, QWidget *parent)
 void MainWindow::initModeComboBox(QComboBox *cb)
 {
 	QStringList items;
-	for (unsigned int m = 0, e = TactileValue::lastMode; m != e; ++m)
+	for (unsigned int m = 0, e = TactileValue::lastMode; m <= e; ++m)
 		items << TactileValue::getModeName((TactileValue::Mode)m).c_str();
 	cb->addItems(items);
 	cb->setCurrentIndex(TactileValue::getMode("default"));
