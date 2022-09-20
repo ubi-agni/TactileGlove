@@ -53,7 +53,8 @@ def receive_cb(msg):
                 r_out = mapping[name]['range_out']
                 if mapping[name]['idx'] < len(channel.values):
                     val = channel.values[mapping[name]['idx']]
-                    js.position[i] = r_out[0] + (r_out[1] - r_out[0]) * (float(val) - r_in[0]) / (r_in[1] - r_in[0])
+                    js.position[i] = r_out[0] + (r_out[1] - r_out[0]) * \
+                        (float(val) - r_in[0]) / (r_in[1] - r_in[0])
             js.header.stamp = rospy.Time.now()
             if not rospy.is_shutdown():
                 pub.publish(js)
