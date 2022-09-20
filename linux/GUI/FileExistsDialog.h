@@ -9,7 +9,7 @@ class FileExistsDialog : public QDialog
 
 public:
 	explicit FileExistsDialog(const QString &file, bool allow_merge, QWidget *parent = nullptr);
-	~FileExistsDialog();
+	~FileExistsDialog() override;
 
 	QString mappingName() const;
 

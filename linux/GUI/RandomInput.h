@@ -38,8 +38,8 @@ signals:
 
 public:
 	RandomInput(size_t noTaxels);
-	bool connect(const QString &dummy);
-	bool disconnect();
+	bool connect(const QString &dummy) override;
+	bool disconnect() override;
 
 	typedef tactile::InputInterface::data_vector data_vector;
 	typedef boost::function<void(const data_vector &)> UpdateFunction;
@@ -48,6 +48,6 @@ public:
 private:
 	tactile::RandomInput input;
 	UpdateFunction updateFunc;
-	void timerEvent(QTimerEvent *event);
+	void timerEvent(QTimerEvent *event) override;
 	int timerID;
 };

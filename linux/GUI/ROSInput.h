@@ -18,9 +18,9 @@ signals:
 
 public:
 	ROSInput(size_t noTaxels);
-	~ROSInput();
-	bool connect(const QString &sTopic);
-	bool disconnect();
+	~ROSInput() override;
+	bool connect(const QString &sTopic) override;
+	bool disconnect() override;
 
 	typedef boost::function<void(const std::vector<float> &)> UpdateFunction;
 	void setUpdateFunction(const UpdateFunction &f) { updateFunc = f; }

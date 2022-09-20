@@ -25,7 +25,7 @@ class MainWindow : public QMainWindow
 
 public:
 	explicit MainWindow(size_t noTaxels, QWidget *parent = nullptr);
-	~MainWindow();
+	~MainWindow() override;
 
 	void setCalibration(const std::string &sCalibFile);
 	void initJointBar(TaxelMapping &mapping);
@@ -47,8 +47,8 @@ private:
 	void updateData(const std::vector<value_type> &frame);
 	void updateJointBar(unsigned short value);
 
-	void timerEvent(QTimerEvent *event);
-	void closeEvent(QCloseEvent *event);
+	void timerEvent(QTimerEvent *event) override;
+	void closeEvent(QCloseEvent *event) override;
 
 	QList<unsigned int> getUnassignedChannels() const;
 

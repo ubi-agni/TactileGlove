@@ -31,9 +31,9 @@ class RandomInput : public InputInterface
 {
 public:
 	RandomInput(size_t noTaxels);
-	void connect(const std::string& dummy);
-	void disconnect();
-	const data_vector& readFrame();
+	void connect(const std::string& dummy) override;
+	void disconnect() override;
+	const data_vector& readFrame() override;
 };
 
 }  // namespace tactile

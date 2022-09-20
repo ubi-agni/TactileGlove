@@ -17,7 +17,7 @@ class GloveWidget : public QWidget
 	Q_OBJECT
 public:
 	explicit GloveWidget(const QString &sLayout, bool bMirror = false, QWidget *parent = nullptr);
-	QSize sizeHint() const;
+	QSize sizeHint() const override;
 
 	/// return number of all SVG nodes
 	unsigned int numNodes() const;
@@ -62,9 +62,9 @@ private:
 	/// find index of path node in allNodes at point (or -1 if not found)
 	int nodeAt(const QPoint &p);
 
-	bool event(QEvent *event);
-	void paintEvent(QPaintEvent *event);
-	void mouseDoubleClickEvent(QMouseEvent *event);
+	bool event(QEvent *event) override;
+	void paintEvent(QPaintEvent *event) override;
+	void mouseDoubleClickEvent(QMouseEvent *event) override;
 
 private:
 	struct TaxelInfo

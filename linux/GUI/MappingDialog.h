@@ -32,5 +32,5 @@ class ChannelValidator : public QIntValidator
 {
 public:
 	ChannelValidator(QObject *parent = nullptr) : QIntValidator(1, 1, parent) {}
-	QValidator::State validate(QString &input, int &pos) const;
+	QValidator::State validate(QString &input, int &pos) const override;
 };

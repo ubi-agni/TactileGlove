@@ -41,10 +41,10 @@ signals:
 private:
 	void doMonitor(const std::vector<float> &data);
 
-	QSize minimumSizeHint() const;
-	void paintEvent(QPaintEvent *);
-	void mousePressEvent(QMouseEvent *);
-	void mouseDoubleClickEvent(QMouseEvent *event);
+	QSize minimumSizeHint() const override;
+	void paintEvent(QPaintEvent *) override;
+	void mousePressEvent(QMouseEvent *) override;
+	void mouseDoubleClickEvent(QMouseEvent *event) override;
 
 private:
 	QList<unsigned int> unassigned;
