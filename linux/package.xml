@@ -15,14 +15,16 @@
 
   <buildtool_depend>catkin</buildtool_depend>
 
-  <depend>roscpp</depend>
   <depend>std_msgs</depend>
   <depend>tactile_msgs</depend>
-  <depend>tactile_filters</depend>
   <depend>sensor_msgs</depend>
-  <depend>libqt5-serialport</depend>
+  <depend>roscpp</depend>
+  <depend>tactile_filters</depend>
   <depend>libqt5-svg-dev</depend>
-  <depend>libncurses-dev</depend>
+  <build_depend>libqt5-serialport-dev</build_depend>
+  <build_depend>libncurses-dev</build_depend>
+  <exec_depend>libqt5-serialport</exec_depend>
+  <exec_depend>libncurses</exec_depend>
 
   <!-- The export tag contains other, unspecified, tags -->
   <export>
