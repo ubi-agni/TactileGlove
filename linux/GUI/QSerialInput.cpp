@@ -59,7 +59,7 @@ void QSerialInput::readData()
 	unsigned char buf[PACKET_SIZE_BYTES];
 	size_t index, max_index = frame.size() - 1;
 
-	while (serial->bytesAvailable() >= PACKET_SIZE_BYTES) {
+	while (static_cast<size_t>(serial->bytesAvailable()) >= PACKET_SIZE_BYTES) {
 		const auto bytes = serial->read((char *)buf, PACKET_SIZE_BYTES);
 		Q_ASSERT(bytes == PACKET_SIZE_BYTES);
 		Q_UNUSED(bytes);

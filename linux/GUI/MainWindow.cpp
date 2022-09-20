@@ -128,7 +128,7 @@ void MainWindow::initJointBar(TaxelMapping &mapping)
 	} else
 		iJointIdx = -1;
 
-	if (iJointIdx < 0 || iJointIdx >= data.size()) {
+	if (iJointIdx < 0 || static_cast<size_t>(iJointIdx) >= data.size()) {
 		iJointIdx = -1;
 		ui->jointBar->hide();
 	} else
@@ -164,9 +164,6 @@ void MainWindow::initGloveWidget(const QString &layout, bool bMirror, const Taxe
 
 	// initialize TaxelMapping
 	for (const auto &item : mapping) {
-		if (item.second < 0)
-			continue;  // ignore channel indexes
-
 		QString sName = QString::fromStdString(item.first);
 		int nodeIdx = gloveWidget->findPathNodeIndex(sName);
 		if (nodeIdx < 0)
