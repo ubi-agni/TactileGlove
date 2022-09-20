@@ -46,7 +46,7 @@ SerialInput::SerialInput(size_t noTaxels) : InputInterface(noTaxels)
 }
 SerialInput::~SerialInput()
 {
-	disconnect();
+	SerialInput::disconnect();
 }
 
 void SerialInput::setTimeOut(unsigned int msec)
