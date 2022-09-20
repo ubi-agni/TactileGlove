@@ -60,7 +60,7 @@ void TaxelSelector::update(const std::vector<float> &data, const ColorMap *color
 void TaxelSelector::doMonitor(const std::vector<float> &data)
 {
 	float valFirst = 0, valSecond = 0;
-	int idxFirst = -1, idxSecond = -1;
+	int idxFirst = -1;
 
 	for (unsigned int i = 0; i < unassigned.size(); ++i) {
 		unsigned int idx = unassigned[i];
@@ -68,7 +68,6 @@ void TaxelSelector::doMonitor(const std::vector<float> &data)
 		if (accumulated[i] > valFirst) {
 			valSecond = valFirst;
 			valFirst = accumulated[i];
-			idxSecond = idxFirst;
 			idxFirst = idx;
 		}
 	}
