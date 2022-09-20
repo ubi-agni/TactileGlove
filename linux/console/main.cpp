@@ -211,6 +211,7 @@ void initCurses()
 	cbreak();
 	timeout(0);
 	clear();  // Clear terminal
+	curs_set(0);  // Hide cursor
 //	atexit( (void(*)())endwin ); // Ncurses cleanup function
 #endif
 }
@@ -238,15 +239,19 @@ void printCurses(const tactile::InputInterface::data_vector &data, const PieceWi
 	clrtobot();
 
 	// Print data
-	for (size_t x = 0, end = data.size(); x < end; ++x) {
-		if (getcurx(stdscr) + 10 >= getmaxx(stdscr)) {
+	for (size_t ch = 0, end = data.size(); ch < end; ++ch) {
+		if (getcurx(stdscr) + 12 > getmaxx(stdscr)) {  // reached end of line
+			if (getcury(stdscr) + 1 == getmaxy(stdscr) && ch + 1 != end)  // reached last line
+				mvprintw(getcury(stdscr), getmaxx(stdscr) - 3, "...");
 			clrtoeol();
+			if (getcury(stdscr) + 1 == getmaxy(stdscr))
+				break;
 			printw("\n");
 		}
 		if (calib)
-			printw("%2d: %.4f    ", x + 1, calib->map(data[x]));
+			printw("%2d: %.4f    ", ch + 1, calib->map(data[ch]));
 		else
-			printw("%2d: %4d    ", x + 1, data[x]);
+			printw("%2d: %4d    ", ch + 1, data[ch]);
 	}
 
 	refresh();
