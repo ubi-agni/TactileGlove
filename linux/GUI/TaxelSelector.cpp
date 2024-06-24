@@ -42,7 +42,11 @@ void TaxelSelector::init(const QList<unsigned int> &unassigned, bool bMonitor)
 
 	QFont font;
 	QFontMetrics fm(font);
+#if QT_VERSION >= QT_VERSION_CHECK(5, 15, 0)
+	cellWidth = ((fm.horizontalAdvance("999") + 9) / 10) * 10;
+#else
 	cellWidth = ((fm.width("999") + 9) / 10) * 10;
+#endif
 
 	this->bMonitor = bMonitor;
 }

@@ -1,7 +1,7 @@
 #pragma once
 
 #include <QMainWindow>
-#include <QTime>
+#include <QElapsedTimer>
 #include <QMutex>
 #include <QMap>
 #include <QSet>
@@ -93,7 +93,7 @@ private:
 
 	ColorMap *absColorMap, *relColorMap;
 
-	QTime lastUpdate;
+	QElapsedTimer lastUpdate;
 	int frameCount;
 	int timerID;
 };

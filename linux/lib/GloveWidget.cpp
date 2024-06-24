@@ -116,7 +116,11 @@ int GloveWidget::nodeAt(const QPoint &p)
 	for (PathList::const_iterator it = allNodes.begin(), end = allNodes.end(); it != end; ++it) {
 		if (it->name.isEmpty())
 			continue;
-		QMatrix m = qSvgRendererPtr->matrixForElement(it->name);
+#if QT_VERSION >= QT_VERSION_CHECK(5, 15, 0)
+		auto m = qSvgRendererPtr->transformForElement(it->name);
+#else
+		auto m = qSvgRendererPtr->matrixForElement(it->name);
+#endif
 		QRectF bounds = m.mapRect(qSvgRendererPtr->boundsOnElement(it->name));
 		if (bounds.contains(p))
 			return it - allNodes.begin();
@@ -214,7 +218,7 @@ bool GloveWidget::saveMappingYAML(const QString &sFileName, const QString & /*sM
 	for (const auto &node : allNodes) {
 		if (node.channel < 0)
 			continue;
-		ts << node.name << ":" << node.channel << endl;
+		ts << node.name << ":" << node.channel << '\n';
 	}
 	return true;
 }
@@ -241,8 +245,11 @@ QSize GloveWidget::sizeHint() const
 void GloveWidget::paintEvent(QPaintEvent * /*event*/)
 {
 	QPainter painter(this);
+#if QT_VERSION >= QT_VERSION_CHECK(5, 15, 0)
+	painter.setRenderHint(QPainter::Antialiasing, false);
+#else
 	painter.setRenderHint(QPainter::HighQualityAntialiasing, false);
-
+#endif
 	// setup correct scaling
 	const QSize &svgSize = qSvgRendererPtr->defaultSize();
 	QSize renderSize(svgSize);
@@ -251,12 +258,12 @@ void GloveWidget::paintEvent(QPaintEvent * /*event*/)
 	painter.setViewport(0, 0, renderSize.width(), renderSize.height());
 
 	// flipping transform for SVG drawing
-	QMatrix tf;
+	QTransform tf;
 	if (bMirror) {
 		tf.translate(svgSize.width(), 0);
 		tf.scale(-1, 1);
 	}
-	painter.setMatrix(tf);
+	painter.setTransform(tf);
 	viewTransform = painter.combinedTransform();
 	qSvgRendererPtr->render(&painter, painter.window());
 
@@ -265,12 +272,16 @@ void GloveWidget::paintEvent(QPaintEvent * /*event*/)
 	painter.setFont(font);
 
 	// reset transform for text drawing
-	painter.setMatrix(QMatrix());
+	painter.setTransform(QTransform());
 	// show IDs/channels of taxels
 	for (const auto &node : allNodes) {
 		if (!bShowAllNames && node.channel < 0)
 			continue;
-		QMatrix m = qSvgRendererPtr->matrixForElement(node.name) * tf;
+#if QT_VERSION >= QT_VERSION_CHECK(5, 15, 0)
+		auto m = qSvgRendererPtr->transformForElement(node.name) * tf;
+#else
+		auto m = qSvgRendererPtr->matrixForElement(node.name) * tf;
+#endif
 		QRectF bounds = m.mapRect(qSvgRendererPtr->boundsOnElement(node.name));
 		QString label = getLabel(node.channel, node.name, bShowChannels && !bShowAllNames, bShowNames || bShowAllNames);
 		painter.setPen(Qt::black);
