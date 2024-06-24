@@ -249,9 +249,9 @@ void printCurses(const tactile::InputInterface::data_vector &data, const PieceWi
 			printw("\n");
 		}
 		if (calib)
-			printw("%2d: %.4f    ", ch + 1, calib->map(data[ch]));
+			printw("%2zd: %.4f    ", ch + 1, calib->map(data[ch]));
 		else
-			printw("%2d: %4d    ", ch + 1, data[ch]);
+			printw("%2zd: %4d    ", ch + 1, data[ch]);
 	}
 
 	refresh();
