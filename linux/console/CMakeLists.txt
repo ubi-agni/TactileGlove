@@ -25,6 +25,7 @@ target_link_libraries(${PROG_NAME}
    ${Boost_PROGRAM_OPTIONS_LIBRARY_RELEASE}
    ${roscpp_LIBRARIES}
    ${tactile_filters_LIBRARIES})
+target_compile_features(${PROG_NAME} PRIVATE cxx_std_14)
 
 install(TARGETS ${PROG_NAME} RUNTIME DESTINATION bin)
 

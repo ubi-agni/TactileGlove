@@ -1,7 +1,6 @@
 set(CMAKE_AUTOMOC ON)
 # set(CMAKE_AUTORCC ON) # only works with cmake 3.x
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
-set(CMAKE_CXX_STANDARD 11)
 
 set(SOURCES
   ColorMap.cpp ColorMap.h
