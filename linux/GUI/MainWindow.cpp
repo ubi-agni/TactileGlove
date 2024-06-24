@@ -21,7 +21,7 @@
 #include <iostream>
 #include <math.h>
 #include <qtimer.h>
-#include <boost/bind.hpp>
+#include <boost/bind/bind.hpp>
 
 using namespace std;
 using tactile::PieceWiseLinearCalib;
