@@ -25,11 +25,13 @@ Rate::Rate(double frequency)
   : start_(Clock::now())
   , expected_cycle_time_(static_cast<Duration::rep>(Duration::period::den / Duration::period::num / frequency))
   , actual_cycle_time_(Clock::duration::zero())
-{}
+{
+}
 
 Rate::Rate(const Duration &d)
   : start_(Clock::now()), expected_cycle_time_(d), actual_cycle_time_(Clock::duration::zero())
-{}
+{
+}
 
 bool Rate::sleep()
 {
